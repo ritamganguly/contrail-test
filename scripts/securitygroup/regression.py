@@ -61,6 +61,7 @@ class SecurityGroupRegressionTests(testtools.TestCase, ResourcedTestCase,
     def test_sec_group_with_proto(self):
         """Verify security group with allow specific protocol on all ports and policy with allow all between VN's"""
         self.logger.info("Configure the policy with allow any")
+        import pdb; pdb.set_trace()
         rules = [
             {
                 'direction': '<>',

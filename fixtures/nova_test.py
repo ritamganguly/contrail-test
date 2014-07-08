@@ -277,7 +277,7 @@ class NovaFixture(fixtures.Fixture):
         self.obj.servers.create(name=vm_name, image=image,
                                 security_groups=sg_ids,
                                 flavor=flavor, nics=nics_list,
-                                key_name=self.key, availability_zone=zone,
+                                key_name=self.key, #availability_zone=zone,
                                 min_count=count, max_count=count, userdata=userdata)
         vm_objs = self.get_vm_list(name_pattern=vm_name,
                                    project_id=project_uuid)
@@ -361,6 +361,7 @@ class NovaFixture(fixtures.Fixture):
     # end get_vm_list
 
     def get_nova_host_of_vm(self, vm_obj):
+        import pdb; pdb.set_trace()
         return vm_obj.__dict__['OS-EXT-SRV-ATTR:host']
     # end
 

@@ -1,21 +1,23 @@
-import fixtures
 import re
-from ipam_test import *
-from vn_test import *
-from util import *
 import time
+import socket
 import traceback
+import threading
+
+import fixtures
 from fabric.api import env
 from fabric.api import run
 from fabric.state import output
 from fabric.state import connections as fab_connections
 from fabric.operations import get, put
 from fabric.context_managers import settings, hide
-import socket
+
+from util import *
+from ipam_test import *
+from vn_test import *
+from nova_test import NovaFixture
 from contrail_fixtures import *
 #from analytics_tests import AnalyticsVerification
-import threading
-
 from tcutils.pkgs.install import PkgHost, build_and_install
 
 env.disable_known_hosts = True
@@ -41,6 +43,7 @@ class VMFixture(fixtures.Fixture):
                  image_name='ubuntu', subnets=[], flavor='contrail_flavor_small',
                  node_name=None, sg_ids=[], count=1, userdata=None):
         self.connections = connections
+        self.inputs = self.connections.inputs
         self.api_s_inspects = self.connections.api_server_inspects
         self.api_s_inspect = self.connections.api_server_inspect
         self.agent_inspect = self.connections.agent_inspect
@@ -50,7 +53,14 @@ class VMFixture(fixtures.Fixture):
         self.vnc_lib_fixture = self.connections.vnc_lib_fixture
         self.quantum_h = self.quantum_fixture.get_handle()
         self.vnc_lib_h = self.connections.vnc_lib
-        self.nova_fixture = self.connections.nova_fixture
+        if project_name == 'admin':
+            self.nova_fixture = self.connections.nova_fixture
+        else:
+            self.nova_fixture = NovaFixture(inputs=self.inputs,
+                                        project_name=project_name,
+                                        username=self.inputs.stack_user,
+                                        password=self.inputs.stack_password)
+            self.nova_fixture.setUp()
         self.node_name = node_name
         self.sg_ids = sg_ids
         self.count = count
@@ -79,7 +89,6 @@ class VMFixture(fixtures.Fixture):
         if len(vn_objs) == 1:
             self.vn_name = self.vn_names[0]
             self.vn_fq_name = self.vn_fq_names[0]
-        self.inputs = self.connections.inputs
         self.logger = self.inputs.logger
         self.already_present = False
         self.verify_is_run = False

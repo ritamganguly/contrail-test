@@ -45,7 +45,15 @@ class VNFixture(fixtures.Fixture):
     def __init__(self, connections, vn_name, inputs, policy_objs=[], subnets=[], project_name='admin', router_asn='64512', rt_number=None, ipam_fq_name=None, option='quantum', forwarding_mode=None, vxlan_id=None, clean_up=True):
         self.connections = connections
         self.inputs = inputs
-        self.quantum_fixture = self.connections.quantum_fixture
+        if project_name == 'admin':
+            self.quantum_fixture = self.connections.quantum_fixture
+        else:
+            self.quantum_fixture = QuantumFixture(
+            username=inputs.stack_user, inputs=inputs,
+            project_name=project_name,
+            password=inputs.stack_password, cfgm_ip=self.inputs.cfgm_ip,
+            openstack_ip=self.inputs.openstack_ip)
+            self.quantum_fixture.setUp()
         self.vnc_lib_h = self.connections.vnc_lib
         self.api_s_inspect = self.connections.api_server_inspect
         self.agent_inspect = self.connections.agent_inspect

@@ -48,8 +48,16 @@ class SecurityGroupSetup(fixtures.Fixture, ConfigSecGroup):
             connections=self.connections, inputs=self.inputs, subnet_count=2,
             vn_name_net=vn_s,  project_name=self.inputs.project_name))
         vns = self.multi_vn_fixture.get_all_fixture_obj()
-        (self.vn1_name, self.vn1_fix) = self.multi_vn_fixture._vn_fixtures[0]
-        (self.vn2_name, self.vn2_fix) = self.multi_vn_fixture._vn_fixtures[1]
+        (self.vn1_name, self.vn1_fix) = vns[0]
+        (self.vn2_name, self.vn2_fix) = vns[1]
+
+        self.newproj_name = 'secgrp_project'
+        newproj_vn_s = {'secgrp_vn1' : '30.1.1.0/24'}
+        self.newproj_vn_fixture = self.useFixture(MultipleVNFixture(
+            connections=self.connections, inputs=self.inputs, subnet_count=1,
+            vn_name_net=newproj_vn_s,  project_name=self.newproj_name))
+        newproj_vns = self.newproj_vn_fixture.get_all_fixture_obj()
+        (newproj_vn_name, newproj_vn_fix) = newproj_vns[0]
 
         self.logger.info("Configure security groups required for test.")
         self.config_sec_groups()
@@ -58,13 +66,21 @@ class SecurityGroupSetup(fixtures.Fixture, ConfigSecGroup):
             project_name=self.inputs.project_name, connections=self.connections,
             vm_count_per_vn=3, vn_objs=vns, image_name='ubuntu-traffic',
             flavor='contrail_flavor_small'))
-        vms = self.multi_vm_fixture.get_all_fixture()
-        (self.vm1_name, self.vm1_fix) = vms[0]
-        (self.vm2_name, self.vm2_fix) = vms[1]
-        (self.vm3_name, self.vm3_fix) = vms[2]
-        (self.vm4_name, self.vm4_fix) = vms[3]
-        (self.vm5_name, self.vm5_fix) = vms[4]
-        (self.vm6_name, self.vm6_fix) = vms[5]
+        self.vms = self.multi_vm_fixture.get_all_fixture()
+        (self.vm1_name, self.vm1_fix) = self.vms[0]
+        (self.vm2_name, self.vm2_fix) = self.vms[1]
+        (self.vm3_name, self.vm3_fix) = self.vms[2]
+        (self.vm4_name, self.vm4_fix) = self.vms[3]
+        (self.vm5_name, self.vm5_fix) = self.vms[4]
+        (self.vm6_name, self.vm6_fix) = self.vms[5]
+
+        self.newproj_vm_fixture = self.useFixture(MultipleVMFixture(
+            project_name=self.newproj_name, connections=self.connections,
+            vm_count_per_vn=2, vn_objs=newproj_vns, image_name='ubuntu-traffic',
+            flavor='contrail_flavor_small'))
+        self.newproj_vms = self.newproj_vm_fixture.get_all_fixture()
+        (self.newproj_vm1_name, self.newproj_vm1_fix) = self.newproj_vms[0]
+        (self.newproj_vm2_name, self.newproj_vm2_fix) = self.newproj_vms[1]
 
         self.logger.info("Adding the sec groups to the VM's")
         self.vm1_fix.add_security_group(secgrp=self.sg1_name)
@@ -73,15 +89,19 @@ class SecurityGroupSetup(fixtures.Fixture, ConfigSecGroup):
         self.vm4_fix.add_security_group(secgrp=self.sg1_name)
         self.vm4_fix.add_security_group(secgrp=self.sg2_name)
         self.vm5_fix.add_security_group(secgrp=self.sg1_name)
+        self.newproj_vm1_fix.add_security_group(secgrp=self.newproj_sg1_name)
+        self.newproj_vm1_fix.add_security_group(secgrp=self.newproj_sg2_name)
+        self.newproj_vm2_fix.add_security_group(secgrp=self.newproj_sg1_name)
 
         self.logger.info("Remove the default sec group form the VM's")
-        self.vm1_fix.remove_security_group(secgrp='default')
-        self.vm2_fix.remove_security_group(secgrp='default')
-        self.vm4_fix.remove_security_group(secgrp='default')
-        self.vm5_fix.remove_security_group(secgrp='default')
-
+        for vm, vmobj in self.vms:
+            vmobj.remove_security_group(secgrp='default')
+        for vm, vmobj in self.newproj_vms:
+            vmobj.remove_security_group(secgrp='default')
+ 
     def config_sec_groups(self):
         self.sg1_name = 'test_tcp_sec_group'
+        self.newproj_sg1_name = 'test_tcp_sec_group'
         rule = [{'direction': '<>',
                 'protocol': 'tcp',
                  'dst_addresses': [{'subnet': {'ip_prefix': '10.1.1.0', 'ip_prefix_len': 24}},
@@ -100,8 +120,12 @@ class SecurityGroupSetup(fixtures.Fixture, ConfigSecGroup):
                  }]
 
         self.sg1_fix = self.config_sec_group(name=self.sg1_name, entries=rule)
+        self.newproj_sg1_fix = self.config_sec_group(name=self.newproj_sg1_name,
+                                                     entries=rule,
+                                                     project_name=self.newproj_name)
 
         self.sg2_name = 'test_udp_sec_group'
+        self.newproj_sg2_name = 'test_udp_sec_group'
         rule = [{'direction': '<>',
                 'protocol': 'udp',
                  'dst_addresses': [{'subnet': {'ip_prefix': '10.1.1.0', 'ip_prefix_len': 24}},
@@ -119,22 +143,25 @@ class SecurityGroupSetup(fixtures.Fixture, ConfigSecGroup):
                  'dst_addresses': [{'security_group': 'local'}],
                  }]
         self.sg2_fix = self.config_sec_group(name=self.sg2_name, entries=rule)
+        self.newproj_sg2_fix = self.config_sec_group(name=self.newproj_sg2_name,
+                                                     entries=rule,
+                                                     project_name=self.newproj_name)
 
     def verify(self):
         """verfiy common resources."""
         self.logger.debug("Verify the configured VN's.")
         assert self.multi_vn_fixture.verify_on_setup()
+        assert self.newproj_vn_fixture.verify_on_setup()
 
         self.logger.debug("Verify the configured VM's.")
         assert self.multi_vm_fixture.verify_on_setup()
+        assert self.newproj_vm_fixture.verify_on_setup()
 
         self.logger.info("Installing traffic package in VM.")
-        self.vm1_fix.install_pkg("Traffic")
-        self.vm2_fix.install_pkg("Traffic")
-        self.vm3_fix.install_pkg("Traffic")
-        self.vm4_fix.install_pkg("Traffic")
-        self.vm5_fix.install_pkg("Traffic")
-        self.vm6_fix.install_pkg("Traffic")
+        for vm, vmobj in self.vms:
+            vmobj.install_pkg("Traffic")
+        for vm, vmobj in self.newproj_vms:
+            vmobj.install_pkg("Traffic")
 
         self.logger.debug("Verify the configured security groups.")
         result, msg = self.sg1_fix.verify_on_setup()
@@ -154,6 +181,12 @@ class SecurityGroupSetup(fixtures.Fixture, ConfigSecGroup):
         result, msg = self.vm4_fix.verify_security_group(self.sg2_name)
         assert result, msg
         result, msg = self.vm5_fix.verify_security_group(self.sg2_name)
+        assert result, msg
+        result, msg = self.newproj_vm1_fix.verify_security_group(self.newproj_sg1_name)
+        assert result, msg
+        result, msg = self.newproj_vm1_fix.verify_security_group(self.newproj_sg2_name)
+        assert result, msg
+        result, msg = self.newproj_vm2_fix.verify_security_group(self.newproj_sg2_name)
         assert result, msg
 
     def tearDown(self):
