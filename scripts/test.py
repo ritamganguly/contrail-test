@@ -9,7 +9,7 @@ import testtools
 from contrail_test_init import ContrailTestInit
 from common import log_orig as logging
 #from common import config
-#import logging as std_logging
+import logging as std_logging
 
 def attr(*args, **kwargs):
     """A decorator which applies the  testtools attr decorator
@@ -29,11 +29,11 @@ def attr(*args, **kwargs):
     return decorator
 
 #LOG = logging.getLogger(__name__)
-#std_logging.getLogger('urllib3.connectionpool').setLevel(std_logging.WARN)
-#std_logging.getLogger('paramiko.transport').setLevel(std_logging.WARN)
-#std_logging.getLogger('keystoneclient.session').setLevel(std_logging.WARN)
-#std_logging.getLogger('keystoneclient.httpclient').setLevel(std_logging.WARN)
-#std_logging.getLogger('neutronclient.client').setLevel(std_logging.WARN)
+std_logging.getLogger('urllib3.connectionpool').setLevel(std_logging.WARN)
+std_logging.getLogger('paramiko.transport').setLevel(std_logging.WARN)
+std_logging.getLogger('keystoneclient.session').setLevel(std_logging.WARN)
+std_logging.getLogger('keystoneclient.httpclient').setLevel(std_logging.WARN)
+std_logging.getLogger('neutronclient.client').setLevel(std_logging.WARN)
 #
 #CONF = config.CONF
 
