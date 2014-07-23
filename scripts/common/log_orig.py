@@ -1,3 +1,4 @@
+import ConfigParser
 import logging
 import logging.config
 import logging.handlers
@@ -15,9 +16,20 @@ TS = time.time()
 ST = datetime.datetime.fromtimestamp(TS).strftime('%Y-%m-%d_%H:%M:%S')
 LOG_FORMAT = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-class ContrailLogger:
-    def __init__(self,log_file):
+_loggers = {}
 
+
+def getLogger(log_file = 'abcd', name='unknown'):
+    if name not in _loggers:
+        _loggers[name] = ContrailLogger(log_file ,name = name)
+        _loggers[name].setUp()
+    return _loggers[name]
+
+class ContrailLogger:
+    def __init__(self,log_file,name=None):
+    
+ 
+        self.name = name
         logging.config.fileConfig(LOG_CONFIG)
         self.logger = logging.getLogger(LOG_KEY)
         self.log_file = log_file
@@ -25,9 +37,11 @@ class ContrailLogger:
     def setUp(self):
         self.fileHandler = CustomFileHandler(fileName = self.log_file)
         self.fileHandler.setFormatter(LOG_FORMAT)
-        self.memHandler = self.logger.handlers[0]
-        self.memHandler.setTarget(self.fileHandler)
-#        self.logger.addHandler(self.memHandler)
+        self.logger.addHandler(self.fileHandler)
+        #return self.logger
+        #self.memHandler = self.logger.handlers[0]
+        #self.memHandler.setTarget(self.fileHandler)
+        #self.logger.addHandler(self.fileHandler)
 
         self.console_h= logging.StreamHandler()
         self.console_h.setLevel(logging.INFO)
@@ -36,21 +50,25 @@ class ContrailLogger:
         self.logger.addHandler(logging.NullHandler())
 
     def cleanUp(self):
-        self.memHandler.flush()
-        self.memHandler.close()
-        self.logger.removeHandler(self.memHandler)
+        pass
+        #self.memHandler.flush()
+        #self.memHandler.close()
+        #self.logger.removeHandler(self.memHandler)
         self.logger.removeHandler(self.console_h)
 
+    def handlers(self):
+        return self.logger.handlers
 
 class CustomFileHandler(logging.FileHandler):
-    def __init__( self, fileName='test_details.log', mode='a', build_id='0000'):
+    def __init__( self, fileName='test_details.log', mode='w', build_id='0000'):
         if 'SCRIPT_TS' in os.environ:
             ts= os.environ.get('SCRIPT_TS')
         else:
             ts=''
         if 'BUILD_ID' in os.environ :
             build_id= os.environ.get('BUILD_ID')
-        path=os.environ.get('HOME')+'/logs/'+ build_id + '_' + ST 
+        #path=os.environ.get('%s',%cwd)+'/logs/' 
+        path=('%s'+'/logs/')%cwd 
         try:
             os.mkdir( path )
         except OSError:

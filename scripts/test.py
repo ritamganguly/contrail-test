@@ -7,9 +7,9 @@ import fixtures
 import testresources
 import testtools
 from contrail_test_init import ContrailTestInit
-from common import log as logging
-from common import config
-import logging as std_logging
+from common import log_orig as logging
+#from common import config
+#import logging as std_logging
 
 def attr(*args, **kwargs):
     """A decorator which applies the  testtools attr decorator
@@ -28,14 +28,14 @@ def attr(*args, **kwargs):
 
     return decorator
 
-LOG = logging.getLogger(__name__)
-std_logging.getLogger('urllib3.connectionpool').setLevel(std_logging.WARN)
-std_logging.getLogger('paramiko.transport').setLevel(std_logging.WARN)
-std_logging.getLogger('keystoneclient.session').setLevel(std_logging.WARN)
-std_logging.getLogger('keystoneclient.httpclient').setLevel(std_logging.WARN)
-std_logging.getLogger('neutronclient.client').setLevel(std_logging.WARN)
-
-CONF = config.CONF
+#LOG = logging.getLogger(__name__)
+#std_logging.getLogger('urllib3.connectionpool').setLevel(std_logging.WARN)
+#std_logging.getLogger('paramiko.transport').setLevel(std_logging.WARN)
+#std_logging.getLogger('keystoneclient.session').setLevel(std_logging.WARN)
+#std_logging.getLogger('keystoneclient.httpclient').setLevel(std_logging.WARN)
+#std_logging.getLogger('neutronclient.client').setLevel(std_logging.WARN)
+#
+#CONF = config.CONF
 
 
 class BaseTestCase(testtools.TestCase,
@@ -54,14 +54,14 @@ class BaseTestCase(testtools.TestCase,
             cls.ini_file= os.environ.get('TEST_CONFIG_FILE')
         else:
             cls.ini_file= 'sanity_params.ini'	
-        #cls.Logger = log.ContrailLogger(cls.__name__)
-        #cls.Logger.setUp()
-        #cls.logger = cls.Logger.logger
-        LOG = logging.getLogger(cls.__name__)
-        cls.logger = LOG
+        cls.Logger = logging.ContrailLogger(cls.__name__)
+        cls.Logger.setUp()
+        cls.logger = cls.Logger.logger
+        #LOG = logging.getLogger(cls.__name__)
+        #cls.logger = LOG
 
-        #cls.inputs = ContrailTestInit(cls.ini_file,logger = cls.logger)
-        cls.inputs = ContrailTestInit(cls.ini_file,logger = LOG)
+        cls.inputs = ContrailTestInit(cls.ini_file,logger = cls.logger)
+        #cls.inputs = ContrailTestInit(cls.ini_file,logger = LOG)
         cls.inputs.setUp()
 
     @classmethod
