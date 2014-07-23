@@ -8,11 +8,13 @@ from vm_test import *
 from policy_test import *
 from multiple_vn_vm_test import *
 from tcutils.wrappers import preposttest_wrapper
-#sys.path.append(os.path.realpath('tcutils/pkgs/Traffic'))
-from tcutils.pkgs.Traffic.traffic.core.stream import Stream
-from tcutils.pkgs.Traffic.traffic.core.profile import create, ContinuousProfile,StandardProfile, BurstProfile,ContinuousSportRange
-from tcutils.pkgs.Traffic.traffic.core.helpers import Host
-from tcutils.pkgs.Traffic.traffic.core.helpers import Sender, Receiver
+
+sys.path.append(os.path.realpath('scripts/tcutils/pkgs/Traffic'))
+from traffic.core.stream import Stream
+from traffic.core.profile import create, ContinuousProfile,StandardProfile, BurstProfile,ContinuousSportRange
+from traffic.core.helpers import Host
+from traffic.core.helpers import Sender, Receiver
+
 from servicechain.config import ConfigSvcChain
 from servicechain.verify import VerifySvcChain
 from fabric.api import run, local

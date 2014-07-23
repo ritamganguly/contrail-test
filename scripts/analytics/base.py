@@ -163,6 +163,16 @@ class AnalyticsTestSanity3Resource (BaseResource):
     class Factory:
         def create(self): return AnalyticsTestSanity3Resource()
 
+class AnalyticsTestSanityWithResourceResource(BaseResource):
+
+    def setUp(self,inputs,connections):
+        super(AnalyticsTestSanity3Resource , self).setUp(inputs,connections)
+
+    def cleanUp(self):
+        super(AnalyticsTestSanity3Resource, self).cleanUp()
+
+    class Factory:
+        def create(self): return AnalyticsTestSanity3Resource()
 #End resource
 
 
