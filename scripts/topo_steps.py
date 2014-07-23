@@ -90,8 +90,6 @@ def create_sg_contrail(self):
                 ret, msg = self.secgrp_fixture[sg_name].verify_on_setup()
                 assert ret, "Verifications for security group is :%s failed and its error message: %s" % (
                     sg_name, msg)
-    else:
-        pass
     return self
 # end of create_sg_contrail
 
@@ -125,13 +123,11 @@ def createPolicyOpenstack(self, option='openstack'):
                 self.logger.error(
                     "Policy %s verification failed after setup" % policy_name)
                 assert ret['result'], ret['msg']
-            else:
-                self.logger.info("Policy created successfully: %s" % (policy_name))
     for vn in self.topo.vnet_list:
         self.conf_policy_objs[vn] = []
         for policy_name in self.topo.vn_policy[vn]:
             self.conf_policy_objs[vn].append(
-                self.policy_fixt[policy_name]._obj)
+                self.policy_fixt[policy_name].policy_obj)
     return self
 # end createPolicyOpenstack
 
@@ -154,7 +150,6 @@ def createPolicyContrail(self):
             self.logger.error("Policy:%s read on API server failed" %
                               policy_name)
             assert False, "Policy %s read failed on API server" % policy_name
-        self.logger.info("Policy created successfully: %s" % (policy_name))
     for vn in self.topo.vnet_list:
         self.conf_policy_objs[vn] = []
         for policy_name in self.topo.vn_policy[vn]:
@@ -416,8 +411,7 @@ def createVMNova(self, option='openstack', vms_on_single_compute=False, VmToNode
             # if launching more VMs...
             retry = 0
             while True:
-                #vm_verify_out = self.vm_fixture[vm].verify_on_setup()
-                vm_verify_out = self.vm_fixture[vm].wait_till_vm_is_up()
+                vm_verify_out = self.vm_fixture[vm].verify_on_setup()
                 retry += 1
                 if vm_verify_out == True or retry > 2:
                     break

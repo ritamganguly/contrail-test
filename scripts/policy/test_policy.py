@@ -1,23 +1,53 @@
-from vn_test import *
-from quantum_test import *
-from policy_test import *
-from vm_test import *
 from base import BasePolicyTest
 from tcutils.wrappers import preposttest_wrapper
+import test 
+from vn_test import VNFixture
+from policy_test import PolicyFixture, copy, policy_test_utils
+from vm_test import VMFixture, time
 from sdn_topo_setup import sdnTopoSetupFixture
 from util import get_random_name
 from system_verification import system_vna_verify_policy
-from system_verification import assertEqual
-import test
+from test_lib.test_utils import assertEqual
 import sdn_basic_topology
 
 
-class TestBasicPolicy0(BasePolicyTest):
+class TestBasicPolicyConfig(BasePolicyTest):
+
+    '''Policy config tests'''
+
     _interface = 'json'
 
     @classmethod
     def setUpClass(cls):
-        super(TestBasicPolicy0, cls).setUpClass()
+        super(TestBasicPolicyConfig, cls).setUpClass()
+
+    def runTest(self):
+        pass
+
+    def create_vn(self, vn_name, subnets):
+        return self.useFixture(
+            VNFixture(project_name=self.inputs.project_name,
+                      connections=self.connections,
+                      inputs=self.inputs,
+                      vn_name=vn_name,
+                      subnets=subnets))
+
+    def create_vm(
+            self,
+            vn_fixture,
+            vm_name,
+            node_name=None,
+            flavor='contrail_flavor_small',
+            image_name='ubuntu-traffic'):
+        return self.useFixture(
+            VMFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                vn_obj=vn_fixture.obj,
+                vm_name=vm_name,
+                image_name=image_name,
+                flavor=flavor,
+                node_name=node_name))
 
     @test.attr(type=['sanity'])
     @preposttest_wrapper
@@ -63,6 +93,54 @@ class TestBasicPolicy0(BasePolicyTest):
             'setup')
         return True
     # end test_policy
+
+    @test.attr(type='sanity')
+    @preposttest_wrapper
+    def test_policy_to_deny(self):
+        ''' Test to validate that with policy having rule to disable icmp within the VN, ping between VMs should fail
+            1. Pick 2 VN from resource pool which have one VM in each
+            2. Create policy with icmp deny rule
+            3. Associate policy to both VN
+            4. Ping from one VM to another. Ping should fail
+        Pass criteria: Step 2,3 and 4 should pass
+        '''
+        vn1_name = get_random_name('vn1')
+        vn1_subnets = ['192.168.10.0/24']
+        policy_name = get_random_name('policy1')
+        rules = [
+            {
+                'direction': '<>', 'simple_action': 'deny',
+                'protocol': 'icmp',
+                'source_network': vn1_name,
+                'dest_network': vn1_name,
+            },
+        ]
+        policy_fixture = self.useFixture(
+            PolicyFixture(
+                policy_name=policy_name, rules_list=rules, inputs=self.inputs,
+                connections=self.connections))
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        vn1_fixture.bind_policies(
+            [policy_fixture.policy_fq_name], vn1_fixture.vn_id)
+        self.addCleanup(vn1_fixture.unbind_policies,
+                        vn1_fixture.vn_id, [policy_fixture.policy_fq_name])
+        assert vn1_fixture.verify_on_setup()
+
+        vn1_vm1_name = get_random_name('vn1_vm1')
+        vn1_vm2_name = get_random_name('vn1_vm2')
+        vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name)
+        vm2_fixture = self.create_vm(vn1_fixture, vn1_vm2_name)
+        vm1_fixture.wait_till_vm_is_up()
+        vm2_fixture.wait_till_vm_is_up()
+        if vm1_fixture.ping_to_ip(vm2_fixture.vm_ip):
+            self.logger.error(
+                'Ping from %s to %s passed,expected it to fail' %
+                (vm1_fixture.vm_name, vm2_fixture.vm_name))
+            self.logger.info('Doing verifications on the fixtures now..')
+            assert vm1_fixture.verify_on_setup()
+            assert vm2_fixture.verify_on_setup()
+        return True
+    # end test_policy_to_deny
 
     @preposttest_wrapper
     def test_policy_with_multi_vn_in_vm(self):
@@ -207,110 +285,6 @@ class TestBasicPolicy0(BasePolicyTest):
         return True
     # end test_policy_with_multi_vn_in_vm
 
-
-class TestBasicPolicy1(BasePolicyTest):
-    _interface = 'json'
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestBasicPolicy1, cls).setUpClass()
-
-    @test.attr(type='sanity')
-    @preposttest_wrapper
-    def test_remove_policy_with_ref(self):
-        ''' This tests the following scenarios.
-           1. Test to validate that policy removal will fail when it referenced with VN.
-           2. validate vn_policy data in api-s against quantum-vn data, when created and unbind policy from VN thru quantum APIs.
-           3. validate policy data in api-s against quantum-policy data, when created and deleted thru quantum APIs.
-        '''
-        vn1_name = 'vn4'
-        vn1_subnets = ['10.1.1.0/24']
-        policy_name = 'policy1'
-        rules = [
-            {
-                'direction': '<>', 'simple_action': 'pass',
-                'protocol': 'icmp',
-                'source_network': vn1_name,
-                'dest_network': vn1_name,
-            },
-        ]
-        project_obj = self.useFixture(
-            ProjectFixture(
-                vnc_lib_h=self.vnc_lib,
-                connections=self.connections))
-        policy_fixture = self.useFixture(
-            PolicyFixture(
-                policy_name=policy_name,
-                rules_list=rules,
-                inputs=self.inputs,
-                connections=self.connections))
-        vn1_fixture = self.useFixture(
-            VNFixture(
-                project_name=self.inputs.project_name,
-                connections=self.connections,
-                vn_name=vn1_name,
-                inputs=self.inputs,
-                subnets=vn1_subnets,
-                policy_objs=[
-                    policy_fixture.policy_obj]))
-        assert vn1_fixture.verify_on_setup()
-
-        # try to remove policy which  was referenced with VN.
-        policy_removal = True
-        pol_list = self.quantum_fixture.list_policys()
-        pol_id = None
-        for policy in pol_list['policys']:
-            if policy['name'] == policy_name:
-                pol_id = policy['id']
-                policy_removal = self.quantum_fixture.delete_policy(
-                    policy['id'])
-                break
-        self.assertFalse(
-            policy_removal,
-            'Policy removal succeed as not expected since policy is referenced with VN')
-        assert vn1_fixture.verify_on_setup()
-        policy_fixture.verify_policy_in_api_server()
-
-        if vn1_fixture.policy_objs:
-            policy_fq_names = [
-                self.quantum_fixture.get_policy_fq_name(x) for x in vn1_fixture.policy_objs]
-
-        self.assertTrue(
-            vn1_fixture.verify_vn_policy_in_vn_uve(),
-            "Policy information is not found in VN UVE Analytics after binding policy to VN")
-        # unbind the policy from VN
-        vn1_fixture.unbind_policies(vn1_fixture.vn_id, policy_fq_names)
-        self.assertTrue(
-            vn1_fixture.verify_vn_policy_not_in_vn_uve(),
-            "Policy information is not removed from VN UVE Analytics after policy un binded from VN")
-        # Verify policy ref is removed from VN
-        vn_pol_found = vn1_fixture.verify_vn_policy_not_in_api_server(
-            policy_name)
-        self.assertFalse(
-            vn_pol_found,
-            'policy not removed from VN after policy unbind from VN')
-        # remove the policy using quantum API
-        policy_removal = self.quantum_fixture.delete_policy(pol_id)
-        pol_found = policy_fixture.verify_policy_not_in_api_server()
-        self.assertFalse(
-            pol_found,
-            'policy not removed from API server when policy removed from Quantum')
-        return True
-    # end test_remove_policy_with_ref
-
-# end of class TestBasicPolicy1
-
-
-class TestBasicPolicy2(BasePolicyTest):
-    _interface = 'json'
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestBasicPolicy2, cls).setUpClass()
-
-    def runTest(self):
-        pass
-
     @preposttest_wrapper
     def test_policy_protocol_summary(self):
         ''' Test to validate that when policy is created with multiple rules that can be summarized by protocol
@@ -412,15 +386,130 @@ class TestBasicPolicy2(BasePolicyTest):
 
     # end test_policy_protocol_summary
 
-# end of class TestBasicPolicy2
+# end of class TestBasicPolicyConfig
 
 
-class TestBasicPolicy3(BasePolicyTest):
+class TestBasicPolicyNegative(BasePolicyTest):
+
+    '''Negative tests'''
+
     _interface = 'json'
 
     @classmethod
     def setUpClass(cls):
-        super(TestBasicPolicy3, cls).setUpClass()
+        super(TestBasicPolicyNegative, cls).setUpClass()
+
+    def runTest(self):
+        pass
+
+    @test.attr(type='sanity')
+    @preposttest_wrapper
+    def test_remove_policy_with_ref(self):
+        ''' This tests the following scenarios.
+           1. Test to validate that policy removal will fail when it referenced with VN.
+           2. validate vn_policy data in api-s against quantum-vn data, when created and unbind policy from VN thru quantum APIs.
+           3. validate policy data in api-s against quantum-policy data, when created and deleted thru quantum APIs.
+        '''
+        vn1_name = 'vn4'
+        vn1_subnets = ['10.1.1.0/24']
+        policy_name = 'policy1'
+        rules = [
+            {
+                'direction': '<>', 'simple_action': 'pass',
+                'protocol': 'icmp',
+                'source_network': vn1_name,
+                'dest_network': vn1_name,
+            },
+        ]
+        policy_fixture = self.useFixture(
+            PolicyFixture(
+                policy_name=policy_name,
+               rules_list=rules,
+                inputs=self.inputs,
+                connections=self.connections))
+        vn1_fixture = self.useFixture(
+            VNFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                vn_name=vn1_name,
+                inputs=self.inputs,
+                subnets=vn1_subnets,
+                policy_objs=[
+                    policy_fixture.policy_obj]))
+        assert vn1_fixture.verify_on_setup()
+        ret = policy_fixture.verify_on_setup()
+        if ret['result'] == False:
+            self.logger.error(
+                "Policy %s verification failed after setup" % policy_name)
+            assert ret['result'], ret['msg']
+
+        self.logger.info("Done with setup and verification, moving onto test ..")
+        # try to remove policy which  was referenced with VN.
+        policy_removal = True
+        pol_list = self.quantum_fixture.list_policys()
+        self.logger.info("policy list for project %s is %s" %
+            (self.project.project_name, pol_list))
+        pol_id = None
+        for policy in pol_list['policys']:
+            if policy['name'] == policy_name:
+                pol_id = policy['id']
+                policy_removal = self.quantum_fixture.delete_policy(
+                    policy['id'])
+                break
+        self.assertFalse(
+            policy_removal,
+            'Policy removal succeed as not expected since policy is referenced with VN')
+        #assert vn1_fixture.verify_on_setup()
+        #policy_fixture.verify_policy_in_api_server()
+
+        self.logger.info("Done with test, moving onto cleanup ..")
+        if vn1_fixture.policy_objs:
+            policy_fq_names = [
+                self.quantum_fixture.get_policy_fq_name(x) for x in vn1_fixture.policy_objs]
+
+        #self.assertTrue(
+        #    vn1_fixture.verify_vn_policy_in_vn_uve(),
+        #    "Policy information is not found in VN UVE Analytics after binding policy to VN")
+        # unbind the policy from VN
+        vn1_fixture.unbind_policies(vn1_fixture.vn_id, policy_fq_names)
+        self.assertTrue(
+            vn1_fixture.verify_vn_policy_not_in_vn_uve(),
+            "Policy information is not removed from VN UVE Analytics after policy un binded from VN")
+        # Verify policy ref is removed from VN
+        vn_pol_found = vn1_fixture.verify_vn_policy_not_in_api_server(
+            policy_name)
+        self.assertFalse(
+            vn_pol_found,
+            'policy not removed from VN after policy unbind from VN')
+        # Wait for 1 secs for db update after unbind operation..    
+        time.sleep(1)
+        # remove the policy using quantum API
+        policy_removal = self.quantum_fixture.delete_policy(pol_id)
+        if not policy_removal:
+            self.logger.info("policy delete failed, retry again...")
+            policy_removal = self.quantum_fixture.delete_policy(pol_id)
+        self.assertTrue(
+            policy_removal,
+            'Policy removal failure not expected since policy is dereferenced with VN')
+        pol_found = policy_fixture.verify_policy_not_in_api_server()
+        self.assertFalse(
+            pol_found,
+            'policy not removed from API server when policy removed from Quantum')
+        return True
+    # end test_remove_policy_with_ref
+
+# end of class TestBasicPolicyNegative
+
+
+class TestBasicPolicyRouting(BasePolicyTest):
+
+    ''' Check route import/exports based on policy config'''
+
+    _interface = 'json'
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBasicPolicyRouting, cls).setUpClass()
 
     def runTest(self):
         pass
@@ -628,21 +717,27 @@ class TestBasicPolicy3(BasePolicyTest):
 
     # end of test_policy_RT_import_export
 
+# end of class TestBasicPolicyRouting
 
-class TestBasicPolicy4(BasePolicyTest):
+
+class TestBasicPolicyModify(BasePolicyTest):
+
+    '''Policy modification related tests'''
+
     _interface = 'json'
 
     @classmethod
     def setUpClass(cls):
-        super(TestBasicPolicy4, cls).setUpClass()
+        super(TestBasicPolicyModify, cls).setUpClass()
+
+    def runTest(self):
+        pass
 
     @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_policy_modify_vn_policy(self):
         """ Configure policies based on topology;
         """
-        result = True
-        topology_class_name = None
         ###
         # Get config for test from topology
         # very simple topo will do, one vn, one vm, one policy, 3 rules
@@ -759,87 +854,4 @@ class TestBasicPolicy4(BasePolicyTest):
         return True
     # end test_policy_modify
 
-# end of class TestBasicPolicy4
-
-
-class TestBasicPolicy5(BasePolicyTest):
-    _interface = 'json'
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestBasicPolicy5, cls).setUpClass()
-
-    def create_vn(self, vn_name, subnets):
-        return self.useFixture(
-            VNFixture(project_name=self.inputs.project_name,
-                      connections=self.connections,
-                      inputs=self.inputs,
-                      vn_name=vn_name,
-                      subnets=subnets))
-
-    def create_vm(
-            self,
-            vn_fixture,
-            vm_name,
-            node_name=None,
-            flavor='contrail_flavor_small',
-            image_name='ubuntu-traffic'):
-        return self.useFixture(
-            VMFixture(
-                project_name=self.inputs.project_name,
-                connections=self.connections,
-                vn_obj=vn_fixture.obj,
-                vm_name=vm_name,
-                image_name=image_name,
-                flavor=flavor,
-                node_name=node_name))
-
-    @test.attr(type='sanity')
-    @preposttest_wrapper
-    def test_policy_to_deny(self):
-        ''' Test to validate that with policy having rule to disable icmp within the VN, ping between VMs should fail
-            1. Pick 2 VN from resource pool which have one VM in each
-            2. Create policy with icmp deny rule
-            3. Associate policy to both VN
-            4. Ping from one VM to another. Ping should fail
-        Pass criteria: Step 2,3 and 4 should pass
-        '''
-        vn1_name = get_random_name('vn1')
-        vn1_subnets = ['192.168.10.0/24']
-        policy_name = get_random_name('policy1')
-        rules = [
-            {
-                'direction': '<>', 'simple_action': 'deny',
-                'protocol': 'icmp',
-                'source_network': vn1_name,
-                'dest_network': vn1_name,
-            },
-        ]
-        policy_fixture = self.useFixture(
-            PolicyFixture(
-                policy_name=policy_name, rules_list=rules, inputs=self.inputs,
-                connections=self.connections))
-        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
-        vn1_fixture.bind_policies(
-            [policy_fixture.policy_fq_name], vn1_fixture.vn_id)
-        self.addCleanup(vn1_fixture.unbind_policies,
-                        vn1_fixture.vn_id, [policy_fixture.policy_fq_name])
-        assert vn1_fixture.verify_on_setup()
-
-        vn1_vm1_name = get_random_name('vn1_vm1')
-        vn1_vm2_name = get_random_name('vn1_vm2')
-        vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name)
-        vm2_fixture = self.create_vm(vn1_fixture, vn1_vm2_name)
-        vm1_fixture.wait_till_vm_is_up()
-        vm2_fixture.wait_till_vm_is_up()
-        if vm1_fixture.ping_to_ip(vm2_fixture.vm_ip):
-            self.logger.error(
-                'Ping from %s to %s passed,expected it to fail' %
-                (vm1_fixture.vm_name, vm2_fixture.vm_name))
-            self.logger.info('Doing verifications on the fixtures now..')
-            assert vm1_fixture.verify_on_setup()
-            assert vm2_fixture.verify_on_setup()
-        return True
-    # end test_policy_to_deny
-
-# end of class TestBasicPolicy5
+# end of class TestBasicPolicyModify

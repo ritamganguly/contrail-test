@@ -257,7 +257,7 @@ class QuantumFixture(fixtures.Fixture):
     def list_policys(self):
         policy_list = None
         try:
-            policy_list = self.obj.list_policys()
+            policy_list = self.obj.list_policys(tenant_id=self.project_id)
         except CommonNetworkClientException, e:
             self.logger.error(
                 "Quantum Exception while listing policies" + str(e))

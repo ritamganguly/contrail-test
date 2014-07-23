@@ -1,6 +1,4 @@
-def assertEqual(a, b, error_msg):
-    assert (a == b), error_msg
-
+from test_lib.test_utils import assertEqual
 
 def system_vna_verify_policy(self, policy_fixt, topo, state):
     # Verify all policies in all compute nodes..

@@ -1,16 +1,16 @@
+from base import BasePolicyTest
+from tcutils.wrappers import preposttest_wrapper
+import test
 from vn_test import *
 from quantum_test import *
 from policy_test import *
 from vm_test import *
-from base import BasePolicyTest
-from tcutils.wrappers import preposttest_wrapper
 from sdn_topo_setup import sdnTopoSetupFixture
 from system_verification import system_vna_verify_policy
 from system_verification import all_policy_verify
-from system_verification import assertEqual
+from test_lib.test_utils import assertEqual
 import sdn_single_vm_multiple_policy_topology
 import sdn_policy_traffic_test_topo
-import test
 
 
 class TestDetailedPolicy0(BasePolicyTest):

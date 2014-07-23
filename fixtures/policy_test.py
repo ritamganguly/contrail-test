@@ -807,8 +807,9 @@ class PolicyFixture(fixtures.Fixture):
     @retry(delay=3, tries=5)
     def verify_policy_in_control_nodes(self):
         """ Checks for policy details in Control-nodes.
-        Validate control-node data against API-server data and return False if any mismatch is found.
+        Validate control-node data against quantum and return False if any mismatch is found.
         """
+        # Refresh quantum policy object - self.policy_obj  
         self.refresh_quantum_policy_obj()
         me = inspect.getframeinfo(inspect.currentframe())[2]
         result = True
@@ -844,8 +845,11 @@ class PolicyFixture(fixtures.Fixture):
                 cn_rules = policy_test_utils.xlate_cn_rules(cn_rules)
             else:
                 cn_rules = []
-            out = policy_test_utils.compare_args('policy_rules', cn_rules, self.policy_obj['policy'][
-                                                 'entries']['policy_rule'], exp_name='cn_rules', act_name='quantum_rules')
+            self.logger.info("policy info in control node: %s" % cn_rules)
+            qntm_policy_info = self.policy_obj['policy']['entries']['policy_rule']
+            self.logger.info("policy info in quantum: %s" % qntm_policy_info)
+            out = policy_test_utils.compare_args('policy_rules', cn_rules, qntm_policy_info, 
+                                                 exp_name='cn_rules', act_name='quantum_rules')
             if out:
                 msg = "Rules view in control-node %s is not matching, detailed msg follows %s" % (
                     cn, out)
