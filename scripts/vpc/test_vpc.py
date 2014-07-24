@@ -858,7 +858,8 @@ class VpcSanityTests3(base.VpcBaseTest):
         cidr = '10.2.3.0/24'
         floatingIpCidr = '10.2.50.0/24'
         pool_name = 'pool1'
- 	self.vpc1_cidr = '10.2.5.0/24' 
+        self.vpc1_cidr = '10.2.5.0/24'
+        self.vpc1_vn1_cidr = '10.2.5.0/25' 
         self.vpc1_fixture = self.useFixture(VPCFixture(self.vpc1_cidr,
                                                        connections=self.connections))
         assert self.vpc1_fixture.verify_on_setup()
@@ -903,6 +904,11 @@ class VpcSanityTests3(base.VpcBaseTest):
         ), "VM verification in FIP VN failed"
         assert fip_vm_fixture.wait_till_vm_is_up(),\
             "VM verification in FIP VN failed"
+        self.vpc1_vn1_fixture = self.useFixture(VPCVNFixture(
+            self.vpc1_fixture,
+            subnet_cidr=self.vpc1_vn1_cidr,
+            connections=self.connections))
+        assert self.vpc1_vn1_fixture.verify_on_setup()
         self.vpc1_vn1_vm1_fixture = self.useFixture(
             VPCVMFixture(self.vpc1_vn1_fixture,
                          image_name='ubuntu',
