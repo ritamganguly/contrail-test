@@ -15,6 +15,7 @@ import os
 import sys
 sys.path.append(os.path.realpath('scripts/flow_tests'))
 from sdn_topo_setup import *
+import test
 
 
 class SecurityGroupRegressionTests1(BaseSGTest, VerifySecGroup, ConfigPolicy):
@@ -23,13 +24,10 @@ class SecurityGroupRegressionTests1(BaseSGTest, VerifySecGroup, ConfigPolicy):
     def setUpClass(cls):
         super(SecurityGroupRegressionTests1, cls).setUpClass()
 
-    @classmethod
-    def tearDownClass(cls):
-        super(SecurityGroupRegressionTests1, cls).tearDownClass()
-
     def runTest(self):
         pass
 
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_sec_group_add_delete(self):
         """Verify security group add delete
@@ -48,6 +46,7 @@ class SecurityGroupRegressionTests1(BaseSGTest, VerifySecGroup, ConfigPolicy):
         self.delete_sec_group(secgrp_fix)
         return True
 
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_vm_with_sec_group(self):
         """Verify attach dettach security group in VM
@@ -126,10 +125,6 @@ class SecurityGroupRegressionTests2(BaseSGTest, VerifySecGroup, ConfigPolicy):
     @classmethod
     def setUpClass(cls):
         super(SecurityGroupRegressionTests2, cls).setUpClass()
-
-    @classmethod
-    def tearDownClass(cls):
-        super(SecurityGroupRegressionTests2, cls).tearDownClass()
 
     def setUp(self):
         super(SecurityGroupRegressionTests2, self).setUp()
@@ -260,10 +255,6 @@ class SecurityGroupRegressionTests3(BaseSGTest, VerifySecGroup, ConfigPolicy):
     @classmethod
     def setUpClass(cls):
         super(SecurityGroupRegressionTests3, cls).setUpClass()
-
-    @classmethod
-    def tearDownClass(cls):
-        super(SecurityGroupRegressionTests3, cls).tearDownClass()
 
     def setUp(self):
         super(SecurityGroupRegressionTests3, self).setUp()
@@ -443,3 +434,93 @@ class SecurityGroupRegressionTests4(BaseSGTest, VerifySecGroup, ConfigPolicy):
     #end test_SG
 
 #end class SecurityGroupRegressionTests4
+
+class SecurityGroupRegressionTests5(BaseSGTest, VerifySecGroup, ConfigPolicy):
+
+    @classmethod
+    def setUpClass(cls):
+        super(SecurityGroupRegressionTests5, cls).setUpClass()
+
+    def setUp(self):
+        super(SecurityGroupRegressionTests5, self).setUp()
+        self.create_sg_test_resources()
+
+    def tearDown(self):
+        self.logger.debug("Tearing down SecurityGroupRegressionTests2.")
+        super(SecurityGroupRegressionTests5, self).tearDown()
+
+    def runTest(self):
+        pass
+
+    @preposttest_wrapper
+    def test_sec_group_with_proto_double_rules_sg1(self):
+        """Verify security group with allow tcp/udp protocol on all ports and policy with allow all between VN's"""
+        self.logger.info("Configure the policy with allow any")
+        rules = [
+            {
+                'direction': '<>',
+                'protocol': 'any',
+                'source_network': self.vn1_name,
+                'src_ports': [0, -1],
+                'dest_network': self.vn2_name,
+                'dst_ports': [0, -1],
+                'simple_action': 'pass',
+            },
+        ]
+        self.config_policy_and_attach_to_vn(rules)
+        rule = [{'direction': '<>',
+                'protocol': 'tcp',
+                 'dst_addresses': [{'subnet': {'ip_prefix': '10.1.1.0', 'ip_prefix_len': 24}},
+                                   {'subnet': {'ip_prefix': '20.1.1.0', 'ip_prefix_len': 24}}],
+                 'dst_ports': [{'start_port': 0, 'end_port': -1}],
+                 'src_ports': [{'start_port': 0, 'end_port': -1}],
+                 'src_addresses': [{'security_group': 'local'}],
+                 },
+                {'direction': '<>',
+                 'protocol': 'tcp',
+                 'src_addresses': [{'subnet': {'ip_prefix': '10.1.1.0', 'ip_prefix_len': 24}},
+                                   {'subnet': {'ip_prefix': '20.1.1.0', 'ip_prefix_len': 24}}],
+                 'src_ports': [{'start_port': 0, 'end_port': -1}],
+                 'dst_ports': [{'start_port': 0, 'end_port': -1}],
+                 'dst_addresses': [{'security_group': 'local'}],
+                 },
+		{'direction': '<>',
+                'protocol': 'udp',
+                 'dst_addresses': [{'subnet': {'ip_prefix': '10.1.1.0', 'ip_prefix_len': 24}},
+                                   {'subnet': {'ip_prefix': '20.1.1.0', 'ip_prefix_len': 24}}],
+                 'dst_ports': [{'start_port': 0, 'end_port': -1}],
+                 'src_ports': [{'start_port': 0, 'end_port': -1}],
+                 'src_addresses': [{'security_group': 'local'}],
+                 },
+		{'direction': '<>',
+                 'protocol': 'udp',
+                 'src_addresses': [{'subnet': {'ip_prefix': '10.1.1.0', 'ip_prefix_len': 24}},
+                                   {'subnet': {'ip_prefix': '20.1.1.0', 'ip_prefix_len': 24}}],
+                 'src_ports': [{'start_port': 0, 'end_port': -1}],
+                 'dst_ports': [{'start_port': 0, 'end_port': -1}],
+                 'dst_addresses': [{'security_group': 'local'}],
+                 }]
+        self.sg1_fix.replace_rules(rule)
+        rule = [{'direction': '<>',
+                'protocol': 'udp',
+                 'dst_addresses': [{'subnet': {'ip_prefix': '10.1.1.0', 'ip_prefix_len': 24}},
+                                   {'subnet': {'ip_prefix': '20.1.1.0', 'ip_prefix_len': 24}}],
+                 'dst_ports': [{'start_port': 0, 'end_port': -1}],
+                 'src_ports': [{'start_port': 0, 'end_port': -1}],
+                 'src_addresses': [{'security_group': 'local'}],
+                 },
+                {'direction': '<>',
+                 'protocol': 'udp',
+                 'src_addresses': [{'subnet': {'ip_prefix': '10.1.1.0', 'ip_prefix_len': 24}},
+                                   {'subnet': {'ip_prefix': '20.1.1.0', 'ip_prefix_len': 24}}],
+                 'src_ports': [{'start_port': 0, 'end_port': -1}],
+                 'dst_ports': [{'start_port': 0, 'end_port': -1}],
+                 'dst_addresses': [{'security_group': 'local'}],
+                 }]
+        self.sg2_fix.replace_rules(rule)
+
+        self.verify_sec_group_port_proto(double_rule=True)
+        return True
+#end test_sec_group_with_proto_double_rules_sg1
+
+#end class SecurityGroupRegressionTests5
