@@ -15,6 +15,7 @@ import os
 import sys
 sys.path.append(os.path.realpath('scripts/flow_tests'))
 from sdn_topo_setup import *
+import test
 
 
 class SecurityGroupRegressionTests1(BaseSGTest, VerifySecGroup, ConfigPolicy):
@@ -30,6 +31,7 @@ class SecurityGroupRegressionTests1(BaseSGTest, VerifySecGroup, ConfigPolicy):
     def runTest(self):
         pass
 
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_sec_group_add_delete(self):
         """Verify security group add delete
@@ -48,6 +50,7 @@ class SecurityGroupRegressionTests1(BaseSGTest, VerifySecGroup, ConfigPolicy):
         self.delete_sec_group(secgrp_fix)
         return True
 
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_vm_with_sec_group(self):
         """Verify attach dettach security group in VM
