@@ -99,7 +99,7 @@ class VerifySecGroup():
                     pdb.set_trace()
                 return (False, errmsg)
 
-    def verify_sec_group_port_proto(self, port_test=False):
+    def verify_sec_group_port_proto(self, port_test=False, double_rule=False):
         results = []
         self.logger.info("Verifcations with UDP traffic")
         sender = (self.vm1_fix, self.sg2_fix.secgrp_name)
@@ -128,8 +128,12 @@ class VerifySecGroup():
 
         sender = (self.vm1_fix, self.sg2_fix.secgrp_name)
         receiver = (self.vm5_fix, self.sg1_fix.secgrp_name)
+	if double_rule:
+	    exp = 'pass'
+	else:
+	    exp = 'fail'
         results.append(
-            self.assert_traffic(sender, receiver, 'udp', 8000, 9000, 'fail'))
+            self.assert_traffic(sender, receiver, 'udp', 8000, 9000, exp))
         if port_test:
             results.append(
                 self.assert_traffic(sender, receiver, 'udp', 8010, 9010, 'fail'))
