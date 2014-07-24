@@ -60,7 +60,7 @@ class ContrailLogger:
         return self.logger.handlers
 
 class CustomFileHandler(logging.FileHandler):
-    def __init__( self, fileName='test_details.log', mode='w', build_id='0000'):
+    def __init__( self, fileName='test_details.log', mode='a', build_id='0000'):
         if 'SCRIPT_TS' in os.environ:
             ts= os.environ.get('SCRIPT_TS')
         else:
