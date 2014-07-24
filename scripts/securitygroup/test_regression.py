@@ -10,6 +10,11 @@ from policy.config import ConfigPolicy
 from security_group import SecurityGroupFixture
 from vn_test import VNFixture
 from vm_test import VMFixture
+from topo_helper import *
+import os
+import sys
+sys.path.append(os.path.realpath('scripts/flow_tests'))
+from sdn_topo_setup import *
 
 
 class SecurityGroupRegressionTests1(BaseSGTest, VerifySecGroup, ConfigPolicy):
@@ -385,3 +390,56 @@ class SecurityGroupRegressionTests3(BaseSGTest, VerifySecGroup, ConfigPolicy):
         return True
 
 #end class SecurityGroupRegressionTests3
+
+class SecurityGroupRegressionTests4(BaseSGTest, VerifySecGroup, ConfigPolicy):
+
+    @classmethod
+    def setUpClass(cls):
+        super(SecurityGroupRegressionTests4, cls).setUpClass()
+
+    def runTest(self):
+        pass
+
+    @preposttest_wrapper
+    def test_SG(self):
+        """Tests SG and rules to check if traffic is allowed as per rules in SG"""
+        topology_class_name = None
+
+        #
+        # Get config for test from topology
+        import sdn_sg_test_topo 
+        result = True
+        msg = []
+        if not topology_class_name:
+            topology_class_name = sdn_sg_test_topo.sdn_4vn_xvm_config
+
+        self.logger.info("Scenario for the test used is: %s" %
+                         (topology_class_name))
+        try:
+            # provided by wrapper module if run in parallel test env
+            topo = topology_class_name(
+                project=self.project.project_name,
+                username=self.project.username,
+                password=self.project.password)
+        except NameError:
+            topo = topology_class_name()
+
+        #
+        # Test setup: Configure policy, VN, & VM
+        # return {'result':result, 'msg': err_msg, 'data': [self.topo, config_topo]}
+        # Returned topo is of following format:
+        # config_topo= {'policy': policy_fixt, 'vn': vn_fixture, 'vm': vm_fixture}
+        setup_obj = self.useFixture(
+            sdnTopoSetupFixture(self.connections, topo))
+	out = setup_obj.topo_setup()
+        self.logger.info("Setup completed with result %s" % (out['result']))
+        self.assertEqual(out['result'], True, out['msg'])
+        if out['result']:
+            topo_obj, config_topo = out['data']
+
+        self.attach_remove_sg_edit_sg_verify_traffic(topo_obj, config_topo)
+
+        return True
+    #end test_SG
+
+#end class SecurityGroupRegressionTests4
