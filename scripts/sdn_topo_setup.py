@@ -26,10 +26,7 @@ from webui_test import *
 class sdnTopoSetupFixture(fixtures.Fixture):
 
     def __init__(self, connections, topo):
-        if 'PARAMS_FILE' in os.environ:
-            self.ini_file = os.environ.get('PARAMS_FILE')
-        else:
-            self.ini_file = 'params.ini'
+        self.ini_file = os.environ.get('TEST_CONFIG_FILE')
         self.connections = connections
         self.inputs = self.connections.inputs
         self.quantum_fixture = self.connections.quantum_fixture

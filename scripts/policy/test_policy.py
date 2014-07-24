@@ -1,6 +1,6 @@
 from base import BasePolicyTest
 from tcutils.wrappers import preposttest_wrapper
-import test 
+import test
 from vn_test import VNFixture
 from policy_test import PolicyFixture, copy, policy_test_utils
 from vm_test import VMFixture, time
@@ -424,7 +424,7 @@ class TestBasicPolicyNegative(BasePolicyTest):
         policy_fixture = self.useFixture(
             PolicyFixture(
                 policy_name=policy_name,
-               rules_list=rules,
+                rules_list=rules,
                 inputs=self.inputs,
                 connections=self.connections))
         vn1_fixture = self.useFixture(
@@ -443,12 +443,13 @@ class TestBasicPolicyNegative(BasePolicyTest):
                 "Policy %s verification failed after setup" % policy_name)
             assert ret['result'], ret['msg']
 
-        self.logger.info("Done with setup and verification, moving onto test ..")
+        self.logger.info(
+            "Done with setup and verification, moving onto test ..")
         # try to remove policy which  was referenced with VN.
         policy_removal = True
         pol_list = self.quantum_fixture.list_policys()
         self.logger.info("policy list for project %s is %s" %
-            (self.project.project_name, pol_list))
+                         (self.project.project_name, pol_list))
         pol_id = None
         for policy in pol_list['policys']:
             if policy['name'] == policy_name:
@@ -460,14 +461,14 @@ class TestBasicPolicyNegative(BasePolicyTest):
             policy_removal,
             'Policy removal succeed as not expected since policy is referenced with VN')
         #assert vn1_fixture.verify_on_setup()
-        #policy_fixture.verify_policy_in_api_server()
+        # policy_fixture.verify_policy_in_api_server()
 
         self.logger.info("Done with test, moving onto cleanup ..")
         if vn1_fixture.policy_objs:
             policy_fq_names = [
                 self.quantum_fixture.get_policy_fq_name(x) for x in vn1_fixture.policy_objs]
 
-        #self.assertTrue(
+        # self.assertTrue(
         #    vn1_fixture.verify_vn_policy_in_vn_uve(),
         #    "Policy information is not found in VN UVE Analytics after binding policy to VN")
         # unbind the policy from VN
@@ -481,7 +482,7 @@ class TestBasicPolicyNegative(BasePolicyTest):
         self.assertFalse(
             vn_pol_found,
             'policy not removed from VN after policy unbind from VN')
-        # Wait for 1 secs for db update after unbind operation..    
+        # Wait for 1 secs for db update after unbind operation..
         time.sleep(1)
         # remove the policy using quantum API
         policy_removal = self.quantum_fixture.delete_policy(pol_id)
