@@ -8,8 +8,16 @@ class topology_helper ():
         self.vnet_list = self.topo_dict['vnet_list']
         self.vn_policy = self.topo_dict['vn_policy']
         self.policy_list = self.topo_dict['policy_list']
+        self.rules = self.topo_dict['rules']
+        if 'si_list' in self.topo_dict:
+            self.si_list = self.topo_dict['si_list']
+        else:
+            self.si_list = []
         self.vmc_list = []
         self.policy_vn = {}
+        self.pol_si = {}
+        self.si_pol = {}
+
 
     def get_vmc_list(self):
         vn_vm_l = self.topo_dict['vn_of_vm']

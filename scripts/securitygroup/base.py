@@ -34,6 +34,7 @@ class BaseSGTest(test.BaseTestCase):
 
     @classmethod
     def tearDownClass(cls):
+	cls.isolated_creds.delete_user()
         cls.isolated_creds.delete_tenant()
         super(BaseSGTest, cls).tearDownClass()
     #end tearDownClass
