@@ -237,7 +237,7 @@ class QuantumFixture(fixtures.Fixture):
     def get_policy_if_present(self, project_name=None, policy_name=None):
         policy_rsp = None
         try:
-            policy_rsp = self.obj.list_policys()
+            policy_rsp = self.list_policys()
             for (x, y, z) in [(policy['name'], policy['id'], policy['fq_name']) for policy in policy_rsp['policys']]:
                 if policy_name == x:
                     if project_name:
