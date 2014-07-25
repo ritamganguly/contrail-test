@@ -282,16 +282,19 @@ def get_plain_uuid(id):
     ''' Remove the dashes in a uuid '''
     return id.replace('-', '')
 
+
 def get_random_string(size=8, chars=string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
+
 
 def get_random_name(prefix=None):
     if not prefix:
         prefix = 'random'
     return prefix + '-' + get_random_string()
 
+
 def get_random_cidr():
-    first_octet = random.randint(1,126)
-    second_octet = random.randint(0,254)
-    third_octet = random.randint(0,254)
-    return "%i.%i.%i.0/24" %(first_octet,second_octet,third_octet)
+    first_octet = random.randint(1, 126)
+    second_octet = random.randint(0, 254)
+    third_octet = random.randint(0, 254)
+    return "%i.%i.%i.0/24" % (first_octet, second_octet, third_octet)

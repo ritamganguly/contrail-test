@@ -47,7 +47,7 @@ class QuantumFixture(fixtures.Fixture):
         project_id = get_plain_uuid(self.project_id)
         try:
             httpclient = HTTPClient(username=self.username,
-                                    tenant_id= project_id,
+                                    tenant_id=project_id,
                                     password=self.password,
                                     auth_url=self.auth_url)
             httpclient.authenticate()
@@ -92,7 +92,7 @@ class QuantumFixture(fixtures.Fixture):
         subnet_req['network_id'] = net_id
         subnet_req['ip_version'] = 4
         subnet_req['cidr'] = unicode(subnet_req['cidr'])
-        
+
         subnet_rsp = self.obj.create_subnet({'subnet': subnet_req})
         self.logger.debug('Response for create_subnet : ' + repr(subnet_rsp))
         return subnet_rsp
@@ -100,20 +100,20 @@ class QuantumFixture(fixtures.Fixture):
 
     def create_port(self, net_id, fixed_ip=None,):
         port_req = {
-           'network_id': net_id,
+            'network_id': net_id,
         }
         if fixed_ip:
-            port_req['fixed_ips'] = [{'ip_address':fixed_ip}]
+            port_req['fixed_ips'] = [{'ip_address': fixed_ip}]
         port_rsp = self.obj.create_port({'port': port_req})
-        self.logger.debug( 'Response for create_port : ' + repr(port_rsp) )
+        self.logger.debug('Response for create_port : ' + repr(port_rsp))
         return port_rsp['port']
-    #end _create_port   
+    # end _create_port
 
     def delete_port(self, port_id,):
         port_rsp = self.obj.delete_port(port_id)
-        self.logger.debug( 'Response for delete_port : ' + repr(port_rsp) )
+        self.logger.debug('Response for delete_port : ' + repr(port_rsp))
         return port_rsp
-    #end delete_port  
+    # end delete_port
 
     def get_vn_obj_if_present(self, vn_name, project_id=None):
         if not project_id:
@@ -295,9 +295,9 @@ class QuantumFixture(fixtures.Fixture):
 
     def create_router(self, router_name, tenant_id=None):
         router_body = {}
-        router_body['router']={}
+        router_body['router'] = {}
         router_body['router']['name'] = router_name
-        if tenant_id :
+        if tenant_id:
             router_body['router']['tenant_id'] = tenant_id
         return self.obj.create_router(router_body)['router']
 
@@ -305,7 +305,7 @@ class QuantumFixture(fixtures.Fixture):
         return self.obj.delete_router(router_id)
 
     def get_subnets_of_vn(self, vn_id):
-        subnets=[]
+        subnets = []
         try:
             vn_obj = self.obj.show_network(vn_id)
             for subnet_id in vn_obj['network']['subnets']:
@@ -326,9 +326,9 @@ class QuantumFixture(fixtures.Fixture):
         if subnet_id:
             body['subnet_id'] = subnet_id
         if port_id:
-            body['port_id'] = port_id 
+            body['port_id'] = port_id
         self.logger.info('Adding interface with subnet_id %s, port_id %s'
-                        ' to router %s' % (subnet_id, port_id, router_id))
+                         ' to router %s' % (subnet_id, port_id, router_id))
         result = self.obj.add_interface_router(router_id, body)
         return result
     # end add_router_interface
@@ -342,7 +342,7 @@ class QuantumFixture(fixtures.Fixture):
         if port_id:
             body['port_id'] = port_id
         self.logger.info('Deleting interface with subnet_id %s, port_id %s'
-                        ' from router %s' % (subnet_id, port_id, router_id))
+                         ' from router %s' % (subnet_id, port_id, router_id))
         result = self.obj.remove_interface_router(router_id, body)
         return result
     # end delete_router_interface
