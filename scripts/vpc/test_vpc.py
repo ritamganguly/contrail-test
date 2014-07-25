@@ -83,7 +83,6 @@ class VpcSanityTests(base.VpcBaseTest):
         return True
      # end test_create_describe_route_tables
 
-    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_instance_stop_start(self):
         '''
@@ -645,6 +644,7 @@ class VpcSanityTests2(base.VpcBaseTest):
         super(VpcSanityTests2, cls).setUpClass()
 
 
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_ping_between_instances(self):
         """Test ping between instances in subnet """
