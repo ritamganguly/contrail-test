@@ -236,6 +236,10 @@ class VNFixture(fixtures.Fixture):
         if self.vxlan_id is not None:
             self.add_vxlan_id(self.project_obj.project_fq_name,
                               self.vn_name, self.vxlan_id)
+        
+        # Populate the VN Subnet details
+        self.vn_subnet_objs = self.quantum_fixture.get_subnets_of_vn(
+                                                                self.vn_id)
     # end setUp
 
     def create_subnet(self, vn_subnet, ipam_fq_name):

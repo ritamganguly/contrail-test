@@ -182,7 +182,7 @@ def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False):
 def fab_put_file_to_vm(host_string, password, src, dest):
     (username, host_ip) = host_string.split('@')
     put('scripts/tcutils/fabfile.py', '~/')
-    cmd_str = 'fab -u %s -p %s -H %s -D -w --hide status,user,running fput:\"%s\",\"%s\"' % (
+    cmd_str = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running fput:\"%s\",\"%s\"' % (
         username, password, host_ip, src, dest)
     log.debug(cmd_str)
     output = run(cmd_str)
@@ -289,3 +289,9 @@ def get_random_name(prefix=None):
     if not prefix:
         prefix = 'random'
     return prefix + '-' + get_random_string()
+
+def get_random_cidr():
+    first_octet = random.randint(1,126)
+    second_octet = random.randint(0,254)
+    third_octet = random.randint(0,254)
+    return "%i.%i.%i.0/24" %(first_octet,second_octet,third_octet)
