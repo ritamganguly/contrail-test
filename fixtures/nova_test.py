@@ -63,7 +63,26 @@ class NovaFixture(fixtures.Fixture):
         images_list = self.obj.images.list()
         for image in images_list:
             if image.name == image_name:
-                got_image = image        
+                if image.status.lower() != 'active':
+                # wait for sometime for image to become active
+                    tries = 20
+                    while tries > 0:
+                        updated_image = self.obj.images.get(image.id)
+                        if updated_image.status.lower() == 'active':
+                            break
+                        tries -= 1
+                        sleep(5)
+                    # end while    
+                if self.obj.images.get(image.id).status.lower() == 'active':
+                    got_image = self.obj.images.get(image.id)
+                    break
+                else:
+                    self.logger.info('Image %s found, but not active!'
+                        'Will install a new one' % (image_name))
+            else:
+                self.logger.debug('Image %s not found. Will install' % (
+                                  image_name))
+        # end for
         return got_image
     # end find_image
 
