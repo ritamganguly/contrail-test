@@ -47,7 +47,11 @@ class NovaFixture(fixtures.Fixture):
                                        project_id=self.project_name,
                                        api_key=self.password,
                                        auth_url=self.auth_url)
-        self._create_keypair(self.key)
+
+        try:
+            self._create_keypair(self.key)
+        except Exception as e:
+            self.logger.exception("Got exception in create keypair")
         self.compute_nodes = self.get_compute_host()
     # end setUp
 
@@ -437,8 +441,8 @@ class NovaFixture(fixtures.Fixture):
     def wait_till_vm_is_active(self, vm_obj):
         try:
             vm_obj.get()
-            if vm_obj.status == 'ACTIVE':
-                self.logger.info('VM %s is ACTIVE now' % vm_obj)
+            if vm_obj.status == 'ACTIVE' or vm_obj.status == 'ERROR':
+                self.logger.info('VM %s is in %s state now' % (vm_obj,vm_obj.status))
                 return True
             else:
                 self.logger.debug('VM %s is still in %s state' %

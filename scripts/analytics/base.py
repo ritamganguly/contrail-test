@@ -121,10 +121,12 @@ class BaseResource(fixtures.Fixture):
 class AnalyticsTestSanityResource (BaseResource): 
 
     def setUp(self,inputs,connections):
-        super(AnalyticsTestSanityResource , self).setUp(inputs,connections)
+        pass
+        #super(AnalyticsTestSanityResource , self).setUp(inputs,connections)
 
     def cleanUp(self):
-        super(AnalyticsTestSanityResource, self).cleanUp()
+        pass
+        #super(AnalyticsTestSanityResource, self).cleanUp()
 
     class Factory:
         def create(self): return AnalyticsTestSanityResource()
@@ -132,10 +134,12 @@ class AnalyticsTestSanityResource (BaseResource):
 class AnalyticsTestSanity1Resource (BaseResource):
 
     def setUp(self,inputs,connections):
-        super(AnalyticsTestSanity1Resource , self).setUp(inputs,connections)
+        pass
+        #super(AnalyticsTestSanity1Resource , self).setUp(inputs,connections)
 
     def cleanUp(self):
-        super(AnalyticsTestSanity1Resource, self).cleanUp()
+        pass
+        #super(AnalyticsTestSanity1Resource, self).cleanUp()
 
     class Factory:
         def create(self): return AnalyticsTestSanity1Resource()
@@ -144,10 +148,12 @@ class AnalyticsTestSanity1Resource (BaseResource):
 class AnalyticsTestSanity2Resource (BaseResource):
 
     def setUp(self,inputs,connections):
-        super(AnalyticsTestSanity2Resource , self).setUp(inputs,connections)
+        pass
+        #super(AnalyticsTestSanity2Resource , self).setUp(inputs,connections)
 
     def cleanUp(self):
-        super(AnalyticsTestSanity2Resource, self).cleanUp()
+        pass
+        #super(AnalyticsTestSanity2Resource, self).cleanUp()
 
     class Factory:
         def create(self): return AnalyticsTestSanity2Resource()
@@ -155,10 +161,12 @@ class AnalyticsTestSanity2Resource (BaseResource):
 class AnalyticsTestSanity3Resource (BaseResource):
 
     def setUp(self,inputs,connections):
-        super(AnalyticsTestSanity3Resource , self).setUp(inputs,connections)
+        pass
+        #super(AnalyticsTestSanity3Resource , self).setUp(inputs,connections)
 
     def cleanUp(self):
-        super(AnalyticsTestSanity3Resource, self).cleanUp()
+        pass
+        #super(AnalyticsTestSanity3Resource, self).cleanUp()
 
     class Factory:
         def create(self): return AnalyticsTestSanity3Resource()
@@ -166,13 +174,13 @@ class AnalyticsTestSanity3Resource (BaseResource):
 class AnalyticsTestSanityWithResourceResource(BaseResource):
 
     def setUp(self,inputs,connections):
-        super(AnalyticsTestSanity3Resource , self).setUp(inputs,connections)
+        super(AnalyticsTestSanityWithResourceResource , self).setUp(inputs,connections)
 
     def cleanUp(self):
-        super(AnalyticsTestSanity3Resource, self).cleanUp()
+        super(AnalyticsTestSanityWithResourceResource, self).cleanUp()
 
     class Factory:
-        def create(self): return AnalyticsTestSanity3Resource()
+        def create(self): return AnalyticsTestSanityWithResourceResource()
 #End resource
 
 
