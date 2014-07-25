@@ -47,7 +47,7 @@ class QuantumFixture(fixtures.Fixture):
         project_id = get_plain_uuid(self.project_id)
         try:
             httpclient = HTTPClient(username=self.username,
-                                    tenant_id= project_id,
+                                    tenant_id=project_id,
                                     password=self.password,
                                     auth_url=self.auth_url)
             httpclient.authenticate()
@@ -92,7 +92,7 @@ class QuantumFixture(fixtures.Fixture):
         subnet_req['network_id'] = net_id
         subnet_req['ip_version'] = 4
         subnet_req['cidr'] = unicode(subnet_req['cidr'])
-        
+
         subnet_rsp = self.obj.create_subnet({'subnet': subnet_req})
         self.logger.debug('Response for create_subnet : ' + repr(subnet_rsp))
         return subnet_rsp
@@ -100,20 +100,20 @@ class QuantumFixture(fixtures.Fixture):
 
     def create_port(self, net_id, fixed_ip=None,):
         port_req = {
-           'network_id': net_id,
+            'network_id': net_id,
         }
         if fixed_ip:
-            port_req['fixed_ips'] = [{'ip_address':fixed_ip}]
+            port_req['fixed_ips'] = [{'ip_address': fixed_ip}]
         port_rsp = self.obj.create_port({'port': port_req})
-        self.logger.debug( 'Response for create_port : ' + repr(port_rsp) )
+        self.logger.debug('Response for create_port : ' + repr(port_rsp))
         return port_rsp['port']
-    #end _create_port   
+    # end _create_port
 
     def delete_port(self, port_id,):
         port_rsp = self.obj.delete_port(port_id)
-        self.logger.debug( 'Response for delete_port : ' + repr(port_rsp) )
+        self.logger.debug('Response for delete_port : ' + repr(port_rsp))
         return port_rsp
-    #end delete_port  
+    # end delete_port
 
     def get_vn_obj_if_present(self, vn_name, project_id=None):
         if not project_id:
@@ -293,5 +293,58 @@ class QuantumFixture(fixtures.Fixture):
         return self.obj.list_security_groups(*args, **kwargs)
     # end
 
+    def create_router(self, router_name, tenant_id=None):
+        router_body = {}
+        router_body['router'] = {}
+        router_body['router']['name'] = router_name
+        if tenant_id:
+            router_body['router']['tenant_id'] = tenant_id
+        return self.obj.create_router(router_body)['router']
+
+    def delete_router(self, router_id=None):
+        return self.obj.delete_router(router_id)
+
+    def get_subnets_of_vn(self, vn_id):
+        subnets = []
+        try:
+            vn_obj = self.obj.show_network(vn_id)
+            for subnet_id in vn_obj['network']['subnets']:
+                subnets.append(self.obj.show_subnet(subnet_id)['subnet'])
+        except CommonNetworkClientException, e:
+            self.logger.exception(
+                'Exception while reading network details%s' % (vn_id))
+            return None
+        return subnets
+    # end get_subnets_of_vn
+
+    def add_router_interface(self, router_id, subnet_id=None, port_id=None):
+        ''' Add an interface to router.
+            Result will be of form 
+            {u'subnet_id': u'd5ae735b-4df2-473f-9d6c-ca9ddb263fdc', u'tenant_id': u'509a5c7a23474f15a456905adcd9fc8d', u'port_id': u'f2d4cb13-2401-4830-b8cc-c23d544bb1d6', u'id': u'da7e4878-04fa-4d1a-8def-4b11c2eaf569'}
+        '''
+        body = {}
+        if subnet_id:
+            body['subnet_id'] = subnet_id
+        if port_id:
+            body['port_id'] = port_id
+        self.logger.info('Adding interface with subnet_id %s, port_id %s'
+                         ' to router %s' % (subnet_id, port_id, router_id))
+        result = self.obj.add_interface_router(router_id, body)
+        return result
+    # end add_router_interface
+
+    def delete_router_interface(self, router_id, subnet_id=None, port_id=None):
+        ''' Remove an interface from router
+        '''
+        body = {}
+        if subnet_id:
+            body['subnet_id'] = subnet_id
+        if port_id:
+            body['port_id'] = port_id
+        self.logger.info('Deleting interface with subnet_id %s, port_id %s'
+                         ' from router %s' % (subnet_id, port_id, router_id))
+        result = self.obj.remove_interface_router(router_id, body)
+        return result
+    # end delete_router_interface
 
 # end QuantumFixture

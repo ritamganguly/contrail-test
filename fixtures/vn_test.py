@@ -87,11 +87,11 @@ class VNFixture(fixtures.Fixture):
         self.not_in_cn_verification_flag = True
         self._parse_subnets()
     # end __init__
-    
+
     def _parse_subnets(self):
         # If the list is just having cidrs
         if type(self.vn_subnets[0]) is str:
-            self.vn_subnets = [ {'cidr': x} for x in self.vn_subnets ]
+            self.vn_subnets = [{'cidr': x} for x in self.vn_subnets]
     # end _parse_subnets
 
     @retry(delay=10, tries=10)
@@ -102,7 +102,7 @@ class VNFixture(fixtures.Fixture):
             if not self.obj:
                 self.obj = self.quantum_fixture.create_network(
                     self.vn_name, self.vn_subnets, self.ipam_fq_name)
-                self.logger.debug('Created VN %s' %(self.vn_name))
+                self.logger.debug('Created VN %s' % (self.vn_name))
             else:
                 self.already_present = True
                 self.logger.debug('VN %s already present, not creating it' %
@@ -236,6 +236,10 @@ class VNFixture(fixtures.Fixture):
         if self.vxlan_id is not None:
             self.add_vxlan_id(self.project_obj.project_fq_name,
                               self.vn_name, self.vxlan_id)
+
+        # Populate the VN Subnet details
+        self.vn_subnet_objs = self.quantum_fixture.get_subnets_of_vn(
+            self.vn_id)
     # end setUp
 
     def create_subnet(self, vn_subnet, ipam_fq_name):
@@ -820,29 +824,33 @@ class VNFixture(fixtures.Fixture):
         ''' For expected rt_import data, we need to inspect policy attached to both the VNs under test..
         Both VNs need to have rule in policy with action as pass to other VN..
         This data needs to come from calling test code as policy_peer_vns'''
-        self.logger.info("Verifying RT for vn %s, RI name is %s" %(self.vn_fq_name, self.ri_name))
+        self.logger.info("Verifying RT for vn %s, RI name is %s" %
+                         (self.vn_fq_name, self.ri_name))
         self.policy_peer_vns = policy_peer_vns
         compare = False
         for i in range(len(self.inputs.bgp_ips)):
             cn = self.inputs.bgp_ips[i]
-            self.logger.info("Checking VN RT in control node %s" %cn)
+            self.logger.info("Checking VN RT in control node %s" % cn)
             cn_ref = self.cn_inspect[cn]
             vn_ri = cn_ref.get_cn_routing_instance(ri_name=self.ri_name)
             act_rt_import = vn_ri['import_target']
             act_rt_export = vn_ri['export_target']
-            self.logger.info("act_rt_import is %s, act_rt_export is %s" %(act_rt_import, act_rt_export))
+            self.logger.info("act_rt_import is %s, act_rt_export is %s" %
+                             (act_rt_import, act_rt_export))
             exp_rt = self.get_rt_info()
-            self.logger.info("exp_rt_import is %s, exp_rt_export is %s" %(exp_rt['rt_import'], exp_rt['rt_export']))
+            self.logger.info("exp_rt_import is %s, exp_rt_export is %s" %
+                             (exp_rt['rt_import'], exp_rt['rt_export']))
             compare_rt_export = policy_test_utils.compare_list(
                 self, exp_rt['rt_export'], act_rt_export)
             compare_rt_import = policy_test_utils.compare_list(
                 self, exp_rt['rt_import'], act_rt_import)
             self.logger.info(
-                "compare_rt_export is %s, compare_rt_import is %s" %(compare_rt_export, compare_rt_import))
+                "compare_rt_export is %s, compare_rt_import is %s" % (compare_rt_export, compare_rt_import))
             if (compare_rt_export and compare_rt_import):
                 compare = True
             else:
-                self.logger.info("verify_vn_route_target failed in control node %s" %cn) 
+                self.logger.info(
+                    "verify_vn_route_target failed in control node %s" % cn)
                 return False
         return compare
     # end verify_route_target
