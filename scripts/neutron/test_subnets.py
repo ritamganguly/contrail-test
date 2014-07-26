@@ -15,10 +15,10 @@ from vm_test import *
 from connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 
-from subnet.base import BaseSubnetTest
+from neutron.base import BaseNeutronTest
 import test
 
-class TestSubnets(BaseSubnetTest):
+class TestSubnets(BaseNeutronTest):
 
     @classmethod
     def setUpClass(cls):
@@ -40,31 +40,27 @@ class TestSubnets(BaseSubnetTest):
         Check the route table in the VM
         
         '''
-        result = True
-        vn1_name = 'vn30'
+        vn1_name = get_random_name('vn1')
+        vn1_subnets = [get_random_cidr()]
+        vn1_gateway = self.get_gateway(vn1_subnets[0])
         dest_ip = '8.8.8.8'
         destination = dest_ip + '/32'
+        # nh IP does not matter, it will always be the default gw
         nh = '30.1.1.10'
-        vn1_subnets = [{'cidr': '30.1.1.0/24',
+        vn1_subnets = [{'cidr': vn1_subnets[0],
                        'host_routes': [{'destination': destination,
                                        'nexthop': nh},
                                        {'destination': '0.0.0.0/0',
-                                       'nexthop': '30.1.1.1'}],
+                                       'nexthop': vn1_gateway}],
                        }]
-        vn1_vm1_name = 'vm1'
-        vn1_fixture = self.useFixture(VNFixture(
-            project_name=self.inputs.project_name,
-            connections=self.connections,
-            vn_name=vn1_name,
-            inputs=self.inputs,
-            subnets=vn1_subnets))
-        vm1_fixture = self.useFixture(VMFixture(
-            project_name=self.inputs.project_name,
-            connections=self.connections,
-            vn_obj=vn1_fixture.obj,
-            vm_name=vn1_vm1_name, ))
+        vn1_vm1_name = get_random_name('vn1-vm1')
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name)
         assert vm1_fixture.wait_till_vm_is_up()
         output = vm1_fixture.run_cmd_on_vm(['route -n'])
-        cmd_output = output.values()[0]
-        #self.logger.info('Host routes are seen on the VM..ok')
+        route_output = output.values()[0]
+        assert dest_ip in route_output, 'Route pushed from DHCP is not \
+                         present in Route table of the VM'
+        self.logger.info('Route pushed from DHCP is present in route-table '
+                        ' of the VM..OK')
     # end test_subnet_host_routes
