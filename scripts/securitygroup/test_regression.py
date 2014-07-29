@@ -579,38 +579,6 @@ class SecurityGroupRegressionTests6(BaseSGTest, VerifySecGroup, ConfigPolicy):
         return True
     #end test_sg_stateful 
 
-    @preposttest_wrapper
-    def test_sg_multiproject(self):
-        """ Test SG across projects"""
-
-        topology_class_name = None
-
-        #
-        # Get config for test from topology
-        import sdn_sg_test_topo
-        result = True
-        msg = []
-        if not topology_class_name:
-            topology_class_name = sdn_sg_test_topo.sdn_topo_config_multiproject
-
-        self.logger.info("Scenario for the test used is: %s" %
-                         (topology_class_name))
-        topo = topology_class_name()
-
-        #
-        # Test setup: Configure policy, VN, & VM
-        # return {'result':result, 'msg': err_msg, 'data': [self.topo, config_topo]}
-        # Returned topo is of following format:
-        # config_topo= {'policy': policy_fixt, 'vn': vn_fixture, 'vm': vm_fixture}
-        topo_objs = {}
-        config_topo = {}
-        setup_obj = self.useFixture(
-            sdnTopoSetupFixture(self.connections, topo))
-        out = setup_obj.sdn_topo_setup()
-        self.assertEqual(out['result'], True, out['msg'])
-        if out['result'] == True:
-            topo_objs, config_topo, vm_fip_info = out['data']
-
 
 #end class SecurityGroupRegressionTests6
 
