@@ -36,6 +36,7 @@ update=0
 logging=0
 logging_config=logging.conf
 result_xml="result.xml"
+serial_result_xml="result1.xml"
 send_mail=0
 
 if ! options=$(getopt -o VNnfusthdC:lLmr: -l virtual-env,no-virtual-env,no-site-packages,force,update,sanity,serial,help,debug,config:,logging,logging-config,send-mail,result-xml: -- "$@")
@@ -107,11 +108,27 @@ function send_mail {
   fi
 }
 
+function run_tests_serial {
+  rm -f $serial_result_xml
+  testr_init
+  ${wrapper} find . -type f -name "*.pyc" -delete
+  #export OS_TEST_PATH=${OS_TEST_PATH:-"./serial_scripts/abc"}
+  export OS_TEST_PATH=./serial_scripts
+  if [ $debug -eq 1 ]; then
+      if [ "$testrargs" = "" ]; then
+           testrargs="discover $OS_TEST_PATH"
+      fi
+      ${wrapper} python -m testtools.run $testrargs
+      return $?
+  fi
+  ${wrapper} testr run --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $serial_result_xml 
+}
+
 function run_tests {
   rm -f $result_xml
   testr_init
   ${wrapper} find . -type f -name "*.pyc" -delete
-  export OS_TEST_PATH=${OS_TEST_PATH:-"./scripts"}
+  export OS_TEST_PATH=./scripts
   if [ $debug -eq 1 ]; then
       if [ "$testrargs" = "" ]; then
            testrargs="discover $OS_TEST_PATH"
@@ -125,6 +142,9 @@ function run_tests {
   else
       ${wrapper} testr run --parallel --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml
   fi
+}
+
+function generate_html_send_mail {
   if [ -f $result_xml ]; then
       ant
       ${wrapper} python tools/update_testsuite_properties.py $REPORT_DETAILS_FILE $result_xml
@@ -165,6 +185,8 @@ fi
 
 export PYTHONPATH=$PATH:$PWD/scripts:$PWD/fixtures
 run_tests
+run_tests_serial
+generate_html_send_mail
 retval=$?
 
 exit $retval

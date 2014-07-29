@@ -75,7 +75,7 @@ class NovaFixture(fixtures.Fixture):
                         if updated_image.status.lower() == 'active':
                             break
                         tries -= 1
-                        sleep(5)
+                        time.sleep(5)
                     # end while    
                 if self.obj.images.get(image.id).status.lower() == 'active':
                     got_image = self.obj.images.get(image.id)
