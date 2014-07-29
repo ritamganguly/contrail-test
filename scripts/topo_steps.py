@@ -48,7 +48,7 @@ def createProject(self):
             username=self.topo.username, password=self.topo.password,
             connections=self.connections))
     if not ((self.topo.username == 'admin' or self.topo.username == None) and (self.topo.project == 'admin')):
-        #provision non-admin user as "admin" in non-admin tenant
+        self.logger.info("provision user %s with role as admin in tenant %s" %(self.topo.username, self.topo.project))
         self.user_fixture.add_user_to_tenant(self.topo.project, self.topo.username, 'admin')
     self.project_inputs = self.useFixture(
         ContrailTestInit(
@@ -600,11 +600,11 @@ def checkNAddAdminRole(self):
 #end checkNAddAdminRole 
 
 def createServiceInstance(self):
-    try:
+    self.si_fixture = {}
+    if hasattr(self.topo, 'si_list'):
         self.logger.info("Setup step: Creating Service Instances")
         #For SVC case to work in non-admin tenant, link "admin" user
         checkNAddAdminRole(self)
-        self.si_fixture = {}
         for si_name in self.topo.si_list:
             self.si_fixture[si_name] = self.useFixture(SvcInstanceFixture(
                 connections=self.project_connections, inputs=self.project_inputs,
@@ -612,10 +612,18 @@ def createServiceInstance(self):
                 svc_template=self.st_fixture[self.topo.si_params[si_name][
                     'svc_template']].st_obj, if_list=self.topo.si_params[si_name]['if_list'],
                 left_vn_name=self.topo.si_params[si_name]['left_vn']))
-            self.si_fixture[si_name].verify_on_setup()
-    except (NameError, AttributeError):
-        self.logger.info(
-            "Not Creating Service Instances, as its not defined in topology")
+        if self.skip_verify == 'no':
+            # Include retry to handle time taken by less powerful computes or if launching more VMs...
+            retry= 0
+            while True:
+                ret, msg = self.si_fixture[si_name].verify_on_setup(report=False)
+                retry += 1
+                if ret == True or retry > 2:
+                    break
+            if ret == False:
+                m = "service instance %s verify failed after setup with error %s" % (si_name, msg)
+                self.err_msg.append(m)
+                assert ret, self.err_msg
     return self
 # end createServiceInstance
 
