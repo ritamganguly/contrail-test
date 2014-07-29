@@ -8,7 +8,7 @@ from time import sleep
 from fabric.api import run
 from fabric.operations import put
 from fabric.context_managers import settings, hide
-from util import run_fab_cmd_on_node, fab_put_file_to_vm
+from tcutils.util import run_fab_cmd_on_node, fab_put_file_to_vm
 
 LOG.basicConfig(format='%(levelname)s: %(message)s', level=LOG.DEBUG)
 
