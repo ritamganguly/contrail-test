@@ -6,7 +6,7 @@ from vnc_api.gen.resource_xsd import PolicyEntriesType
 from vnc_api.gen.resource_test import SecurityGroupTestFixtureGen,\
     ProjectTestFixtureGen, DomainTestFixtureGen
 
-from util import retry
+from tcutils.util import retry
 
 
 class SecurityGroupFixture(ContrailFixture):

@@ -10,7 +10,7 @@
 import os
 import unittest
 from upgrade import *
-from util import get_os_env
+from tcutils.util import get_os_env
 from tcutils.contrailtestrunner import ContrailHTMLTestRunner
 
 

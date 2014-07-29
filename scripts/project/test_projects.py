@@ -11,7 +11,7 @@ from tcutils.wrappers import preposttest_wrapper
 
 from project.base import BaseProjectTest
 import test
-from util import get_random_name
+from tcutils.util import get_random_name
 
 class TestProject(BaseProjectTest):
 
