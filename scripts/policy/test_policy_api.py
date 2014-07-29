@@ -7,11 +7,8 @@ from tcutils.wrappers import preposttest_wrapper
 from vnc_api import vnc_api
 from vnc_api.gen.resource_test import *
 from sdn_topo_setup import *
-from base import BasePolicyTest
 from common import isolated_creds
 import inspect
-import fixtures
-from policy_test import *
 
 
 class TestApiPolicyFixture01(BasePolicyTest):
