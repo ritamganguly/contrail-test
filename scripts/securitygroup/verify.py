@@ -342,7 +342,7 @@ class VerifySecGroup():
             assert False, errmsg
 
 
-    def start_traffic_and_verify(self, topo, config_topo, prto=None, sprt=None, dprt=None, expt=None, start=0, end=None):
+    def start_traffic_and_verify(self, topo, config_topo, prto=None, sprt=None, dprt=None, expt=None, start=0, end=None, traffic_reverse=True):
         results = []
         if not end:
             end = len(topo.traffic_profile) - 1
@@ -366,7 +366,8 @@ class VerifySecGroup():
             else:
                 exp = expt
             results.append(self.assert_traffic(sender, receiver, proto, sport, dport, exp))
-            results.append(self.assert_traffic(receiver, sender, proto, sport, dport, exp))
+	    if traffic_reverse:
+	       results.append(self.assert_traffic(receiver, sender, proto, sport, dport, exp))
 
         errmsg = ''
         for (rc, msg) in results:
