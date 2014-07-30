@@ -23,7 +23,6 @@ class AnalyticsBaseTest(test.BaseTestCase):
         cls.analytics_obj=cls.connections.analytics_obj
         resource_class = cls.__name__ + 'Resource'
         cls.res = ResourceFactory.createResource(resource_class)
-        cls.res.setUp(cls.inputs , cls.connections)
     #end setUpClass
 
     @classmethod
