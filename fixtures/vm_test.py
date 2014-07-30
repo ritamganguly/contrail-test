@@ -15,6 +15,8 @@ import socket
 import paramiko
 from contrail_fixtures import *
 import threading
+import shlex
+from subprocess import Popen, PIPE
 
 from tcutils.pkgs.install import PkgHost, build_and_install
 
@@ -1658,6 +1660,44 @@ class VMFixture(fixtures.Fixture):
         self.vm_flows_removed_flag = self.vm_flows_removed_flag and result
         return result
     # end verify_vm_flows_removed
+
+    def provision_static_route(
+            self,
+            prefix='111.1.0.0/16',
+            tenant_name='admin',
+            api_server_ip='127.0.0.1',
+            api_server_port='8082',
+            oper='add',
+            virtual_machine_interface_id='',
+            route_table_name='my_route_table',
+            user='admin',
+            password='contrail123'):
+
+        cmd = "python /opt/contrail/utils/provision_static_route.py --prefix %s \
+                --tenant_name %s  \
+                --api_server_ip %s \
+                --api_server_port %s\
+                --oper %s \
+                --virtual_machine_interface_id %s \
+                --user %s\
+                --password %s\
+                --route_table_name %s" % (prefix,
+                                          tenant_name,
+                                          api_server_ip,
+                                          api_server_port,
+                                          oper,
+                                          virtual_machine_interface_id,
+                                          user,
+                                          password,
+                                          route_table_name)
+        args = shlex.split(cmd)
+        process = Popen(args, stdout=PIPE)
+        stdout, stderr = process.communicate()
+        if stderr:
+            self.logger.warn("Route could not be created , err : \n %s" %
+                             (stderr))
+        else:
+            self.logger.info("%s" % (stdout))
 
     def _gather_details(self):
         self.cs_vmi_objs = {}

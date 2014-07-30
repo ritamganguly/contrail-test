@@ -401,8 +401,6 @@ def createVMNova(self, option='openstack', vms_on_single_compute=False, VmToNode
                               connections=self.project_connections, vn_obj=vn_obj, flavor=self.flavor,
                               image_name=vm_image_name, sg_ids=sec_gp, vm_name=vm))
 
-    # added here 30 seconds sleep
-    #import time; time.sleep(30)
     self.logger.info(
         "Setup step: Verify VM status and install Traffic package... ")
     for vm in self.topo.vmc_list:
@@ -451,6 +449,10 @@ def createVMNova(self, option='openstack', vms_on_single_compute=False, VmToNode
 
     # Add compute's VN list to topology object based on VM creation
     self.topo.__dict__['vn_of_cn'] = self.vn_of_cn
+
+    # Provision static route if defined in topology
+    createStaticRouteBehindVM(self)
+
     return self
 # end createVMNova
 
@@ -557,20 +559,21 @@ def createStaticRouteBehindVM(self):
         self.topo.vm_static_route
     except AttributeError:
         return self
-    import analytics_performance_tests
-    obj = analytics_performance_tests.AnalyticsTestPerformance()
-    obj.setUp()
     for vm_name in self.topo.vm_static_route:
+        vm_fixt = self.vm_fixture[vm_name]
         prefix = self.topo.vm_static_route[vm_name]
-        vm_uuid = self.vm_fixture[vm_name].vm_id
-        vm_ip = self.vm_fixture[vm_name].vm_ip
+        vm_uuid = vm_fixt.vm_id
+        vm_ip = vm_fixt.vm_ip
+        vm_tap_intf = vm_fixt.tap_intf
+        vmi = vm_tap_intf[vm_fixt.vn_fq_name]
+        vmi_id = vmi['uuid']
         vm_route_table_name = "%s_rt" % vm_name
         self.logger.info(
             "Provisioning static route %s behind vm - %s in project %s." %
             (prefix, vm_name, self.topo.project))
-        obj.provision_static_route(
-            prefix=prefix, virtual_machine_id=vm_uuid, tenant_name=self.topo.project,
-            virtual_machine_interface_ip=vm_ip, route_table_name=vm_route_table_name,
+        self.vm_fixture[vm_name].provision_static_route(
+            prefix=prefix, tenant_name=self.topo.project,
+            virtual_machine_interface_id=vmi_id, route_table_name=vm_route_table_name,
             user=self.topo.username, password=self.topo.password)
     return self
 # end createStaticRouteBehindVM
