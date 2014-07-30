@@ -472,7 +472,7 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
         out = setup_obj.sdn_topo_setup()
         assertEqual(out['result'], True, out['msg'])
         if out['result']:
-            topo, config_topo = out['data']
+            topo, config_topo = out['data'][0], out['data'][1]
 
         # Get the vrouter build version for logging purposes.
         BuildTag = get_OS_Release_BuildVersion(self)
