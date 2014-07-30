@@ -97,7 +97,6 @@ class sdnTopoSetupFixture(fixtures.Fixture):
             topo_steps.createVMNova(self, config_option, vms_on_single_compute)
         topo_steps.createPublicVN(self)
         topo_steps.verifySystemPolicy(self)
-        topo_steps.createStaticRouteBehindVM(self)
         topo_steps.createAllocateAssociateVnFIPPools(self)
         # prepare return data
         config_topo = {
