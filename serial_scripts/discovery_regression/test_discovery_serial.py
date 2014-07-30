@@ -2,24 +2,24 @@ import unittest
 import fixtures
 import testtools
 import traceback
-from tcutils.wrappers import preposttest_wrapper
+from scripts.tcutils.wrappers import preposttest_wrapper
 import uuid
-from base import BaseDiscoveryTest
+import base
 import test
 
 
-class TestDiscovery(BaseDiscoveryTest):
+class TestDiscoverySerial(base.BaseDiscoveryTest):
 
     @classmethod
     def setUpClass(cls):
-        super(TestDiscovery, cls).setUpClass()
+        super(TestDiscoverySerial, cls).setUpClass()
 
     def runTest(self):
         pass
 
     # end runTest
 
-
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_control_node_restart_and_validate_status_of_the_service(self):
         ''' Validate restart of control node services
