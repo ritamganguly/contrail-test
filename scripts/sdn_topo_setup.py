@@ -97,7 +97,6 @@ class sdnTopoSetupFixture(fixtures.Fixture):
             topo_steps.createVMNova(self, config_option, vms_on_single_compute)
         topo_steps.createPublicVN(self)
         topo_steps.verifySystemPolicy(self)
-        topo_steps.createAllocateAssociateVnFIPPools(self)
         # prepare return data
         config_topo = {
             'project': self.project_fixture, 'policy': self.policy_fixt, 'vn': self.vn_fixture, 'vm': self.vm_fixture,
@@ -177,10 +176,16 @@ class sdnTopoSetupFixture(fixtures.Fixture):
             self, vm_cnt=total_vm_cnt)
         if fip_possible:
             topo_steps.allocateNassociateFIP(self, config_topo)
+
+        self.config_topo = config_topo
+        # Extra steps to assign FIP from VNs configured with FIP pool to VMs as defined in topology
+        topo_steps.createAllocateAssociateVnFIPPools(self)
+
         if len(self.projectList) == 1 and 'admin' in self.projectList:
             return {'result': result, 'msg': err_msg, 'data': [topo_objs[self.inputs.project_name], config_topo[self.inputs.project_name], [fip_possible, self.fip_ip_by_vm]]}
         else:
             return {'result': result, 'msg': err_msg, 'data': [topo_objs, config_topo, [fip_possible, self.fip_ip_by_vm]]}
+
     # end sdn_topo_setup
 
     def verify_sdn_topology(self, topo_objects, config_topo):
