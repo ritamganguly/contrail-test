@@ -134,7 +134,7 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
         pass    
     #end runTest
     
-    #@preposttest_wrapper
+    @preposttest_wrapper
     def test_multi_SC_with_ecmp(self):
         self.verify_svc_transparent_datapath(
             si_count=3, svc_scaling=True, max_inst=3)
