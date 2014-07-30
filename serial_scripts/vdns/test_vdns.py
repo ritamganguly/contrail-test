@@ -30,7 +30,7 @@ from control_node import *
 from user_test import UserFixture
 import test
 
-class TestvDNSRestart(BasevDNSTest):
+class TestvDNSRestart(BasevDNSRestartTest):
 
     @classmethod
     def setUpClass(cls):
@@ -40,7 +40,6 @@ class TestvDNSRestart(BasevDNSTest):
         pass
     #end runTest
  
-    @test.attr(type=‘serial’)
     @preposttest_wrapper
     def test_vdns_controlnode_switchover(self):
         ''' This test test control node switchover functionality'''
@@ -48,7 +47,6 @@ class TestvDNSRestart(BasevDNSTest):
         self.vdns_with_cn_dns_agent_restart(restart_process)
         return True
 
-    @test.attr(type=‘serial’)
     @preposttest_wrapper
     def test_vdns_dns_restart(self):
         ''' This test test dns process restart functionality'''
@@ -56,7 +54,6 @@ class TestvDNSRestart(BasevDNSTest):
         self.vdns_with_cn_dns_agent_restart(restart_process)
         return True
 
-    @test.attr(type=‘serial’)
     @preposttest_wrapper
     def test_vdns_agent_restart(self):
         '''This test tests agent process restart functionality'''
@@ -64,7 +61,6 @@ class TestvDNSRestart(BasevDNSTest):
         self.vdns_with_cn_dns_agent_restart(restart_process)
         return True
 
-    @test.attr(type=‘serial’)
     @preposttest_wrapper
     def test_vdns_named_restart(self):
         '''This test tests named process restart functionality'''
