@@ -16,7 +16,7 @@ from connections import ContrailConnections
 from floating_ip import *
 from policy_test import *
 from contrail_fixtures import *
-from vna_introspect_utils import *
+from tcutils.agent.vna_introspect_utils import *
 from topo_helper import *
 from vnc_api import vnc_api
 from vnc_api.gen.resource_test import *

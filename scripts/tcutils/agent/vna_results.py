@@ -1,4 +1,4 @@
-from verification_util import *
+from tcutils.verification_util import *
 
 
 class VnaVnListResult (Result):

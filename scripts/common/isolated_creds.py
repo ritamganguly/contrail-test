@@ -6,7 +6,7 @@ import os
 import fixtures
 from test import BaseTestCase
 import time
-from util import get_random_name
+from tcutils.util import get_random_name
 
 ADMIN_TENANT = 'admin'
 

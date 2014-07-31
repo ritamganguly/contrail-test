@@ -1,7 +1,7 @@
 import logging as LOG
 from lxml import etree
 
-from verification_util import *
+from tcutils.verification_util import *
 
 LOG.basicConfig(format='%(levelname)s: %(message)s', level=LOG.DEBUG)
 

@@ -1,5 +1,5 @@
 import re
-from verification_util import *
+from tcutils.verification_util import *
 
 
 def _dsResultGet(dct, p1, p2, match=None):

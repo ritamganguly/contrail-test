@@ -5,7 +5,7 @@ import json
 import requests
 import socket
 from lxml import etree
-from verification_util import *
+from tcutils.verification_util import *
 from ds_results import *
 from discovery_util import DiscoveryServerUtils
 
