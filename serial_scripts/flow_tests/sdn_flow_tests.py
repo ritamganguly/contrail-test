@@ -17,7 +17,7 @@ from connections import ContrailConnections
 from floating_ip import *
 from policy_test import *
 from contrail_fixtures import *
-from vna_introspect_utils import *
+from tcutils.agent.vna_introspect_utils import *
 from random import choice
 from topo_helper import *
 import policy_test_utils

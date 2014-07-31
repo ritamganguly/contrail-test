@@ -10,7 +10,7 @@ from connections import ContrailConnections
 from vpc_fixture_new import VPCFixture
 from ec2_base import EC2Base
 from floating_ip import FloatingIPFixture
-from util import *
+from tcutils.util import *
 
 
 class VPCFIPFixture(fixtures.Fixture):

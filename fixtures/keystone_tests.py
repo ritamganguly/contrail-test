@@ -1,7 +1,7 @@
 from keystoneclient.v2_0 import client as keystone_client
 from keystoneclient import exceptions as ks_exceptions
 from common import log as logging
-from util import retry
+from tcutils.util import retry
 
 LOG = logging.getLogger(__name__)
 

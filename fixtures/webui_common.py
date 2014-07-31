@@ -8,9 +8,9 @@ from selenium.common.exceptions import NoSuchElementException
 import time
 import datetime
 import logging
-from util import *
+from tcutils.util import *
 from vnc_api.vnc_api import *
-from verification_util import *
+from tcutils.verification_util import *
 
 
 def ajax_complete(driver):

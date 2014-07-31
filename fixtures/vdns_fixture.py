@@ -4,7 +4,7 @@ from vnc_api.gen.cfixture import ContrailFixture
 from vnc_api.gen.resource_test import VirtualDnsTestFixtureGen
 from vnc_api.gen.resource_test import VirtualDnsRecordTestFixtureGen
 
-from util import retry
+from tcutils.util import retry
 
 
 class VdnsFixture(ContrailFixture):
