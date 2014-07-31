@@ -6,7 +6,7 @@ from time import sleep
 from fabric.api import run
 from fabric.operations import put
 from fabric.context_managers import settings, hide
-from tcutils.util import run_fab_cmd_on_node
+from util import run_fab_cmd_on_node
 
 try:
     # Running from the source repo "test".
