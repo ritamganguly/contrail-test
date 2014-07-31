@@ -190,9 +190,24 @@ class VerifySvcFirewall(VerifySvcMirror):
         si_prefix = "bridge_svc_instance_" + uuid.uuid1().urn.split(':')[2] + "_"
         self.policy_name = "policy_transparent_" + uuid.uuid1().urn.split(':')[2]
 
+        self.vn1_fixture = self.config_vn(self.vn1_name, self.vn1_subnets)
+        self.vn2_fixture = self.config_vn(self.vn2_name, self.vn2_subnets)
+ 
         self.st_fixture, self.si_fixtures = self.config_st_si(
             self.st_name, si_prefix, si_count, svc_scaling, max_inst, flavor=flavor, project= self.inputs.project_name)
         self.action_list = self.chain_si(si_count, si_prefix, self.inputs.project_name)
+        
+        if si_count > 1:
+            self.last_st_name= 'last_in_net'
+            last_si_prefix= 'last_in_net_si_'
+            last_si_count= 1
+            self.last_st_fixture, self.last_si_fixtures = self.config_st_si(
+                self.last_st_name, last_si_prefix, last_si_count, svc_scaling, max_inst, left_vn=self.vn1_fixture.vn_fq_name,
+                right_vn=self.vn2_fixture.vn_fq_name, svc_mode='in-network', flavor=flavor, project= self.inputs.project_name)
+
+            self.new_action_list = []
+            self.new_action_list = self.chain_si(last_si_count, last_si_prefix, self.inputs.project_name)
+            self.action_list= self.action_list + self.new_action_list
         self.rules = [
             {
                 'direction': '<>',
@@ -206,9 +221,7 @@ class VerifySvcFirewall(VerifySvcMirror):
             },
         ]
         self.policy_fixture = self.config_policy(self.policy_name, self.rules)
-        self.vn1_fixture = self.config_vn(self.vn1_name, self.vn1_subnets)
-        self.vn2_fixture = self.config_vn(self.vn2_name, self.vn2_subnets)
-
+        
         self.vn1_policy_fix = self.attach_policy_to_vn(
             self.policy_fixture, self.vn1_fixture)
         self.vn2_policy_fix = self.attach_policy_to_vn(
@@ -225,9 +238,9 @@ class VerifySvcFirewall(VerifySvcMirror):
         self.verify_si(self.si_fixtures)
 
         # Ping from left VM to right VM
-        errmsg = "Ping to left VM ip %s from right VM failed" % self.vm1_fixture.vm_ip
-        assert self.vm2_fixture.ping_with_certainty(
-            self.vm1_fixture.vm_ip, count='3'), errmsg
+        errmsg = "Ping to Right VM %s from Left VM failed" % self.vm2_fixture.vm_ip
+        assert self.vm1_fixture.ping_with_certainty(
+            self.vm2_fixture.vm_ip, count='3'), errmsg
         return True
 
     def verify_svc_in_network_datapath(self, si_count=1, svc_scaling=False, max_inst=1, svc_mode='in-network', flavor='m1.medium', static_route=['None', 'None', 'None'], ordered_interfaces=True, vn1_subnets = ['10.1.1.0/24'], vn2_subnets = ['20.2.2.0/24']):

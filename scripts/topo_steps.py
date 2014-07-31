@@ -48,7 +48,7 @@ def createProject(self):
             username=self.topo.username, password=self.topo.password,
             connections=self.connections))
     if not ((self.topo.username == 'admin' or self.topo.username == None) and (self.topo.project == 'admin')):
-        #provision non-admin user as "admin" in non-admin tenant
+        self.logger.info("provision user %s with role as admin in tenant %s" %(self.topo.username, self.topo.project))
         self.user_fixture.add_user_to_tenant(self.topo.project, self.topo.username, 'admin')
     self.project_inputs = self.useFixture(
         ContrailTestInit(
@@ -401,8 +401,6 @@ def createVMNova(self, option='openstack', vms_on_single_compute=False, VmToNode
                               connections=self.project_connections, vn_obj=vn_obj, flavor=self.flavor,
                               image_name=vm_image_name, sg_ids=sec_gp, vm_name=vm))
 
-    # added here 30 seconds sleep
-    #import time; time.sleep(30)
     self.logger.info(
         "Setup step: Verify VM status and install Traffic package... ")
     for vm in self.topo.vmc_list:
@@ -451,6 +449,10 @@ def createVMNova(self, option='openstack', vms_on_single_compute=False, VmToNode
 
     # Add compute's VN list to topology object based on VM creation
     self.topo.__dict__['vn_of_cn'] = self.vn_of_cn
+
+    # Provision static route if defined in topology
+    createStaticRouteBehindVM(self)
+
     return self
 # end createVMNova
 
@@ -557,20 +559,21 @@ def createStaticRouteBehindVM(self):
         self.topo.vm_static_route
     except AttributeError:
         return self
-    import analytics_performance_tests
-    obj = analytics_performance_tests.AnalyticsTestPerformance()
-    obj.setUp()
     for vm_name in self.topo.vm_static_route:
+        vm_fixt = self.vm_fixture[vm_name]
         prefix = self.topo.vm_static_route[vm_name]
-        vm_uuid = self.vm_fixture[vm_name].vm_id
-        vm_ip = self.vm_fixture[vm_name].vm_ip
+        vm_uuid = vm_fixt.vm_id
+        vm_ip = vm_fixt.vm_ip
+        vm_tap_intf = vm_fixt.tap_intf
+        vmi = vm_tap_intf[vm_fixt.vn_fq_name]
+        vmi_id = vmi['uuid']
         vm_route_table_name = "%s_rt" % vm_name
         self.logger.info(
             "Provisioning static route %s behind vm - %s in project %s." %
             (prefix, vm_name, self.topo.project))
-        obj.provision_static_route(
-            prefix=prefix, virtual_machine_id=vm_uuid, tenant_name=self.topo.project,
-            virtual_machine_interface_ip=vm_ip, route_table_name=vm_route_table_name,
+        self.vm_fixture[vm_name].provision_static_route(
+            prefix=prefix, tenant_name=self.topo.project,
+            virtual_machine_interface_id=vmi_id, route_table_name=vm_route_table_name,
             user=self.topo.username, password=self.topo.password)
     return self
 # end createStaticRouteBehindVM
@@ -600,11 +603,11 @@ def checkNAddAdminRole(self):
 #end checkNAddAdminRole 
 
 def createServiceInstance(self):
-    try:
+    self.si_fixture = {}
+    if hasattr(self.topo, 'si_list'):
         self.logger.info("Setup step: Creating Service Instances")
         #For SVC case to work in non-admin tenant, link "admin" user
         checkNAddAdminRole(self)
-        self.si_fixture = {}
         for si_name in self.topo.si_list:
             self.si_fixture[si_name] = self.useFixture(SvcInstanceFixture(
                 connections=self.project_connections, inputs=self.project_inputs,
@@ -612,56 +615,78 @@ def createServiceInstance(self):
                 svc_template=self.st_fixture[self.topo.si_params[si_name][
                     'svc_template']].st_obj, if_list=self.topo.si_params[si_name]['if_list'],
                 left_vn_name=self.topo.si_params[si_name]['left_vn']))
-            self.si_fixture[si_name].verify_on_setup()
-    except (NameError, AttributeError):
-        self.logger.info(
-            "Not Creating Service Instances, as its not defined in topology")
+        if self.skip_verify == 'no':
+            # Include retry to handle time taken by less powerful computes or if launching more VMs...
+            retry= 0
+            while True:
+                ret, msg = self.si_fixture[si_name].verify_on_setup(report=False)
+                retry += 1
+                if ret == True or retry > 2:
+                    break
+            if ret == False:
+                m = "service instance %s verify failed after setup with error %s" % (si_name, msg)
+                self.err_msg.append(m)
+                assert ret, self.err_msg
     return self
 # end createServiceInstance
 
 
 def allocNassocFIP(self):
-    for vn_name in self.topo.fvn_vm_map:
-        for index in range(len(self.topo.fvn_vm_map[vn_name])):
-            self.logger.info(
-                'Allocating and associating FIP from %s VN pool to %s VM' %
-                (vn_name, self.topo.fvn_vm_map[vn_name][index]))
-            if self.inputs.webui_config_flag:
-                self.fip_fixture_dict[vn_name].create_and_assoc_fip_webui(
-                    self.vn_fixture[vn_name].vn_id, self.vm_fixture[self.topo.fvn_vm_map[vn_name][index]].vm_id, self.topo.fvn_vm_map[vn_name])
-            else:
-                fip_id = self.fip_fixture_dict[vn_name].create_and_assoc_fip(
-                    self.vn_fixture[vn_name].vn_id,
-                    self.vm_fixture[self.topo.fvn_vm_map[vn_name][index]].vm_id)
-                assert self.fip_fixture_dict[vn_name].verify_fip(
-                    fip_id, self.vm_fixture[
-                        self.topo.fvn_vm_map[vn_name][index]],
-                    self.vn_fixture[vn_name])
-                self.logger.info('alloc&assoc FIP %s' % (fip_id))
-            #self.fip_ip_by_vm[self.vm_fixture[self.topo.fvn_vm_map[vn_name][index]]]= self.vm_fixture[self.topo.fvn_vm_map[vn_name][index]].chk_vmi_for_fip(vn_fq_name= self.vn_fixture[vn_name].vn_fq_name)
-                self.addCleanup(self.fip_fixture_dict[
-                                vn_name].deassoc_project, self.fip_fixture_dict[vn_name], self.topo.project)
-                self.addCleanup(
-                    self.fip_fixture_dict[vn_name].disassoc_and_delete_fip, fip_id)
+    # Need Floating VN fixture in current project and destination VM fixtures from all projects
+    # topology rep: self.fvn_vm_map = {'project1':
+    #                        {'vnet1':{'project1': ['vmc2'], 'project2': ['vmc4']}},
+    #                        {'vnet2':{'project1': ['vmc21'], 'project2': ['vmc14']}}
+    for vn_proj, fvn_vm_map in self.topo.fvn_vm_map.iteritems():
+        for vn_name, map in fvn_vm_map.iteritems():
+            # {'project1': ['vmc2', 'vmc3'], 'project2': ['vmc4']},
+            for vm_proj, vm_list in map.iteritems():
+                for index in range(len(vm_list)):
+                    # Get VM fixture from config_topo
+                    vm_fixture = self.config_topo[
+                        vm_proj]['vm'][vm_list[index]]
+                    self.vn_fixture = self.config_topo[vn_proj]['vn']
+                    assigned_fip = vm_fixture.chk_vmi_for_fip(
+                        vn_fq_name=self.vn_fixture[vn_name].vn_fq_name)
+                    self.logger.info(
+                        'Allocating and associating FIP from %s VN pool in project %s to %s VM in project %s' %
+                        (vn_name, vn_proj, vm_list[index], vm_proj))
+                    fip_id = self.fip_fixture_dict[vn_name].create_and_assoc_fip(
+                        self.vn_fixture[vn_name].vn_id, vm_fixture.vm_id)
+                    if fip_id:
+                        assert self.fip_fixture_dict[vn_name].verify_fip(
+                            fip_id, vm_fixture, self.vn_fixture[vn_name])
+                        self.logger.info('alloc&assoc FIP %s' % (fip_id))
+                        self.addCleanup(self.fip_fixture_dict[
+                                        vn_name].deassoc_project, self.fip_fixture_dict[vn_name], vn_proj)
+                        self.addCleanup(
+                            self.fip_fixture_dict[vn_name].disassoc_and_delete_fip, fip_id)
+                    else:
+                        # To handle repeat test runs without config cleanup, in which case, new FIP is assigned to VMI every time causing pool exhaustion
+                        # Need to revisit check to skip assigning FIP if VMI already has a FIP from FIP-VN's
+                        self.logger.info(
+                            'Ignoring create_and_assoc_fip error as it can happen due to FIP pool exhaustion..')
+
     return self
 # end allocNassocFIP
 
 
 def createAllocateAssociateVnFIPPools(self):
     if 'fvn_vm_map' in dir(self.topo):
-        index = 0
-        for vn_name in self.topo.fvn_vm_map:
-            index = index + 1
-            fip_pool_name = 'FIP_pool' + str(index)
-            self.fip_fixture_dict[vn_name] = self.useFixture(
-                FloatingIPFixture(
-                    project_name=self.topo.project, inputs=self.project_inputs,
-                    connections=self.project_connections, pool_name=fip_pool_name,
-                    vn_id=self.vn_fixture[vn_name].vn_id, vn_name=vn_name))
-            assert self.fip_fixture_dict[vn_name].verify_on_setup()
-            self.logger.info(
-                'created FIP Pool:%s in Virtual Network:%s under Project:%s' % (fip_pool_name, self.fip_fixture_dict[vn_name].pub_vn_name,
-                                                                                self.topo.project))
+        # topology rep: self.fip_pools= {'project1': {'p1-vn1-pool1':
+        # {'host_vn': 'vnet1', 'target_projects': ['project1', 'project2']}},
+        for fip_proj, fip_info in self.topo.fip_pools.iteritems():
+            for fip_pool_name, info in fip_info.iteritems():
+                vn_name = info['host_vn']
+                self.vn_fixture = self.config_topo[fip_proj]['vn']
+                self.fip_fixture_dict[vn_name] = self.useFixture(
+                    FloatingIPFixture(
+                        project_name=fip_proj, inputs=self.inputs,
+                        connections=self.connections, pool_name=fip_pool_name, vn_id=self.vn_fixture[vn_name].vn_id))
+                assert self.fip_fixture_dict[vn_name].verify_on_setup()
+                self.logger.info('created FIP Pool:%s in Virtual Network:%s under Project:%s'
+                                 % (fip_pool_name, self.fip_fixture_dict[vn_name].pub_vn_name, fip_proj))
+            self.config_topo[fip_proj]['fip'][3] = True
+            self.config_topo[fip_proj]['fip'][4] = self.fip_fixture_dict
         self.fvn_vm_map = True
         allocNassocFIP(self)
     return self

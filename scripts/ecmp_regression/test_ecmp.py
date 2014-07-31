@@ -112,7 +112,14 @@ class TestECMPSanity(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffic
         sleep(30)
         self.logger.info(
             '***** Ping and traffic between the networks should go thru fine because of the static route configuration *****')
-        assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip)
+        self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip)
+        
+        #Cleaning up
+        self.delete_vm(self.vm1_fixture)
+        self.delete_vm(self.vm2_fixture)
+        self.delete_si_st(self.si_fixtures, self.st_fixture)
+        self.delete_vn(self.vn1_fixture)
+        self.delete_vn(self.vn2_fixture)
 
         return True
         # end test_ecmp_svc_in_network_with_static_route_no_policy
@@ -126,6 +133,13 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
     def runTest(self):
         pass    
     #end runTest
+    
+    @preposttest_wrapper
+    def test_multi_SC_with_ecmp(self):
+        self.verify_svc_transparent_datapath(
+            si_count=3, svc_scaling=True, max_inst=3)
+        return True
+    # end test_multi_SC_with_ecmpp
 
     @preposttest_wrapper
     def test_ecmp_svc_in_network_nat_with_3_instance(self):

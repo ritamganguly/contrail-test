@@ -55,7 +55,7 @@ class TestSanity_MX(base.FloatingIpBaseTest):
 
             result = True
             fip_pool_name = self.inputs.fip_pool_name
-            fvn_name = 'public100'
+            fvn_name = 'public'
             fip_subnets = [self.inputs.fip_pool]
             vm1_name = 'vm200'
             vn1_name = 'vn200'
@@ -76,13 +76,12 @@ class TestSanity_MX(base.FloatingIpBaseTest):
                 self.inputs.project_name)
             self.project_fixture.set_sec_group_for_allow_all(
                 self.inputs.project_name, 'default')
-
             fvn_fixture = self.useFixture(
                 VNFixture(
-                    project_name=self.inputs.project_name,
-                    connections=self.connections,
+                    project_name='admin',
+                    connections= self.admin_connections,
                     vn_name=fvn_name,
-                    inputs=self.inputs,
+                    inputs= self.admin_inputs,
                     subnets=fip_subnets,
                     router_asn=self.inputs.router_asn,
                     rt_number=mx_rt))
@@ -105,14 +104,19 @@ class TestSanity_MX(base.FloatingIpBaseTest):
 
             fip_fixture = self.useFixture(
                 FloatingIPFixture(
-                    project_name=self.inputs.project_name,
-                    inputs=self.inputs,
-                    connections=self.connections,
+                    project_name='admin',
+                    inputs=self.admin_inputs,
+                    connections=self.admin_connections,
                     pool_name=fip_pool_name,
                     vn_id=fvn_fixture.vn_id))
             assert fip_fixture.verify_on_setup()
+            # Adding further projects to floating IP.
+            self.logger.info('Adding project %s to FIP pool %s' %
+                             (self.inputs.project_name, fip_pool_name))
+            project_obj = fip_fixture.assoc_project(fip_fixture, self.inputs.project_name)
+
             fip_id = fip_fixture.create_and_assoc_fip(
-                fvn_fixture.vn_id, vm1_fixture.vm_id)
+                fvn_fixture.vn_id, vm1_fixture.vm_id, project_obj)
             self.addCleanup(fip_fixture.disassoc_and_delete_fip, fip_id)
             assert fip_fixture.verify_fip(fip_id, vm1_fixture, fvn_fixture)
             routing_instance = fvn_fixture.ri_name
@@ -159,6 +163,11 @@ class TestSanity_MX(base.FloatingIpBaseTest):
             raise self.skipTest(
                 "Skiping Test. Env variable MX_TEST is not set. Skiping th test")
 
+        # Removing further projects from floating IP pool. For cleanup
+        self.logger.info('Removing project %s to FIP pool %s' %
+            (self.inputs.project_name, fip_pool_name))
+        project_obj = fip_fixture.deassoc_project(fip_fixture, self.inputs.project_name)
+
         return True
     # end test_mx_gateway
 
@@ -182,7 +191,7 @@ class TestSanity_MX(base.FloatingIpBaseTest):
             result = True
             fip_pool_name = self.inputs.fip_pool_name
             fip_subnets = [self.inputs.fip_pool]
-            fvn_name = 'public100'
+            fvn_name = 'public'
             vm1_name = 'vm200'
             vn1_name = 'vn200'
             vn1_subnets = ['11.1.1.0/24']
@@ -206,10 +215,10 @@ class TestSanity_MX(base.FloatingIpBaseTest):
 
             fvn_fixture = self.useFixture(
                 VNFixture(
-                    project_name=self.inputs.project_name,
-                    connections=self.connections,
+                    project_name='admin',
+                    connections=self.admin_connections,
                     vn_name=fvn_name,
-                    inputs=self.inputs,
+                    inputs=self.admin_inputs,
                     subnets=fip_subnets,
                     router_asn=self.inputs.router_asn,
                     rt_number=mx_rt_wrong))
@@ -232,14 +241,19 @@ class TestSanity_MX(base.FloatingIpBaseTest):
 
             fip_fixture = self.useFixture(
                 FloatingIPFixture(
-                    project_name=self.inputs.project_name,
-                    inputs=self.inputs,
-                    connections=self.connections,
+                    project_name='admin',
+                    inputs=self.admin_inputs,
+                    connections=self.admin_connections,
                     pool_name=fip_pool_name,
                     vn_id=fvn_fixture.vn_id))
             assert fip_fixture.verify_on_setup()
+            # Adding further projects to floating IP.
+            self.logger.info('Adding project %s to FIP pool %s' %
+                             (self.inputs.project_name, fip_pool_name))
+            project_obj = fip_fixture.assoc_project(fip_fixture, self.inputs.project_name)
+
             fip_id = fip_fixture.create_and_assoc_fip(
-                fvn_fixture.vn_id, vm1_fixture.vm_id)
+                fvn_fixture.vn_id, vm1_fixture.vm_id, project_obj)
             self.addCleanup(fip_fixture.disassoc_and_delete_fip, fip_id)
             assert fip_fixture.verify_fip(fip_id, vm1_fixture, fvn_fixture)
 
@@ -310,6 +324,11 @@ class TestSanity_MX(base.FloatingIpBaseTest):
                 "Skiping Test. Env variable MX_TEST is not set. Skiping the test")
             raise self.skipTest(
                 "Skiping Test. Env variable MX_TEST is not set. Skiping th test")
+
+        # Removing further projects from floating IP pool. For cleanup
+        self.logger.info('Removing project %s to FIP pool %s' %
+            (self.inputs.project_name, fip_pool_name))
+        project_obj = fip_fixture.deassoc_project(fip_fixture, self.inputs.project_name)
 
         return True
     # end test_change_of_rt_in_vn

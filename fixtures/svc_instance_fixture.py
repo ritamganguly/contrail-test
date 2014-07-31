@@ -319,11 +319,31 @@ class SvcInstanceFixture(fixtures.Fixture):
                 return result, msg
         return True, None
 
-    def verify_on_setup(self):
-        self.report(self.verify_si())
-        self.report(self.verify_st())
-        self.report(self.verify_svm())
-        self.report(self.verify_svm_interface())
+    def verify_on_setup(self, report=True):
+        if report:
+            self.report(self.verify_si())
+            self.report(self.verify_st())
+            self.report(self.verify_svm())
+            self.report(self.verify_svm_interface())
+        else:
+            # Need verifications to be run without asserting so that they can retried to wait for instances to come up
+            result = True; msg = ""
+            result1,msg1 = self.verify_si()
+            if not result1:
+                result = False; msg = msg + msg1
+            result1,msg1 = self.verify_st()
+            if not result1:
+                result = False; msg = msg + msg1
+            result1,msg1 = self.verify_svm()
+            if not result1:
+                result = False; msg = msg + msg1
+            else:
+                # verification has dependency on verify_svm
+                result1,msg1 = self.verify_svm_interface()
+                if not result1:
+                    result = False; msg = msg + msg1
+            return result, msg
+
         return True, None
     # end verify_on_setup
 
@@ -336,15 +356,15 @@ class SvcInstanceFixture(fixtures.Fixture):
     @retry(delay=2, tries=15)
     def verify_si_not_in_api_server(self):
         if not self.si:
-            return True, None
+            return (True, None)
         si = self.api_s_inspect.get_cs_si(project= self.project.name, si=self.si_name, refresh=True)
         if si:
             errmsg = "Service instance %s not removed from api server" % self.si_name
             self.logger.warn(errmsg)
-            return False, errmsg
+            return (False, errmsg)
         self.logger.debug("Service instance %s removed from api server" %
                           self.si_name)
-        return True, None
+        return (True, None)
 
     @retry(delay=5, tries=20)
     def verify_svm_not_in_api_server(self):
@@ -355,7 +375,7 @@ class SvcInstanceFixture(fixtures.Fixture):
                 self.logger.warn(errmsg)
                 return (False, errmsg)
         self.logger.debug("Serivce VM for SI '%s' is deleted", self.si_name)
-        return True, None
+        return (True, None)
 
     def si_exists(self):
         svc_instances = self.vnc_lib.service_instances_list()[
@@ -369,7 +389,7 @@ class SvcInstanceFixture(fixtures.Fixture):
         if self.si_exists():
             self.logger.info(
                 "Some Service Instance exists; skip SVN check in API server")
-            return True, None
+            return (False, None)
         for vn in self.cs_svc_vns:
             svc_vn = self.api_s_inspect.get_cs_vn(project= self.project.name, vn=vn, refresh=True)
             if svc_vn:
@@ -377,14 +397,14 @@ class SvcInstanceFixture(fixtures.Fixture):
                 self.logger.warn(errmsg)
                 return (False, errmsg)
             self.logger.debug("Service VN %s is removed from api server", vn)
-        return True, None
+        return (True, None)
 
     @retry(delay=2, tries=15)
     def verify_ri_not_in_api_server(self):
         if self.si_exists():
             self.logger.info(
                 "Some Service Instance exists; skip RI check in API server")
-            return True, None
+            return (False, None)
         for ri in self.cs_svc_ris:
             svc_ri = self.api_s_inspect.get_cs_ri_by_id(ri)
             if svc_ri:
@@ -392,7 +412,7 @@ class SvcInstanceFixture(fixtures.Fixture):
                 self.logger.warn(errmsg)
                 return (False, errmsg)
             self.logger.debug("RI %s is removed from api server", ri)
-        return True, None
+        return (True, None)
 
     def verify_on_cleanup(self):
         result = True
