@@ -27,7 +27,7 @@ from policy_test import *
 from tcutils.commands import *
 from fabric.context_managers import settings
 from tcutils.wrappers import preposttest_wrapper
-from tcutils.util import *
+from util import *
 from fabric.api import run
 from testresources import ResourcedTestCase
 from upgrade_resource import SolnSetupResource

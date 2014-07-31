@@ -4,7 +4,7 @@ from time import sleep
 
 import fixtures
 
-from tcutils.util import retry
+from util import retry
 #sys.path.append(os.path.realpath('tcutils/pkgs/Traffic'))
 from tcutils.pkgs.Traffic.traffic.core.stream import Stream
 from tcutils.pkgs.Traffic.traffic.core.helpers import Host, Sender, Receiver

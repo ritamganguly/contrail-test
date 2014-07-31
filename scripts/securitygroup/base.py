@@ -8,7 +8,7 @@ from policy_test import PolicyFixture
 from policy.config import ConfigPolicy
 from security_group import SecurityGroupFixture
 from common import isolated_creds
-from tcutils.util import get_random_name
+from util import get_random_name
 
 
 class BaseSGTest(test.BaseTestCase):

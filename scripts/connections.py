@@ -1,22 +1,22 @@
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
-from tcutils.config.vnc_introspect_utils import *
-from tcutils.control.cn_introspect_utils import *
-from tcutils.agent.vna_introspect_utils import *
-from tcutils.collector.opserver_introspect_utils import *
+from vnc_introspect_utils import *
+from cn_introspect_utils import *
+from vna_introspect_utils import *
+from opserver_introspect_utils import *
 from fixtures import Fixture
 from analytics_tests import *
 from vnc_api.vnc_api import *
 from vdns.dns_introspect_utils import DnsAgentInspect
-from tcutils.config.ds_introspect_utils import *
-from tcutils.config.discovery_tests import *
+from ds_introspect_utils import *
+from discovery_tests import *
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from pyvirtualdisplay import Display
 from keystoneclient.v2_0 import client as ks_client
-from tcutils.util import get_dashed_uuid
+from util import get_dashed_uuid
 import os
 
 

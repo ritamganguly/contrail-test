@@ -8,7 +8,7 @@ from connections import ContrailConnections
 from vpc_fixture_new import VPCFixture
 from ec2_base import EC2Base
 from vn_test import VNFixture
-from tcutils.util import *
+from util import *
 
 
 class VPCVNFixture(fixtures.Fixture):

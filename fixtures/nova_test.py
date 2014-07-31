@@ -5,7 +5,7 @@ from fabric.context_managers import settings, hide, cd, shell_env
 from fabric.api import run, local
 from fabric.operations import get, put
 from fabric.contrib.files import exists
-from tcutils.util import *
+from util import *
 from tcutils.cfgparser import parse_cfg_file
 import socket
 import time

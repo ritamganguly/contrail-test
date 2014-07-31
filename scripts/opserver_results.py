@@ -1,5 +1,5 @@
 import re
-from tcutils.verification_util import *
+from verification_util import *
 
 
 def _OpResult_get_list_name(lst):

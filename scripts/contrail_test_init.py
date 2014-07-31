@@ -20,7 +20,7 @@ from fabric.operations import get, put
 from fabric.context_managers import settings, hide
 from fabric.exceptions import NetworkError
 
-from tcutils.util import *
+from util import *
 from custom_filehandler import *
 
 import subprocess

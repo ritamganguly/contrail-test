@@ -1,6 +1,6 @@
 import fixtures
 from contrail_fixtures import contrail_fix_ext
-from tcutils.util import get_plain_uuid, get_dashed_uuid
+from util import get_plain_uuid, get_dashed_uuid
 
 try:
     from quantumclient.quantum import client

@@ -1,6 +1,6 @@
 import fixtures
 from vnc_api.vnc_api import *
-from tcutils.util import retry
+from util import retry
 from webui_test import *
 
 

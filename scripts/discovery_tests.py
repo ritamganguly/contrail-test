@@ -8,7 +8,7 @@
 from netaddr import IPNetwork
 
 import fixtures
-from tcutils.util import *
+from util import *
 from netaddr import *
 from time import sleep
 import logging as LOG

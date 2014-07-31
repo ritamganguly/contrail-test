@@ -1,7 +1,7 @@
 import os
 from time import sleep
 
-from tcutils.util import retry
+from util import retry
 from config import ConfigSvcMirror
 from servicechain.verify import VerifySvcChain
 from floatingip.config import CreateAssociateFip

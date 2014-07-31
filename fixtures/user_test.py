@@ -4,10 +4,10 @@ import uuid
 import fixtures
 
 from connections import ContrailConnections
-from tcutils.util import retry
+from util import retry
 from time import sleep
 from keystoneclient import exceptions as ks_exceptions
-from tcutils.util import get_dashed_uuid
+from util import get_dashed_uuid
 
 
 class UserFixture(fixtures.Fixture):

@@ -11,7 +11,7 @@ import time
 
 import unittest
 from webui.tests_with_setup_base_webui import *
-from tcutils.util import get_os_env
+from util import get_os_env
 from NewPolicyTests import *
 from servicechain.firewall.sanity_with_setup import SvcMonSanityFixture
 from servicechain.mirror.sanity_with_setup import SvcMirrorSanityFixture

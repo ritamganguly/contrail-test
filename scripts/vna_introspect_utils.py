@@ -1,6 +1,6 @@
 import logging as LOG
 
-from tcutils.verification_util import *
+from verification_util import *
 from vna_results import *
 import re
 from netaddr import *

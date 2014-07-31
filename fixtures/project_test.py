@@ -8,10 +8,10 @@ from quantum_test import *
 from vnc_api_test import *
 from contrail_fixtures import *
 from connections import ContrailConnections
-from tcutils.util import retry
+from util import retry
 from time import sleep
 from keystoneclient import exceptions as ks_exceptions
-from tcutils.util import get_dashed_uuid
+from util import get_dashed_uuid
 
 
 class ProjectFixture(fixtures.Fixture):

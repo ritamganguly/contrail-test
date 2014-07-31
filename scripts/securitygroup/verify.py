@@ -1,7 +1,7 @@
 import os
 import sys
 from time import sleep
-from tcutils.util import retry
+from util import retry
 sys.path.append(os.path.realpath('scripts/tcutils/pkgs/Traffic'))
 from traffic.core.stream import Stream
 from traffic.core.helpers import Host, Sender, Receiver

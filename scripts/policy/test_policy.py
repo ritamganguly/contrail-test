@@ -5,7 +5,7 @@ from vn_test import VNFixture
 from policy_test import PolicyFixture, copy, policy_test_utils
 from vm_test import VMFixture, time
 from sdn_topo_setup import sdnTopoSetupFixture
-from tcutils.util import get_random_name
+from util import get_random_name
 from system_verification import system_vna_verify_policy
 from test_lib.test_utils import assertEqual
 import sdn_basic_topology

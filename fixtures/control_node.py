@@ -1,7 +1,7 @@
 import fixtures
 from ipam_test import *
 from vn_test import *
-from tcutils.util import *
+from util import *
 import time
 import traceback
 from fabric.api import env

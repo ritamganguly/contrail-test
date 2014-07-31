@@ -35,7 +35,7 @@ from encap_tests import TestEncapsulation
 from securitygroup.sanity import SecurityGroupSanityTests
 from securitygroup.regression import SecurityGroupRegressionTests
 from vgw.vgw_tests import TestVgwCases
-from tcutils.util import get_os_env
+from util import get_os_env
 
 if __name__ == "__main__":
 

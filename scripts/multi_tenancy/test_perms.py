@@ -24,7 +24,7 @@ from contrail_fixtures import *
 from keystone_tests import *
 from tcutils.wrappers import preposttest_wrapper
 from base import BaseMultitenancyTest
-import tcutils.util
+import util
 
 class TestMultitenancy(BaseMultitenancyTest):
 

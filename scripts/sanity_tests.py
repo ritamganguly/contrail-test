@@ -21,7 +21,7 @@ from vpc.sanity import VPCSanityFixture
 from servicechain.firewall.sanity import SvcMonSanityFixture
 from servicechain.mirror.sanity import SvcMirrorSanityFixture
 from tcutils.contrailtestrunner import ContrailHTMLTestRunner
-from tcutils.util import get_os_env
+from util import get_os_env
 
 if __name__ == "__main__":
 

@@ -12,7 +12,7 @@ import time
 import unittest
 
 from tests_with_setup import *
-from tcutils.util import get_os_env
+from util import get_os_env
 from NewPolicyTests import *
 from tcutils.contrailtestrunner import ContrailHTMLTestRunner
 from vm_vn_tests import TestVMVN
