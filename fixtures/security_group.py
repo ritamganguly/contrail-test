@@ -112,7 +112,7 @@ class SecurityGroupFixture(ContrailFixture):
             self.logger.warn(errmsg)
             return False, errmsg
 
-        retval, msg = self.verify_secgrp_in_api_server()
+        retval, errmsg = self.verify_secgrp_in_api_server()
         if not retval:
             return False, errmsg
         return True, None
