@@ -1,32 +1,20 @@
 from base import BaseFlowTest
-import os
-import copy
-import traceback
-from novaclient import client as mynovaclient
-from novaclient import exceptions as novaException
-import unittest
-import fixtures
-import testtools
 from contrail_test_init import *
 from vn_test import *
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
 from vm_test import *
-from connections import ContrailConnections
 from floating_ip import *
 from policy_test import *
 from contrail_fixtures import *
 from tcutils.agent.vna_introspect_utils import *
-from random import choice
 from topo_helper import *
-import policy_test_utils
-import project_test_utils
 from tcutils.wrappers import preposttest_wrapper
 from tcutils.commands import ssh, execute_cmd, execute_cmd_out
 from sdn_topo_setup import *
 from get_version import *
-from system_verification import *
+from system_verification import verify_system_parameters
 import sdn_flow_test_topo
 import traffic_tests
 import time
@@ -36,6 +24,7 @@ import socket
 import flow_test_utils
 from compute_node_test import ComputeNodeFixture
 import system_test_topo
+from test_lib.test_utils import assertEqual, get_ip_list_from_prefix
 
 
 class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
@@ -92,15 +81,12 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
     def create_traffic_profiles(self, topo_obj, config_topo):
 
         # Create traffic based on traffic profile defined in topology.
-        import analytics_performance_tests
-        ana_obj = analytics_performance_tests.AnalyticsTestPerformance()
-        ana_obj.setUp()
         traffic_profiles = {}
         count = 0
         num_ports_per_ip = 50000.00
         # forward flows = (total no. of flows / 2), so fwd_flow_factor = 2
         fwd_flow_factor = 2
-        for TrafficProfile in topo_obj.traffic_profile:
+        for profile, data in topo_obj.traffic_profile.items():
             src_min_ip = 0
             src_max_ip = 0
             dst_ip = 0
@@ -109,49 +95,44 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
             dst_max_port = 55000
             count += 1
             profile = 'profile' + str(count)
-            src_vm = topo_obj.traffic_profile[TrafficProfile]['src_vm']
+            src_vm = data['src_vm']
             src_vm_obj = None
             dst_vm_obj = None
-            pkt_cnt = topo_obj.traffic_profile[TrafficProfile]['num_pkts']
+            pkt_cnt = data['num_pkts']
             for proj in config_topo:
                 for vm in config_topo[proj]:
                     for vm_name in config_topo[proj][vm]:
-                        if topo_obj.traffic_profile[
-                                TrafficProfile]['dst_vm'] == vm_name:
+                        if data['dst_vm'] == vm_name:
                             dst_ip = config_topo[proj][vm][vm_name].vm_ip
                             dst_vm_obj = config_topo[proj][vm][vm_name]
                         if src_vm == vm_name:
                             src_vm_obj = config_topo[proj][vm][vm_name]
 
             prefix = topo_obj.vm_static_route_master[src_vm]
-            ip_list = ana_obj.get_ip_list_from_prefix(prefix)
+            ip_list = get_ip_list_from_prefix(prefix)
             no_of_ip = int(
                 math.ceil(
-                    (topo_obj.traffic_profile[TrafficProfile]['num_flows'] /
+                    (data['num_flows'] /
                      fwd_flow_factor) /
                     num_ports_per_ip))
-            forward_flows = topo_obj.traffic_profile[
-                TrafficProfile]['num_flows'] / fwd_flow_factor
-            result_dict = sdnFlowTest.src_min_max_ip_and_dst_max_port(
-                self, ip_list, no_of_ip, dst_min_port, forward_flows)
+            forward_flows = data['num_flows'] / fwd_flow_factor
+            result_dict = self.src_min_max_ip_and_dst_max_port(
+                ip_list, no_of_ip, dst_min_port, forward_flows)
             if int(no_of_ip) == 1:
                 # Use the src VM IP to create the flows no need of static IP's
                 # that have been provisioned to the VM route table.
-                traffic_profiles[profile] = [src_vm_obj,  # src_vm obj
+                traffic_profiles[profile] = [src_vm_obj,
                                              src_vm_obj.vm_ip,  # src_ip_min
                                              src_vm_obj.vm_ip,  # src_ip_max
                                              dst_ip,  # dest_vm_ip
                                              dst_min_port,  # dest_port_min
                                              # dest_port_max
                                              result_dict['dst_max_port'],
-                                             # packet_count
-                                             topo_obj.traffic_profile[
-                                                 TrafficProfile]['num_pkts'],
-                                             dst_vm_obj]  # dest_vm obj
+                                             data['num_pkts'], dst_vm_obj]
             else:
                 # Use thestatic IP's that have been provisioned to the VM route
                 # table as src IP range.
-                traffic_profiles[profile] = [src_vm_obj,  # src_vm obj
+                traffic_profiles[profile] = [src_vm_obj, 
                                              # src_ip_min
                                              result_dict['src_min_ip'],
                                              # src_ip_max
@@ -160,10 +141,7 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
                                              dst_min_port,  # dest_port_min
                                              # dest_port_max
                                              result_dict['dst_max_port'],
-                                             # packet_count
-                                             topo_obj.traffic_profile[
-                                                 TrafficProfile]['num_pkts'],
-                                             dst_vm_obj]  # dest_vm obj
+                                             data['num_pkts'], dst_vm_obj]
         return traffic_profiles
 
     # end create_traffic_profiles
@@ -401,7 +379,7 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
 
         # single project topo, retrieve topo obj for the project
         # Need to specify the project which has mirror service instance..
-        proj_topo = self.topo_objs.values()[0]
+        proj_topo = self.topo.values()[0]
         for idx, si in enumerate(proj_topo.si_list):
             self.logger.info("Starting tcpdump in mirror instance %s" % (si))
             sessions = self.tcpdump_on_analyzer(si)
@@ -442,25 +420,12 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
             return True
         #
         # Get config for test from topology
-        msg = []
         topology_class_name = system_test_topo.systest_topo_single_project
         self.logger.info(
             "Scenario for the test used is: %s" %
             (topology_class_name))
-        # set project name
-        # Create a list of compute node IP's and pass it to topo if you want to pin
-        # a vm to a particular node
-        #try:
-        #    # provided by wrapper module if run in parallel test env
-        #    topo_obj = topology_class_name(
-        #        compute_node_list=self.inputs.compute_ips,
-        #        project=self.project.project_name,
-        #        username=self.project.username,
-        #        password=self.project.password)
-        #except NameError:
-        ##    topo_obj = topology_class_name(
-        #        compute_node_list=self.inputs.compute_ips)
-        topo_obj = topology_class_name(
+
+        topo = topology_class_name(
             compute_node_list=self.inputs.compute_ips)
         #
         # Test setup: Configure policy, VN, & VM
@@ -468,22 +433,24 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
         # Returned topo is of following format:
         # config_topo= {'policy': policy_fixt, 'vn': vn_fixture, 'vm': vm_fixture}
         setup_obj = self.useFixture(
-            sdnTopoSetupFixture(self.connections, topo_obj))
+            sdnTopoSetupFixture(self.connections, topo))
         out = setup_obj.sdn_topo_setup()
         assertEqual(out['result'], True, out['msg'])
         if out['result']:
             topo, config_topo = out['data'][0], out['data'][1]
+        proj = list(topo.keys())[0]
 
         # Get the vrouter build version for logging purposes.
         BuildTag = get_OS_Release_BuildVersion(self)
 
         # Create traffic profile with all details like IP addresses, port
         # numbers and no of flows, from the profile defined in the topology.
-        traffic_profiles = self.create_traffic_profiles(topo_obj, config_topo)
+        traffic_profiles = self.create_traffic_profiles(topo[proj], config_topo)
 
+        self.topo, self.config_topo = topo, config_topo 
         for each_profile in traffic_profiles:
-            result = sdnFlowTest.generate_udp_flows(
-                self, traffic_profiles[each_profile], str(BuildTag))
+            result = self.generate_udp_flows(
+                traffic_profiles[each_profile], str(BuildTag))
             verify_system_parameters(self, out)
             if not result:
                 return False
@@ -525,26 +492,20 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
         #
         # Create a list of compute node IP's and pass it to topo if you want to pin
         # a vm to a particular node
-        topo_obj = topology_class_name(
+        topo = topology_class_name(
             compute_node_list=self.inputs.compute_ips)
         #
         # Test setup: Configure policy, VN, & VM
         # return {'result':result, 'msg': err_msg, 'data': [self.topo, config_topo]}
         # Returned topo is of following format:
         # config_topo= {'policy': policy_fixt, 'vn': vn_fixture, 'vm': vm_fixture}
-        topo = {}
-        topo_objs = {}
-        config_topo = {}
         out = self.useFixture(
-            sdnTopoSetupFixture(self.connections, topo_obj))
-        self.assertEqual(out.result, True, out.msg)
+            sdnTopoSetupFixture(self.connections, topo))
+        assertEqual(out.result, True, out.msg)
         if out.result:
-            topo_objs, config_topo = out.data
+            topo, config_topo = out.data
 
         # Create traffic based on traffic profile defined in topology.
-        import analytics_performance_tests
-        ana_obj = analytics_performance_tests.AnalyticsTestPerformance()
-        ana_obj.setUp()
         traffic_profiles = {}
         count = 0
         num_ports_per_ip = 50000.00
@@ -573,7 +534,7 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
                             src_vm_obj = config_topo[proj][vm][vm_name]
 
             prefix = topo_obj.vm_static_route_master[src_vm]
-            ip_list = ana_obj.get_ip_list_from_prefix(prefix)
+            ip_list = get_ip_list_from_prefix(prefix)
             no_of_ip = int(
                 math.ceil(
                     (topo_obj.traffic_profile[TrafficProfile]['num_flows'] /
@@ -581,8 +542,8 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
                     num_ports_per_ip))
             forward_flows = topo_obj.traffic_profile[
                 TrafficProfile]['num_flows'] / fwd_flow_factor
-            result_dict = sdnFlowTest.src_min_max_ip_and_dst_max_port(
-                self, ip_list, no_of_ip, dst_min_port, forward_flows)
+            result_dict = self.src_min_max_ip_and_dst_max_port(
+                ip_list, no_of_ip, dst_min_port, forward_flows)
             traffic_profiles[profile] = [src_vm_obj,  # src_vm obj
                                          # src_ip_min
                                          result_dict['src_min_ip'],
@@ -601,8 +562,8 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
         BuildVersion = get_OS_Release_BuildVersion(self)
 
         for each_profile in traffic_profiles:
-            sdnFlowTest.generate_udp_flows_and_do_verification(
-                self, traffic_profiles[each_profile], str(BuildVersion))
+            self.generate_udp_flows_and_do_verification(
+                traffic_profiles[each_profile], str(BuildVersion))
             verify_system_parameters(self, out)
             if not result:
                 return False
@@ -614,4 +575,4 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
         return True
     # end test_flow_multi_projects
 
-# end sdnFlowTest
+# end SDNFlowTests
