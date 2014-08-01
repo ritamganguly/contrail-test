@@ -3,7 +3,6 @@ from connections import ContrailConnections
 from common import isolated_creds
 from vn_test import VNFixture
 from vm_test import VMFixture
-from netaddr import IPNetwork
 
 
 class BaseNeutronTest(test.BaseTestCase):
@@ -77,7 +76,14 @@ class BaseNeutronTest(test.BaseTestCase):
         
     def add_vn_to_router(self, router_id, vn_fixture):
         self.add_router_interface(router_id, vn_fixture.vn_subnet_objs[0]['id'])
+
+    def create_security_group(self, name):
+        obj = self.quantum_fixture.create_security_group(name)
+        if obj:
+            self.addCleanup(self.delete_security_group, obj['id'])
+        return obj
+    # end create_security_group
+
+    def delete_security_group(self, sg_id):
+        self.quantum_fixture.delete_security_group(sg_id)
         
-        
-    def get_gateway(self, cidr):
-        return str(IPNetwork(cidr)[0])

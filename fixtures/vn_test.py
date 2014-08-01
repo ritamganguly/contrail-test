@@ -1091,6 +1091,11 @@ class VNFixture(fixtures.Fixture):
         self.update_vn_object()
         return net_rsp
     # end unbind_policy
+
+    def update_subnet(self, subnet_id, subnet_dict):
+        self.quantum_fixture.update_subnet(subnet_id, subnet_dict)
+        self.vn_subnet_objs = self.quantum_fixture.get_subnets_of_vn(
+                                                                 self.vn_id)
 # end VNFixture
 
 
@@ -1200,3 +1205,5 @@ class MultipleVNFixture(fixtures.Fixture):
 
     def get_all_fixture_obj(self):
         return map(lambda (name, fixture): (name, fixture.obj), self._vn_fixtures)
+
+        

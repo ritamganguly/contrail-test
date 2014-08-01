@@ -245,11 +245,12 @@ class NovaFixture(fixtures.Fixture):
             pass
 
         service_list = []
-        with settings(
-            host_string='%s@%s' % (self.cfgm_host_user, self.openstack_ip),
-                password=self.cfgm_host_passwd):
-            services_info = run(
-                'source /etc/contrail/openstackrc; nova service-list')
+        with hide('everything'):
+            with settings(
+                host_string='%s@%s' % (self.cfgm_host_user, self.openstack_ip),
+                    password=self.cfgm_host_passwd):
+                services_info = run(
+                    'source /etc/contrail/openstackrc; nova service-list')
         services_info = services_info.split('\r\n')
         get_rows = lambda row: map(str.strip, filter(None, row.split('|')))
         columns = services_info[1].split('|')
@@ -437,8 +438,12 @@ class NovaFixture(fixtures.Fixture):
                 yield compute_svc.host
     # end get_compute_host
 
-    @retry(tries=20, delay=5)
     def wait_till_vm_is_active(self, vm_obj):
+        return self.wait_till_vm_status(vm_obj,'ACTIVE')
+    # end wait_till_vm_is_active
+
+    @retry(tries=20, delay=5)
+    def wait_till_vm_status(self, vm_obj, status='ACTIVE'):
         try:
             vm_obj.get()
             if vm_obj.status == 'ACTIVE' or vm_obj.status == 'ERROR':
@@ -454,7 +459,7 @@ class NovaFixture(fixtures.Fixture):
         except novaException.ClientException:
             self.logger.error('Fatal Nova Exception while getting VM detail')
             return False
-    # end wait_till_vm_is_active
+    # end wait_till_vm_status
 
     @retry(tries=20, delay=5)
     def wait_till_vm_is_up(self, vm_obj):

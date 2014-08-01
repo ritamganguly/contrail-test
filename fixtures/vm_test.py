@@ -1755,6 +1755,12 @@ class VMFixture(fixtures.Fixture):
                          (port_id, self.vm_obj.name))
         return self.vm_obj.interface_detach(port_id)
 
+    def reboot(self,type='SOFT'):
+        self.vm_obj.reboot(type)
+
+    def wait_till_vm_status(self, status='ACTIVE'):
+        return self.nova_fixture.wait_till_vm_status(self.vm_obj, status)
+
 
 # end VMFixture
 class VMData(object):
