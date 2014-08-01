@@ -48,8 +48,20 @@ class SvcInstanceFixture(fixtures.Fixture):
 
     def cleanUp(self):
         super(SvcInstanceFixture, self).cleanUp()
-        self._delete_si()
-        assert self.verify_on_cleanup()
+        do_cleanup = True
+        if self.inputs.fixture_cleanup == 'no':
+            do_cleanup = False
+        if self.already_present:
+            do_cleanup = False
+        if self.inputs.fixture_cleanup == 'force':
+            do_cleanup = True
+        if do_cleanup:
+            self._delete_si()
+            self.logger.info("Deleted SI %s" % (self.si_fq_name))
+            assert self.verify_on_cleanup()
+        else:
+            self.logger.info('Skipping deletion of SI %s' %
+                             (self.si_fq_name))
     # end cleanUp
 
     def _create_si(self):
@@ -389,7 +401,7 @@ class SvcInstanceFixture(fixtures.Fixture):
         if self.si_exists():
             self.logger.info(
                 "Some Service Instance exists; skip SVN check in API server")
-            return (False, None)
+            return (True, None)
         for vn in self.cs_svc_vns:
             svc_vn = self.api_s_inspect.get_cs_vn(project= self.project.name, vn=vn, refresh=True)
             if svc_vn:
@@ -404,7 +416,7 @@ class SvcInstanceFixture(fixtures.Fixture):
         if self.si_exists():
             self.logger.info(
                 "Some Service Instance exists; skip RI check in API server")
-            return (False, None)
+            return (True, None)
         for ri in self.cs_svc_ris:
             svc_ri = self.api_s_inspect.get_cs_ri_by_id(ri)
             if svc_ri:
