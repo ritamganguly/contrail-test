@@ -12,7 +12,7 @@ from svc_instance_fixture import SvcInstanceFixture
 from svc_template_fixture import SvcTemplateFixture
 from connections import ContrailConnections
 from policy.config import AttachPolicyFixture
-from util import retry
+from tcutils.util import retry
 
 
 class ConfigSvcChain(fixtures.TestWithFixtures):

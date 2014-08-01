@@ -1,12 +1,12 @@
 import fixtures
 import re
 from project_test import *
-from util import *
+from tcutils.util import *
 import json
 from vnc_api.vnc_api import *
 from contrail_fixtures import *
 import copy
-from vna_introspect_utils import *
+from tcutils.agent.vna_introspect_utils import *
 import policy_test_utils
 import inspect
 from webui_test import *

@@ -4,7 +4,6 @@
 class systest_topo_single_project ():
 
     def __init__(self, compute_node_list=None, domain='default-domain', project='admin', username=None, password=None):
-        print "building dynamic topo"
         self.project_list = ['project2']
 
         # Define the vm to compute node mapping to pin a vm to a particular
@@ -51,8 +50,8 @@ class systest_topo_single_project ():
                                 # Inter VN,Intra Node,FIP
                                 'TrafficProfile5': {'src_vm': 'vmc5', 'dst_vm': 'vmc6', 'num_flows': 9000, 'num_pkts': 90000},
                                 'TrafficProfile6': {'src_vm': 'vmc8', 'dst_vm': 'vmc5', 'num_flows': 9000, 'num_pkts': 90000}}  # Inter VN,Inter Node,FIP
-        self.traffic_profile = {'TrafficProfile1': {'src_vm': 'vmc1', 'dst_vm': 'vmc2', 'num_flows': 9000, 'num_pkts': 90000},  # Intra VN,Intra Node
-                                'TrafficProfile6': {'src_vm': 'vmc8', 'dst_vm': 'vmc5', 'num_flows': 9000, 'num_pkts': 90000}}  # Inter VN,Inter Node,FIP
+        #self.traffic_profile = {'TrafficProfile1': {'src_vm': 'vmc1', 'dst_vm': 'vmc2', 'num_flows': 9000, 'num_pkts': 90000},  # Intra VN,Intra Node
+        #                        'TrafficProfile6': {'src_vm': 'vmc8', 'dst_vm': 'vmc5', 'num_flows': 9000, 'num_pkts': 90000}}  # Inter VN,Inter Node,FIP
         #
         # A master list of all the vm static routes defined.
         self.vm_static_route_master = {

@@ -8,10 +8,10 @@ import json
 import requests
 import socket
 from lxml import etree
-from verification_util import *
+from tcutils.verification_util import *
 from opserver_results import *
 from opserver_util import OpServerUtils
-from util import *
+from tcutils.util import *
 
 
 class VerificationOpsSrv (VerificationUtilBase):
