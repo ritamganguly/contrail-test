@@ -26,6 +26,7 @@ class SvcInstanceFixture(fixtures.Fixture):
         self.logger = inputs.logger
         self.left_vn_name = left_vn_name
         self.right_vn_name = right_vn_name
+        self.already_present = False
         self.do_verify = do_verify
         self.if_list = if_list
         self.max_inst = max_inst
@@ -69,6 +70,7 @@ class SvcInstanceFixture(fixtures.Fixture):
         try:
             svc_instance = self.vnc_lib.service_instance_read(
                 fq_name=self.si_fq_name)
+            self.already_present = True
             self.logger.debug(
                 "Service instance: %s already exists", self.si_fq_name)
         except NoIdError:
@@ -170,7 +172,7 @@ class SvcInstanceFixture(fixtures.Fixture):
 
         return True, None
 
-    @retry(delay=10, tries=15)
+    @retry(delay=5, tries=5)
     def verify_svm(self):
         """check Service VM"""
         try:
@@ -392,7 +394,15 @@ class SvcInstanceFixture(fixtures.Fixture):
     def si_exists(self):
         svc_instances = self.vnc_lib.service_instances_list()[
             'service-instances']
-        if len(svc_instances) == 0:
+        self.logger.info("%s svc intances found in all projects" % len(svc_instances))
+        # Filter SI's in current project as the above list call gives SIs in all projects
+        project_si_list = []
+        for x in svc_instances:
+            proj_of_x = [x['fq_name'][0], x['fq_name'][1]]
+            if proj_of_x == self.project_fq_name:
+                project_si_list.append(x)
+        self.logger.info("%s svc intances found in current project" % len(project_si_list))
+        if len(project_si_list) == 0:
             return False
         return True
 
