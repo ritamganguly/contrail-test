@@ -47,17 +47,31 @@ def createProject(self):
             project_name=self.topo.project, vnc_lib_h=self.vnc_lib,
             username=self.topo.username, password=self.topo.password,
             connections=self.connections))
-    if not ((self.topo.username == 'admin' or self.topo.username == None) and (self.topo.project == 'admin')):
-        self.logger.info("provision user %s with role as admin in tenant %s" %(self.topo.username, self.topo.project))
-        self.user_fixture.add_user_to_tenant(self.topo.project, self.topo.username, 'admin')
+    if not (
+            (self.topo.username == 'admin' or self.topo.username is None) and (
+            self.topo.project == 'admin')):
+        self.logger.info(
+            "provision user %s with role as admin in tenant %s" %
+            (self.topo.username, self.topo.project))
+        self.user_fixture.add_user_to_tenant(
+            self.topo.project,
+            self.topo.username,
+            'admin')
     self.project_inputs = self.useFixture(
         ContrailTestInit(
             self.ini_file, stack_user=self.project_fixture[
-                self.topo.project].username,
-            stack_password=self.project_fixture[self.topo.project].password, project_fq_name=['default-domain', self.topo.project],logger=self.logger))
-    self.project_connections = ContrailConnections(self.project_inputs, self.logger)
+                self.topo.project].username, stack_password=self.project_fixture[
+                self.topo.project].password, project_fq_name=[
+                    'default-domain', self.topo.project], logger=self.logger))
+    self.project_connections = ContrailConnections(
+        self.project_inputs,
+        self.logger)
     self.project_parent_fixt = self.useFixture(
         ProjectTestFixtureGen(self.vnc_lib, project_name=self.topo.project))
+    if self.skip_verify == 'no':
+        assert self.project_fixture[
+            self.topo.project].verify_on_setup(), "verification of project:%s failed" %
+            self.topo.project
     return self
 # end createProject
 
