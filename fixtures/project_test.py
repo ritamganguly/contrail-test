@@ -123,8 +123,14 @@ class ProjectFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
-            self._reauthenticate_keystone()
-            self._delete_project_keystone()
+        # By this time, project should not have any child refs...checking specifically for VNs 
+        # as service VNs get scheduled for auto-deletion after deleting last service instance...
+	    self.logger.info("Check for config & delete project %s" %self.project_name)
+            if self.check_for_VN_in_api():
+                self._reauthenticate_keystone()
+                self._delete_project_keystone()
+            else:
+                self.logger.info("Cannot delete project as VNs are not removed completely")
             if self.verify_is_run:
                 assert self.verify_on_cleanup()
         else:
@@ -137,6 +143,18 @@ class ProjectFixture(fixtures.Fixture):
         self.project_obj = self.vnc_lib_h.project_read(
             fq_name=self.project_fq_name)
         return self.project_obj
+
+    @retry(delay=2, tries=10)
+    def check_for_VN_in_api(self):
+        self.project_obj = self.vnc_lib_h.project_read(
+	    fq_name=self.project_fq_name)
+        has_vns = self.project_obj.get_virtual_networks()
+        if has_vns:
+            self.logger.info("Following VNs exist in project: %s" %has_vns)
+            return False
+        else:
+            self.logger.info("Don't see any VNs in the project %s" %self.project_fq_name)
+            return True
 
     def get_project_connections(self, username=None, password=None):
         if not username:
@@ -193,6 +211,8 @@ class ProjectFixture(fixtures.Fixture):
             cs_project_obj = api_s_inspect.get_cs_project(
                 self.domain_name,
                 self.project_name)
+            self.logger.info("Check for project %s after deletion, got cs_project_obj %s" %
+                (self.project_name, cs_project_obj))
             if cs_project_obj:
                 self.logger.warn('Project %s is still found in API Server %s'
                                  'with ID %s ' % (self.project_name, api_s_inspect._ip,
