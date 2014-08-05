@@ -15,6 +15,8 @@ import signal
 import uuid
 import string
 import random
+from netaddr import IPNetwork
+
 log.basicConfig(format='%(levelname)s: %(message)s', level=log.DEBUG)
 
 # Code borrowed from http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
@@ -293,8 +295,11 @@ def get_random_name(prefix=None):
     return prefix + '-' + get_random_string()
 
 
-def get_random_cidr():
+def get_random_cidr(mask='24'):
     first_octet = random.randint(1, 126)
     second_octet = random.randint(0, 254)
     third_octet = random.randint(0, 254)
-    return "%i.%i.%i.0/24" % (first_octet, second_octet, third_octet)
+    return "%i.%i.%i.0/%s" % (first_octet, second_octet, third_octet, mask)
+
+def get_an_ip(cidr, offset=0):
+    return str(IPNetwork(cidr)[offset])
