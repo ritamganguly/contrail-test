@@ -27,7 +27,7 @@ import system_test_topo
 from test_lib.test_utils import assertEqual, get_ip_list_from_prefix
 
 
-class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
+class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
     _interface = 'json'
 
     @classmethod
@@ -55,7 +55,20 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
         self.flow_teardown_time = 60
         self.time_to_retire_flows = int(
             self.flow_cache_timeout) + self.flow_teardown_time
-        
+
+    def delete_agent_flows(self):
+        for comp_node in self.inputs.compute_ips:
+            comp_node_fixt = self.useFixture(
+                ComputeNodeFixture(self.connections, comp_node))
+            self.logger.info(
+                "flows now in %s: %s" %
+                (comp_node, comp_node_fixt.get_vrouter_flow_count()))
+            comp_inspect = self.agent_inspect[comp_node]
+            comp_inspect.delete_all_flows
+            self.logger.info(
+                "flows after deleting in %s: %s" %
+                (comp_node, comp_node_fixt.get_vrouter_flow_count()))
+
     # get source min, max ip's and destination max port.
     def src_min_max_ip_and_dst_max_port(
             self,
@@ -132,7 +145,7 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
             else:
                 # Use thestatic IP's that have been provisioned to the VM route
                 # table as src IP range.
-                traffic_profiles[profile] = [src_vm_obj, 
+                traffic_profiles[profile] = [src_vm_obj,
                                              # src_ip_min
                                              result_dict['src_min_ip'],
                                              # src_ip_max
@@ -315,7 +328,8 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
         # Check if it's a remote or local flow to log the data accordingly.
         if Shost[0] == Dhost[0]:
             localflow = 'Local Flow'
-        # if source and destination VN are same then it's not a NAT/Policy flow else it is a NAT/Policy flow and needs to be logged accordingly.
+        # if source and destination VN are same then it's not a NAT/Policy flow
+        # else it is a NAT/Policy flow and needs to be logged accordingly.
         if src_vm_obj.vn_name == dst_vm_obj.vn_name:
             mystr = "%s\t%s\t%s\t%s\t%s\n" % (
                 build_version, mtime, Shost[0], AverageFlowSetupRate, localflow)
@@ -445,19 +459,18 @@ class SDNFlowTests(flow_test_utils.VerifySvcMirror,BaseFlowTest):
 
         # Create traffic profile with all details like IP addresses, port
         # numbers and no of flows, from the profile defined in the topology.
-        traffic_profiles = self.create_traffic_profiles(topo[proj], config_topo)
+        traffic_profiles = self.create_traffic_profiles(
+            topo[proj],
+            config_topo)
 
-        self.topo, self.config_topo = topo, config_topo 
+        self.topo, self.config_topo = topo, config_topo
         for each_profile in traffic_profiles:
             result = self.generate_udp_flows(
                 traffic_profiles[each_profile], str(BuildTag))
             verify_system_parameters(self, out)
             if not result:
                 return False
-            self.logger.info(
-                "Sleeping for %s sec, for the flows to age out and get purged." %
-                (self.time_to_retire_flows))
-            time.sleep(self.time_to_retire_flows)
+        self.delete_agent_flows()
 
         return True
 
