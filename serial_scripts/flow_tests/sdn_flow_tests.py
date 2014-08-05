@@ -24,6 +24,7 @@ import socket
 import flow_test_utils
 from compute_node_test import ComputeNodeFixture
 import system_test_topo
+import flow_test_topo
 from test_lib.test_utils import assertEqual, get_ip_list_from_prefix
 
 
@@ -301,8 +302,9 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
             self.logger.info(" ")
 
         # @setup rate of 9000 flows per sec, 30*9000=270k flows can be setup
-        self.logger.info("Sleeping for 30 sec, for all the flows to be setup.")
-        time.sleep(30)
+        # with ~10s over with above loop, wait for another 20s
+        self.logger.info("Sleeping for 20 sec, for all the flows to be setup.")
+        time.sleep(20)
         # Calculate the flow setup rate per second = average flow setup in
         # sleep interval over the above iterations / sleep interval.
         AverageFlowSetupRate = int(AverageFlowSetupRate / sleep_interval)
@@ -421,6 +423,7 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         """Tests related to flow setup rate and flow table stability accross various triggers for verification
            accross VN's within a single project"""
         result = True
+        self.agent_objs = {}
         self.set_flow_tear_time()
         #
         # Check if there are enough nodes i.e. atleast 2 compute nodes to run this test.
@@ -434,7 +437,9 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
             return True
         #
         # Get config for test from topology
-        topology_class_name = system_test_topo.systest_topo_single_project
+        topology_class_name = flow_test_topo.systest_topo_single_project
+        # mini topo for testing script
+        # topology_class_name = mini_flow_test_topo.systest_topo_single_project
         self.logger.info(
             "Scenario for the test used is: %s" %
             (topology_class_name))
@@ -477,10 +482,74 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
     # end test_flow_single_project
 
     @preposttest_wrapper
+    def test_system_single_project(self):
+        """Basic systest with single project with many features & traffic..
+        """
+        result = True
+        self.agent_objs = {}
+        self.set_flow_tear_time()
+        #
+        # Check if there are enough nodes i.e. atleast 2 compute nodes to run this test.
+        # else report that minimum 2 compute nodes are needed for this test and
+        # exit.
+        if len(self.inputs.compute_ips) < 2:
+            self.logger.warn(
+                "Minimum 2 compute nodes are needed for this test to run")
+            self.logger.warn(
+                "Exiting since this test can't be run on single compute node")
+            return True
+        #
+        # Get config for test from topology
+        topology_class_name = system_test_topo.systest_topo_single_project
+        # For testing script, use mini topology
+        # topology_class_name = mini_system_test_topo.systest_topo_single_project
+        self.logger.info(
+            "Scenario for the test used is: %s" %
+            (topology_class_name))
+
+        topo = topology_class_name(
+            compute_node_list=self.inputs.compute_ips)
+        #
+        # Test setup: Configure policy, VN, & VM
+        # return {'result':result, 'msg': err_msg, 'data': [self.topo, config_topo]}
+        # Returned topo is of following format:
+        # config_topo= {'policy': policy_fixt, 'vn': vn_fixture, 'vm': vm_fixture}
+        setup_obj = self.useFixture(
+            sdnTopoSetupFixture(self.connections, topo))
+        out = setup_obj.sdn_topo_setup()
+        assertEqual(out['result'], True, out['msg'])
+        if out['result']:
+            topo, config_topo = out['data'][0], out['data'][1]
+        proj = list(topo.keys())[0]
+
+        # Get the vrouter build version for logging purposes.
+        BuildTag = get_OS_Release_BuildVersion(self)
+
+        # Create traffic profile with all details like IP addresses, port
+        # numbers and no of flows, from the profile defined in the topology.
+        traffic_profiles = self.create_traffic_profiles(
+            topo[proj],
+            config_topo)
+
+        self.topo, self.config_topo = topo, config_topo
+        for each_profile in traffic_profiles:
+            result = self.generate_udp_flows(
+                traffic_profiles[each_profile], str(BuildTag))
+            verify_system_parameters(self, out)
+            if not result:
+                return False
+        self.delete_agent_flows()
+
+        return True
+
+    # end test_system_single_project
+
+    @preposttest_wrapper
     def test_flow_multi_projects(self):
         """Tests related to flow setup rate and flow table stability accross various triggers for verification
            accross VN's and accross multiple projects"""
         result = True
+        self.agent_objs = {}
         topology_class_name = None
         #
         # Check if there are enough nodes i.e. atleast 2 compute nodes to run this test.
