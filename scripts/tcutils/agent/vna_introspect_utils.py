@@ -231,6 +231,11 @@ l[0]={'protocol': '1', 'stats_bytes': '222180', 'stats_packets': '2645', 'setup_
             l.append(p)
         return l
 
+    def delete_all_flows(self):
+        '''Delete flows with following introspect url - http://10.204.216.15:8085/Snh_DeleteAllFlowRecords?. 
+        ''' 
+        resp = self.dict_get('Snh_DeleteAllFlowRecords?')
+           
     def match_item_in_flowrecord(self, flow_rec, item, expected):
         '''This proc typically work in pair with get_vna_fetchflowrecord. It parse the output of get_vna_fetchflowrecord and verify for the given item output is matching with the user expected one.'''
         result = False
