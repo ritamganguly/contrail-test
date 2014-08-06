@@ -107,7 +107,7 @@ class sdnTopoSetupFixture(fixtures.Fixture):
         return {'result': self.result, 'msg': self.err_msg, 'data': [self.topo, config_topo]}
     # end topo_setup
 
-    def sdn_topo_setup(self, config_option='openstack', skip_verify='no', flavor='contrail_flavor_small', vms_on_single_compute=False):
+    def sdn_topo_setup(self, config_option='openstack', skip_verify='yes', flavor='contrail_flavor_small', vms_on_single_compute=False):
         '''This is wrapper script which internally calls topo_setup to setup sdn topology based on topology.
         This wrapper is basically used to configure multiple projects and it support assigning of FIP to VM from public VN.
         '''

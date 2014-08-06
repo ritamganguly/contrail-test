@@ -70,8 +70,7 @@ def createProject(self):
         ProjectTestFixtureGen(self.vnc_lib, project_name=self.topo.project))
     if self.skip_verify == 'no':
         assert self.project_fixture[
-            self.topo.project].verify_on_setup(), "verification of project:%s failed" %
-            self.topo.project
+            self.topo.project].verify_on_setup()
     return self
 # end createProject
 
