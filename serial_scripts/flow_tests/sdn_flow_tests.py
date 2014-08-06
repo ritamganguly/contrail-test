@@ -65,10 +65,12 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
                 "flows now in %s: %s" %
                 (comp_node, comp_node_fixt.get_vrouter_flow_count()))
             comp_inspect = self.agent_inspect[comp_node]
-            comp_inspect.delete_all_flows
+            comp_inspect.delete_all_flows()
             self.logger.info(
                 "flows after deleting in %s: %s" %
                 (comp_node, comp_node_fixt.get_vrouter_flow_count()))
+        self.logger.info("wait for 10 secs for the flows to tear down")
+        time.sleep(10)
 
     # get source min, max ip's and destination max port.
     def src_min_max_ip_and_dst_max_port(
@@ -285,7 +287,8 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         # iteration.
         for ind in range(NoOfIterations):
             time.sleep(sleep_interval)
-            NoOfFlows.append(flow_test_utils.vm_vrouter_flow_count(src_vm_obj))
+            flows_now = flow_test_utils.vm_vrouter_flow_count(src_vm_obj)
+            NoOfFlows.append(flows_now)
             if ind == 0:
                 FlowRatePerInterval.append(NoOfFlows[ind])
                 AverageFlowSetupRate = FlowRatePerInterval[ind]
@@ -300,11 +303,15 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
                 (sleep_interval, AverageFlowSetupRate))
             self.logger.info("Flow samples so far: %s" % (NoOfFlows))
             self.logger.info(" ")
+            if flows_now > 90000:
+                self.logger.info("Flows setup so far: %s" % (flows_now))
+                self.logger.info("Close to 100k flows setup, no need to wait")
+                break
 
         # @setup rate of 9000 flows per sec, 30*9000=270k flows can be setup
         # with ~10s over with above loop, wait for another 20s
-        self.logger.info("Sleeping for 20 sec, for all the flows to be setup.")
-        time.sleep(20)
+        # self.logger.info("Sleeping for 20 sec, for all the flows to be setup.")
+        # time.sleep(20)
         # Calculate the flow setup rate per second = average flow setup in
         # sleep interval over the above iterations / sleep interval.
         AverageFlowSetupRate = int(AverageFlowSetupRate / sleep_interval)
@@ -470,12 +477,12 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
 
         self.topo, self.config_topo = topo, config_topo
         for each_profile in traffic_profiles:
-            result = self.generate_udp_flows(
+            result = self.generate_udp_flows_and_do_verification(
                 traffic_profiles[each_profile], str(BuildTag))
-            verify_system_parameters(self, out)
+            #verify_system_parameters(self, out)
+            self.delete_agent_flows()
             if not result:
                 return False
-        self.delete_agent_flows()
 
         return True
 
@@ -536,9 +543,9 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
             result = self.generate_udp_flows(
                 traffic_profiles[each_profile], str(BuildTag))
             verify_system_parameters(self, out)
+            self.delete_agent_flows()
             if not result:
                 return False
-        self.delete_agent_flows()
 
         return True
 
@@ -644,7 +651,7 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         BuildVersion = get_OS_Release_BuildVersion(self)
 
         for each_profile in traffic_profiles:
-            self.generate_udp_flows_and_do_verification(
+            result = self.generate_udp_flows_and_do_verification(
                 traffic_profiles[each_profile], str(BuildVersion))
             verify_system_parameters(self, out)
             if not result:

@@ -41,16 +41,16 @@ class systest_topo_single_project ():
         #
         # Define traffic profile.
         self.traffic_profile = {
-            'TrafficProfile1': {'src_vm': 'vmc1', 'dst_vm': 'vmc2', 'num_flows': 90000, 'num_pkts': 900000},  # Intra VN,Intra Node
+            'TrafficProfile1': {'src_vm': 'vmc1', 'dst_vm': 'vmc2', 'num_flows': 100000, 'num_pkts': 900000},  # Intra VN,Intra Node
             # Intra VN,Inter Node
-            'TrafficProfile2': {'src_vm': 'vmc4', 'dst_vm': 'vmc7', 'num_flows': 90000, 'num_pkts': 900000},
+            'TrafficProfile2': {'src_vm': 'vmc4', 'dst_vm': 'vmc7', 'num_flows': 100000, 'num_pkts': 900000},
             # Inter VN,Intra Node,Pol
-            'TrafficProfile3': {'src_vm': 'vmc3', 'dst_vm': 'vmc4', 'num_flows': 90000, 'num_pkts': 900000},
+            'TrafficProfile3': {'src_vm': 'vmc3', 'dst_vm': 'vmc4', 'num_flows': 100000, 'num_pkts': 900000},
             # Inter VN,Inter Node,Pol
-            'TrafficProfile4': {'src_vm': 'vmc3', 'dst_vm': 'vmc7', 'num_flows': 90000, 'num_pkts': 900000},
+            'TrafficProfile4': {'src_vm': 'vmc3', 'dst_vm': 'vmc7', 'num_flows': 100000, 'num_pkts': 900000},
             # Inter VN,Intra Node,FIP
-            'TrafficProfile5': {'src_vm': 'vmc5', 'dst_vm': 'vmc6', 'num_flows': 90000, 'num_pkts': 900000},
-            'TrafficProfile6': {'src_vm': 'vmc8', 'dst_vm': 'vmc5', 'num_flows': 90000, 'num_pkts': 900000}}  # Inter VN,Inter Node,FIP
+            'TrafficProfile5': {'src_vm': 'vmc5', 'dst_vm': 'vmc6', 'num_flows': 100000, 'num_pkts': 900000},
+            'TrafficProfile6': {'src_vm': 'vmc8', 'dst_vm': 'vmc5', 'num_flows': 100000, 'num_pkts': 900000}}  # Inter VN,Inter Node,FIP
 
         #self.traffic_profile = {
         #    'TrafficProfile1': {'src_vm': 'vmc1', 'dst_vm': 'vmc2', 'num_flows': 9000, 'num_pkts': 90000},  # Intra VN,Intra Node
