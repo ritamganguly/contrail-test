@@ -83,7 +83,7 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
         service instance. Check the ECMP behaviour after rebooting the nodes"""
         cmd = 'reboot'
         self.verify_svc_in_network_datapath(
-            si_count=1, svc_scaling=True, max_inst=3, flavor='m1.medium')
+            si_count=1, svc_scaling=True, max_inst=3, flavor='contrail_flavor_2cpu')
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
             self.vn1_fixture, self.vm1_fixture, svm_ids)

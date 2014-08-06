@@ -17,7 +17,7 @@ from tcutils.wrappers import preposttest_wrapper
 
 from neutron.base import BaseNeutronTest
 import test
-from util import *
+from tcutils.util import *
 
 class TestRouters(BaseNeutronTest):
 

@@ -7,7 +7,7 @@ from webui_test import *
 class SvcTemplateFixture(fixtures.Fixture):
 
     def __init__(self, connections, inputs, domain_name, st_name, svc_img_name,
-                 svc_type, if_list, svc_scaling, ordered_interfaces, svc_mode='transparent', flavor='m1.medium'):
+                 svc_type, if_list, svc_scaling, ordered_interfaces, svc_mode='transparent', flavor='contrail_flavor_2cpu'):
         self.nova_fixture = connections.nova_fixture
         self.vnc_lib_h = connections.vnc_lib
         self.domain_name = domain_name

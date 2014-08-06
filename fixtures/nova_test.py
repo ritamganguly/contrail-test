@@ -224,12 +224,12 @@ class NovaFixture(fixtures.Fixture):
                 if exists('.ssh/id_rsa.pub'):  # If file exists on remote m/c
                     get('.ssh/id_rsa.pub', '/tmp/')
                 else:
-                    run('rm -f .ssh/id_rsa.pub')
+#                    run('rm -f .ssh/id_rsa*')
                     run('ssh-keygen -f %s -t rsa -N \'\'' % (rsa_pub_arg))
                     get('.ssh/id_rsa.pub', '/tmp/')
                 pub_key = open('/tmp/id_rsa.pub', 'r').read()
                 self.obj.keypairs.create(key_name, public_key=pub_key)
-                local('rm /tmp/id_rsa.pub')
+#                local('rm /tmp/id_rsa.pub')
     # end _create_keypair
 
     def get_nova_services(self, **kwargs):

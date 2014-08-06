@@ -136,8 +136,8 @@ class systest_topo_single_project ():
         self.st_params = {}
         self.si_params = {}
 
-        self.st_params[self.st_list[0]]={'svc_img_name': 'analyzer', 'svc_type':'analyzer', 'if_list':[['left', False, False]], 'svc_mode':'transparent', 'svc_scaling':False, 'flavor':'m1.medium', 'ordered_interfaces': True}
-        self.st_params[self.st_list[1]] = {'svc_img_name': 'analyzer', 'svc_type':'analyzer', 'if_list':[['left', False, False]], 'svc_mode':'in-network', 'svc_scaling':False, 'flavor':'m1.medium', 'ordered_interfaces': True}
+        self.st_params[self.st_list[0]]={'svc_img_name': 'analyzer', 'svc_type':'analyzer', 'if_list':[['left', False, False]], 'svc_mode':'transparent', 'svc_scaling':False, 'flavor':'contrail_flavor_2cpu', 'ordered_interfaces': True}
+        self.st_params[self.st_list[1]] = {'svc_img_name': 'analyzer', 'svc_type':'analyzer', 'if_list':[['left', False, False]], 'svc_mode':'in-network', 'svc_scaling':False, 'flavor':'contrail_flavor_2cpu', 'ordered_interfaces': True}
 
         self.si_params[self.si_list[0]] = {'svc_template':self.st_list[0], 'if_list':self.st_params[self.st_list[0]]['if_list'], 'left_vn':None}
         self.si_params[self.si_list[1]] = {'svc_template':self.st_list[1], 'if_list':self.st_params[self.st_list[1]]['if_list'], 'left_vn':None}

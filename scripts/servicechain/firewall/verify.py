@@ -4,7 +4,7 @@ from servicechain.config import ConfigSvcChain
 from servicechain.verify import VerifySvcChain
 from servicechain.mirror.verify import VerifySvcMirror
 from servicechain.mirror.config import ConfigSvcMirror
-
+from tcutils.util import get_random_cidr
 
 class VerifySvcFirewall(VerifySvcMirror):
 
@@ -175,13 +175,13 @@ class VerifySvcFirewall(VerifySvcMirror):
             sport, dport)
         assert sent and recv == sent, errmsg
 
-    def verify_svc_transparent_datapath(self, si_count=1, svc_scaling=False, max_inst=1, flavor='m1.medium'):
+    def verify_svc_transparent_datapath(self, si_count=1, svc_scaling=False, max_inst=1, flavor='contrail_flavor_2cpu'):
         """Validate the service chaining datapath"""
         self.vn1_name = "bridge_vn1_" + uuid.uuid1().urn.split(':')[2]
-        self.vn1_subnets = ['11.1.1.0/24']
+        self.vn1_subnets = [get_random_cidr()]
         self.vm1_name = "bridge_vm1_" + uuid.uuid1().urn.split(':')[2]
         self.vn2_name = "bridge_vn2_" + uuid.uuid1().urn.split(':')[2]
-        self.vn2_subnets = ['12.2.2.0/24']
+        self.vn2_subnets = [get_random_cidr()]
         self.vm2_name = "bridge_vm2_" + uuid.uuid1().urn.split(':')[2]
 
         self.action_list = []
@@ -243,7 +243,7 @@ class VerifySvcFirewall(VerifySvcMirror):
             self.vm2_fixture.vm_ip, count='3'), errmsg
         return True
 
-    def verify_svc_in_network_datapath(self, si_count=1, svc_scaling=False, max_inst=1, svc_mode='in-network', flavor='m1.medium', static_route=['None', 'None', 'None'], ordered_interfaces=True, vn1_subnets = ['10.1.1.0/24'], vn2_subnets = ['20.2.2.0/24']):
+    def verify_svc_in_network_datapath(self, si_count=1, svc_scaling=False, max_inst=1, svc_mode='in-network', flavor='contrail_flavor_2cpu', static_route=['None', 'None', 'None'], ordered_interfaces=True, vn1_subnets = ['10.1.1.0/24'], vn2_subnets = ['20.2.2.0/24']):
         """Validate the service chaining in network  datapath"""
 
         self.vn1_fq_name = "default-domain:" + self.inputs.project_name + ":in_network_vn1_" + uuid.uuid1().urn.split(':')[2]
@@ -698,7 +698,7 @@ class VerifySvcFirewall(VerifySvcMirror):
 
     def verify_firewall_with_mirroring(
         self, si_count=1, svc_scaling=False, max_inst=1,
-            firewall_svc_mode='in-network', mirror_svc_mode='transparent', flavor='m1.medium', vn1_subnets = ['10.1.1.0/24'], vn2_subnets = ['20.2.2.0/24']):
+            firewall_svc_mode='in-network', mirror_svc_mode='transparent', flavor='contrail_flavor_2cpu', vn1_subnets = ['10.1.1.0/24'], vn2_subnets = ['20.2.2.0/24']):
         """Validate the service chaining in network  datapath"""
         self.vn1_fq_name = "default-domain:" + self.inputs.project_name + ":in_network_vn1_" + uuid.uuid1().urn.split(':')[2]                                                                                                               
         self.vn1_name = self.vn1_fq_name.split(':')[2]                                                                                                                                                                                      
