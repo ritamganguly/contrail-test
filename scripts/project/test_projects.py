@@ -12,6 +12,7 @@ from tcutils.wrappers import preposttest_wrapper
 from project.base import BaseProjectTest
 import test
 from tcutils.util import get_random_name
+from vnc_api.vnc_api import NoIdError
 
 class TestProject(BaseProjectTest):
 
@@ -46,12 +47,12 @@ class TestProject(BaseProjectTest):
         assert project_fixture_obj.verify_on_setup()
 
         # Check if the default SG is present in it
-        connections = project_fixture_obj.get_project_connections()
-        neutron_h = self.connections.quantum_fixture
-        sgs = neutron_h.list_security_groups(name='default')
-        assert len(sgs['security_groups']) == 1,\
-            'Default SG is not created in project %s' % (project_name)
-        self.logger.info('Default SG is present in the new project')
+        try:
+            secgroup = self.vnc_lib.security_group_read(
+                fq_name=[u'default-domain', project_name, 'default'])
+            self.logger.info('Default SG is present in the new project')
+        except NoIdError:
+            assert False, "Default SG is not created in project %s" % (project_name)
         return result
     # end test_project_add_delete
 

@@ -691,7 +691,7 @@ class VNFixture(fixtures.Fixture):
         return result
     # end verify_vn_not_in_control_nodes
 
-    @retry(delay=5, tries=3)
+    @retry(delay=5, tries=30)
     def verify_vn_not_in_agent(self):
         ''' Verify that VN is removed in all agent nodes.
         '''

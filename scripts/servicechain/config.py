@@ -29,7 +29,7 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
 
     def config_st_si(self, st_name, si_name_prefix, si_count,
                      svc_scaling=False, max_inst=1, domain='default-domain', project='admin', left_vn=None,
-                     right_vn=None, svc_type='firewall', svc_mode='transparent', flavor='m1.medium', static_route=['None', 'None', 'None'], ordered_interfaces=True):
+                     right_vn=None, svc_type='firewall', svc_mode='transparent', flavor='contrail_flavor_2cpu', static_route=['None', 'None', 'None'], ordered_interfaces=True):
         if (svc_scaling == True and svc_mode != 'transparent'):
             if_list = [['management', False, False],
                        ['left', True, False], ['right', False, False]]

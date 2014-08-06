@@ -17,7 +17,7 @@ from tcutils.wrappers import preposttest_wrapper
 
 from neutron.base import BaseNeutronTest
 import test
-from util import get_an_ip
+from tcutils.util import get_an_ip
 
 class TestSubnets(BaseNeutronTest):
 

@@ -123,14 +123,12 @@ class ProjectFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
-        # By this time, project should not have any child refs...checking specifically for VNs 
-        # as service VNs get scheduled for auto-deletion after deleting last service instance...
-	    self.logger.info("Check for config & delete project %s" %self.project_name)
-            if self.check_for_VN_in_api():
-                self._reauthenticate_keystone()
-                self._delete_project_keystone()
-            else:
-                self.logger.info("Cannot delete project as VNs are not removed completely")
+            if not self.check_no_project_references():
+                self.logger.warn('One or more references still present' 
+                    ', will not delete the project %s' % (self.project_name))
+                return
+            self._reauthenticate_keystone()
+            self._delete_project_keystone()
             if self.verify_is_run:
                 assert self.verify_on_cleanup()
         else:
@@ -138,6 +136,27 @@ class ProjectFixture(fixtures.Fixture):
                               self.project_fq_name)
 
     # end cleanUp
+
+    @retry(delay=2, tries=10)
+    def check_no_project_references(self):
+        vnc_project_obj = self.vnc_lib_h.project_read(id=self.project_id)
+        vns = vnc_project_obj.get_virtual_networks()
+        if vns:
+            self.logger.warn('Project %s still has VNs %s before deletion' %(
+                vns))
+            return False
+        vmis = vnc_project_obj.get_virtual_machine_interfaces()
+        if vmis:
+            self.logger.warn('Project %s still has VMIs %s before deletion' %(
+                vmis))
+            return False
+        sgs = vnc_project_obj.get_security_groups()
+        if len(sgs) > 1:
+            self.logger.warn('Project %s still has SGs %s before deletion' %(
+                sgs))
+            return False
+        return True
+    # end check_no_project_references
 
     def get_from_api_server(self):
         self.project_obj = self.vnc_lib_h.project_read(
