@@ -35,7 +35,7 @@ class systest_topo_single_project ():
 
         #
         # Define traffic profile.
-        self.traffic_profile = {'TrafficProfile1': {'src_vm': 'vmc1', 'dst_vm': 'vmc2', 'num_flows': 90000, 'num_pkts': 900000}}
+        self.traffic_profile = {'TrafficProfile1': {'src_vm': 'vmc1', 'dst_vm': 'vmc2', 'num_flows': 100000, 'num_pkts': 900000}}
         #
         # A master list of all the vm static routes defined.
         self.vm_static_route_master = {
