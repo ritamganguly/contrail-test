@@ -141,7 +141,7 @@ function run_tests {
   if [ $serial -eq 1 ]; then
       ${wrapper} testr run --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml 
   else
-      ${wrapper} testr run --parallel --concurrency 4 --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml
+      ${wrapper} testr run --parallel --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml
       sleep 2
   fi
   generate_html 
