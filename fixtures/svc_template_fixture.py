@@ -26,6 +26,7 @@ class SvcTemplateFixture(fixtures.Fixture):
         self.logger = inputs.logger
         self.inputs = inputs
         self.connections = connections
+        self.nova_fixture = connections.nova_fixture
         if self.inputs.webui_verification_flag:
             self.browser = connections.browser
             self.browser_openstack = connections.browser_openstack
@@ -59,6 +60,8 @@ class SvcTemplateFixture(fixtures.Fixture):
             svc_properties.set_service_type(self.svc_type)
             svc_properties.set_service_mode(self.svc_mode)
             svc_properties.set_service_scaling(self.svc_scaling)
+            # Add flavor if not already added
+            self.nova_fixture.get_flavor(self.flavor)
             svc_properties.set_flavor(self.flavor)
             svc_properties.set_ordered_interfaces(self.ordered_interfaces)
             for itf in self.if_list:
