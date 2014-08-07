@@ -36,6 +36,7 @@ update=0
 logging=0
 logging_config=logging.conf
 result_xml="result.xml"
+#serial_result_xml="result.xml"
 serial_result_xml="result1.xml"
 send_mail=0
 
@@ -113,7 +114,7 @@ function run_tests_serial {
   testr_init
   ${wrapper} find . -type f -name "*.pyc" -delete
   #export OS_TEST_PATH=${OS_TEST_PATH:-"./serial_scripts/abc"}
-  export OS_TEST_PATH=./serial_scripts
+  export OS_TEST_PATH=./serial_scripts/testing
   if [ $debug -eq 1 ]; then
       if [ "$testrargs" = "" ]; then
            testrargs="discover $OS_TEST_PATH"
@@ -122,13 +123,14 @@ function run_tests_serial {
       return $?
   fi
   ${wrapper} testr run --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $serial_result_xml 
+  generate_html 
 }
 
 function run_tests {
   rm -f $result_xml
   testr_init
   ${wrapper} find . -type f -name "*.pyc" -delete
-  export OS_TEST_PATH=./scripts
+  export OS_TEST_PATH=./scripts/testing
   if [ $debug -eq 1 ]; then
       if [ "$testrargs" = "" ]; then
            testrargs="discover $OS_TEST_PATH"
@@ -140,16 +142,17 @@ function run_tests {
   if [ $serial -eq 1 ]; then
       ${wrapper} testr run --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml 
   else
-      ${wrapper} testr run --parallel --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml
+      ${wrapper} testr run --parallel --concurrency 4 --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml
+      sleep 2
   fi
+  generate_html 
 }
 
-function generate_html_send_mail {
+function generate_html {
   if [ -f $result_xml ]; then
       ant
       ${wrapper} python tools/update_testsuite_properties.py $REPORT_DETAILS_FILE $result_xml
       ${wrapper} python tools/upload_to_webserver.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE $REPORT_FILE 
-      send_mail $TEST_CONFIG_FILE $REPORT_FILE
   fi
 }
 
@@ -186,7 +189,7 @@ fi
 export PYTHONPATH=$PATH:$PWD/scripts:$PWD/fixtures
 run_tests
 run_tests_serial
-generate_html_send_mail
+send_mail $TEST_CONFIG_FILE $REPORT_FILE
 retval=$?
 
 exit $retval
