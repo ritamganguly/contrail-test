@@ -108,7 +108,7 @@ class sdn_2vn_2vm_config ():
                         'vnet1': ['12.1.1.0/30', '13.1.1.0/30']}
         #
         # Define network policies
-        self.policy_list = ['policy0', 'policy1', 'policy2', 'policy3',
+        self.policy_list = ['policy0', 'policy1', 'policy2', 'policy3', 'policy100',
                             'policy10', 'policy11', 'policy12', 'policy13', 'policy1000']
         self.vn_policy = {'vnet0': ['policy0'], 'vnet1': ['policy100']}
         #
