@@ -12,6 +12,7 @@ from tcutils.wrappers import preposttest_wrapper
 from neutron.neutron_util import combos
 from neutron.base import BaseNeutronTest
 
+
 class TestCRUD(BaseNeutronTest):
 
     @classmethod
@@ -35,7 +36,7 @@ class TestCRUD(BaseNeutronTest):
                                    self.proj_neutron_test_h)
         self.ks_project_id = self.project.ks_project_id
         self.log = self.logger
-        self.newline = '='*80 + '\n'
+        self.newline = '=' * 80 + '\n'
     # end setUp
 
     def cleanUp(self):
@@ -72,7 +73,7 @@ class TestCRUD(BaseNeutronTest):
                 response = self.neutron_h.create_network(body)
                 self.log.info("Network Create Response : %s" % (response))
             except NeutronClientException, e:
-                assert False,"NeutronClientException %s with neutron "\
+                assert False, "NeutronClientException %s with neutron "\
                               "create network : %s" % (e, body)
             assert response and response['network'],\
                 "Network Create request FAILED!!,"\
@@ -98,14 +99,14 @@ class TestCRUD(BaseNeutronTest):
             response = self.neutron_h.show_network(net_id)
         except NeutronClientException, e:
             assert False, "NeutronClientException %s with show_network : "\
-                           "%s" % (e)
+                "%s" % (e)
 
         for attribute in get_network_read_attributes():
             assert response['network'][attribute] == network_obj[attribute],\
                 'Attribute %s did not seem to be created!, '\
                 'Expected: %s, Got: %s ' % (
-                attribute, network_obj[attribute],
-                response['network'][attribute])
+                    attribute, network_obj[attribute],
+                    response['network'][attribute])
             self.log.info('Attribute %s is created' % (attribute))
         # end for attribute
 
@@ -139,7 +140,7 @@ class TestCRUD(BaseNeutronTest):
                 response = self.neutron_h.update_network(net_id, body)
             except NeutronClientException, e:
                 assert False, "NeutronClientException %s with neutron update"\
-                               " network : %s" % (e, body)
+                    " network : %s" % (e, body)
             assert response and response['network'],\
                 "Network Update request FAILED!!, Body : %s"\
                 " Response: %s" % (body, response)
@@ -149,8 +150,8 @@ class TestCRUD(BaseNeutronTest):
                 assert compare(body['network'][attribute],
                                response['network'][attribute]),\
                     "Network update on attribute failed!"\
-                        "Expected: %s, Got : %s" % (
-                        body['network'][attribute], 
+                    "Expected: %s, Got : %s" % (
+                        body['network'][attribute],
                         response['network'][attribute])
             # end for attribute
             self.log.info("Update of Network %s, body %s passed" % (
@@ -173,9 +174,9 @@ class TestCRUD(BaseNeutronTest):
                 body[attribute] = get_random_value(subnet, attribute)
             for attribute in attribute_list:
                 if attribute in ['gateway_ip', 'allocation_pools',
-                                'host_routes']:
+                                 'host_routes']:
                     body[attribute] = get_random_value(subnet,
-                            attribute,body['cidr'])
+                                                       attribute, body['cidr'])
                 else:
                     body[attribute] = get_random_value(subnet, attribute)
             if 'tenant_id' in attribute_list:
@@ -187,20 +188,20 @@ class TestCRUD(BaseNeutronTest):
             try:
                 response = self.neutron_h.create_subnet(body)
                 self.log.info("Subnet create Response : %s" % (response))
-            except NeutronClientException,e:
-                assert False,"NeutronClientException %s with create \
-                                subnet : %s" %(e, body)
+            except NeutronClientException, e:
+                assert False, "NeutronClientException %s with create \
+                                subnet : %s" % (e, body)
             assert response and response['subnet'],\
-             "Subnet Create request FAILED!!, Body : %s, Response : %s" %(\
-                               body, response)
-            self.log.info("Subnet create request PASSED , Body : %s" %(
-                           body))
+                "Subnet Create request FAILED!!, Body : %s, Response : %s" % (
+                    body, response)
+            self.log.info("Subnet create request PASSED , Body : %s" % (
+                body))
             self.addCleanup(self._delete_subnet, response['subnet']['id'])
             subnet_id = response['subnet']['id']
             # Do read tests
             self.read_subnet_tests(response['subnet'])
             # Do port tests
-            self._test_ports(network_obj,response['subnet'])
+            self._test_ports(network_obj, response['subnet'])
             # Do update tests
             self.update_subnet_tests(response['subnet'])
             self._delete_subnet(response['subnet']['id'])
@@ -214,29 +215,29 @@ class TestCRUD(BaseNeutronTest):
         subnet_id = subnet_obj['id']
         try:
             response = self.neutron_h.show_subnet(subnet_id)
-        except NeutronClientException,e:
+        except NeutronClientException, e:
             assert False,\
                 "NeutronClientException %s with show_subnet: %s" % (e)
 
         for attribute in get_subnet_read_attributes():
             assert response['subnet'][attribute] == subnet_obj[attribute],\
-              'Attribute %s did not seem to be created!, '\
-              'Expected: %s, Got: %s ' % (\
-               attribute, subnet_obj[attribute],\
-               response['subnet'][attribute])
+                'Attribute %s did not seem to be created!, '\
+                'Expected: %s, Got: %s ' % (
+                    attribute, subnet_obj[attribute],
+                    response['subnet'][attribute])
             self.log.info('Attribute %s is created' % (attribute))
         # end for attribute
 
         for attribute_list in combos(get_subnet_read_attributes()):
-            fields= {'fields':[]}
+            fields = {'fields': []}
             for attribute in attribute_list:
                 fields['fields'].append(attribute)
             item_count = len(fields['fields'])
             try:
-                response = self.neutron_h.show_subnet(subnet_id,**fields)
-            except NeutronClientException,e:
+                response = self.neutron_h.show_subnet(subnet_id, **fields)
+            except NeutronClientException, e:
                 assert False,\
-                    "NeutronClientException %s with show_subnet: %s" %(e)
+                    "NeutronClientException %s with show_subnet: %s" % (e)
             assert len(response['subnet']) == item_count,\
                 "Mismatch in number of fields returned!"\
                 "Expected : %s, Got : %s" % (fields, response['subnet'])
@@ -244,7 +245,6 @@ class TestCRUD(BaseNeutronTest):
         self.log.info("Subnet show with fields %s passed" % (
                       fields['fields']))
     # end read_subnet_tests
-
 
     @run_once
     def update_subnet_tests(self, subnet_obj):
@@ -254,9 +254,9 @@ class TestCRUD(BaseNeutronTest):
             body = {}
             for attribute in attribute_list:
                 if attribute in ['gateway_ip', 'allocation_pools',
-                                'host_routes']:
+                                 'host_routes']:
                     body[attribute] = get_random_value(subnet,
-                            attribute,subnet_obj['cidr'])
+                                                       attribute, subnet_obj['cidr'])
                 else:
                     body[attribute] = get_random_value(subnet, attribute)
 
@@ -265,37 +265,37 @@ class TestCRUD(BaseNeutronTest):
             response = None
             try:
                 response = self.neutron_h.update_subnet(subnet_id, body)
-            except NeutronClientException,e:
+            except NeutronClientException, e:
                 assert False, "NeutronClientException %s with Subnet update "\
-                                "network : %s" %(e, body)
+                    "network : %s" % (e, body)
             assert response and response['subnet'],\
-                "Subnet Update request FAILED!!, Body : %s, Response: %s" % (\
-                               body, response)
+                "Subnet Update request FAILED!!, Body : %s, Response: %s" % (
+                    body, response)
             self.log.info("Subnet Update request PASSED , Body : %s" %
                           (body))
-            self.log.info("Subnet Update Response : %s" %(response))
+            self.log.info("Subnet Update Response : %s" % (response))
             updated = True
             for attribute in attribute_list:
                 assert compare(body['subnet'][attribute],
                                response['subnet'][attribute]),\
                     "Subnet update on attribute failed!"\
                     "Expected : %s, Got : %s" % (
-                                    body['subnet'][attribute],
-                                    response['subnet'][attribute])
+                        body['subnet'][attribute],
+                        response['subnet'][attribute])
             self.log.info("Updation of Subnet %s with body %s passed" % (
-                           subnet_id, body))
+                subnet_id, body))
             self.log.info('-' * 80)
         # end for attribute_list
     # end update_subnet_tests
 
     def get_sgs(self, project_id):
-        return [ x['id'] for x in self.neutron_h.list_security_groups(
-                tenant_id=project_id)['security_groups']]
+        return [x['id'] for x in self.neutron_h.list_security_groups(
+            tenant_id=project_id)['security_groups']]
 
     def get_random_sg_list(self, project_id):
         sg_list = self.get_sgs(project_id)
         random.shuffle(sg_list)
-        length = random.randint(0,len(sg_list)-1)
+        length = random.randint(0, len(sg_list) - 1)
         return sg_list[0:length]
 
     @run_once
@@ -313,7 +313,7 @@ class TestCRUD(BaseNeutronTest):
             for attribute in attribute_list:
                 if attribute in ['fixed_ips']:
                     body[attribute] = get_random_value(port,
-                            attribute, subnet_id, subnet_obj['cidr'])
+                                                       attribute, subnet_id, subnet_obj['cidr'])
                 elif attribute in 'tenant_id':
                     body['tenant_id'] = network_obj['tenant_id']
                 elif attribute in 'security_groups':
@@ -327,25 +327,25 @@ class TestCRUD(BaseNeutronTest):
             response = None
             try:
                 response = self.neutron_h.create_port(body)
-                self.log.info("Port create Response : %s" %(response))
-            except NeutronClientException,e:
+                self.log.info("Port create Response : %s" % (response))
+            except NeutronClientException, e:
                 assert False, "NeutronClientException %s with create port:"\
-                                "%s" %(e, body)
+                    "%s" % (e, body)
             assert response and response['port'],\
                 "Port Create request FAILED!!, Body : %s, Response : %s"\
                 % (body, response)
-            self.log.info("Port create request PASSED ,Body : %s" %(body))
+            self.log.info("Port create request PASSED ,Body : %s" % (body))
             self.addCleanup(self._delete_port, response['port']['id'])
             port_id = response['port']['id']
             port_obj = response['port']
             # Do read tests
             self.read_port_tests(port_obj)
             # Do update tests
-            self.update_port_tests(port_obj , network_obj, subnet_obj)
+            self.update_port_tests(port_obj, network_obj, subnet_obj)
             self._delete_port(port_id)
             self.log.info(self.newline)
     # end
-    
+
     def _delete_port(self, port_id):
         self._remove_from_cleanup(self._delete_port, port_id)
         self.log.info('Deleting port %s' % (port_id))
@@ -353,9 +353,9 @@ class TestCRUD(BaseNeutronTest):
             result = self.neutron_h.delete_port(port_id)
             if result != "":
                 self.log.error('Result of delete port %s: %s' % (router_id,
-                                result))
+                                                                 result))
                 return False
-        except NeutronClientException,e:
+        except NeutronClientException, e:
             self.log.exception(e)
             return False
         return True
@@ -367,9 +367,9 @@ class TestCRUD(BaseNeutronTest):
             result = self.neutron_h.delete_network(network_id)
             if result != "":
                 self.log.error('Result of delete network %s: %s' % (router_id,
-                                result))
+                                                                    result))
                 return False
-        except NeutronClientException,e:
+        except NeutronClientException, e:
             self.log.exception(e)
             return False
         return True
@@ -381,9 +381,9 @@ class TestCRUD(BaseNeutronTest):
             result = self.neutron_h.delete_subnet(subnet_id)
             if result != "":
                 self.log.error('Result of delete subnet %s: %s' % (router_id,
-                                result))
+                                                                   result))
                 return False
-        except NeutronClientException,e:
+        except NeutronClientException, e:
             self.log.exception(e)
             return False
         return False
@@ -395,9 +395,9 @@ class TestCRUD(BaseNeutronTest):
             result = self.neutron_h.delete_router(router_id)
             if result != "":
                 self.log.error('Result of delete router %s: %s' % (router_id,
-                                result))
+                                                                   result))
                 return False
-        except NeutronClientException,e:
+        except NeutronClientException, e:
             self.log.exception(e)
             return False
         return True
@@ -408,27 +408,27 @@ class TestCRUD(BaseNeutronTest):
         port_id = port_obj['id']
         try:
             response = self.neutron_h.show_port(port_id)
-        except NeutronClientException,e:
-            assert False,"NeutronClientException %s with show_port: %s" %(e)
+        except NeutronClientException, e:
+            assert False, "NeutronClientException %s with show_port: %s" % (e)
 
         for attribute in get_port_read_attributes():
             assert response['port'][attribute] == port_obj[attribute],\
                 'Attribute %s did not seem to be present!, '\
-                'Expected: %s, Got: %s ' % (\
-                 attribute, port_obj[attribute], response['port'][attribute])
+                'Expected: %s, Got: %s ' % (
+                    attribute, port_obj[attribute], response['port'][attribute])
             self.log.info('Attribute %s is present' % (attribute))
         # end for attribute
 
         for attribute_list in combos(get_port_read_attributes()):
-            fields= {'fields':[]}
+            fields = {'fields': []}
             for attribute in attribute_list:
                 fields['fields'].append(attribute)
             item_count = len(fields['fields'])
             try:
-                response = self.neutron_h.show_port(port_id,**fields)
-            except NeutronClientException,e:
+                response = self.neutron_h.show_port(port_id, **fields)
+            except NeutronClientException, e:
                 assert False, "NeutronClientException %s with show_port with"\
-                              " fields : %s" %(e)
+                              " fields : %s" % (e)
             assert len(response['port']) == item_count,\
                 "Mismatch in number of fields returned!"\
                 "Expected : %s, Got: %s" % (fields, response['port'])
@@ -446,7 +446,7 @@ class TestCRUD(BaseNeutronTest):
             for attribute in attribute_list:
                 if attribute in ['fixed_ips']:
                     body[attribute] = get_random_value(port,
-                            attribute, subnet_id, subnet_obj['cidr'])
+                                                       attribute, subnet_id, subnet_obj['cidr'])
                 elif attribute in 'tenant_id':
                     body['tenant_id'] = network_obj['tenant_id']
                 elif attribute in 'security_groups':
@@ -459,21 +459,21 @@ class TestCRUD(BaseNeutronTest):
             response = None
             try:
                 response = self.neutron_h.update_port(port_id, body)
-            except NeutronClientException,e:
-                assert False,"NeutronClientException %s with update \
-                    port : %s" %(e, body)
+            except NeutronClientException, e:
+                assert False, "NeutronClientException %s with update \
+                    port : %s" % (e, body)
             assert response and response['port'],\
-                "Port Update request FAILED!, Body: %s, Response : %s" %(\
-                body, response)
-            self.log.info("Port Update request PASSED , Body : %s" %(body))
-            self.log.info("Port Update Response : %s" %(response))
+                "Port Update request FAILED!, Body: %s, Response : %s" % (
+                    body, response)
+            self.log.info("Port Update request PASSED , Body : %s" % (body))
+            self.log.info("Port Update Response : %s" % (response))
             updated = True
             for attribute in attribute_list:
                 assert compare(body['port'][attribute],
                                response['port'][attribute]),\
                     "Port update on attribute failed!"\
                     "Expected : %s, Got : %s" % (
-                       body['port'][attribute], response['port'][attribute])
+                        body['port'][attribute], response['port'][attribute])
             self.log.info("On update, Verification of attributes of Port %s "
                           "with body %s passed" % (port_id, body))
             self.log.info('-' * 80)
@@ -503,14 +503,14 @@ class TestCRUD(BaseNeutronTest):
             response = None
             try:
                 response = self.neutron_h.create_router(body)
-                self.log.info("Router create Response : %s" %(response))
-            except NeutronClientException,e:
+                self.log.info("Router create Response : %s" % (response))
+            except NeutronClientException, e:
                 assert False, "NeutronClientException %s with neutron create "\
-                              "router : %s" %(e, body)
+                              "router : %s" % (e, body)
             assert response and response['router'],\
-                "Router Create request FAILED!!, Body : %s, Response : %s" %(
-                                body, response)
-            self.log.info("Router create PASSED ,Body : %s" %(body))
+                "Router Create request FAILED!!, Body : %s, Response : %s" % (
+                    body, response)
+            self.log.info("Router create PASSED ,Body : %s" % (body))
             self.addCleanup(self._delete_router, response['router']['id'])
             # Do read tests
             self.read_router_tests(response['router'])
@@ -526,28 +526,28 @@ class TestCRUD(BaseNeutronTest):
         router_id = router_obj['id']
         try:
             response = self.neutron_h.show_router(router_id)
-        except NeutronClientException,e:
-            assert False, "NeutronClientException %s with show_router : %s" %(\
-                            e)
+        except NeutronClientException, e:
+            assert False, "NeutronClientException %s with show_router : %s" % (
+                e)
 
         for attribute in get_router_read_attributes():
             assert response['router'][attribute] == router_obj[attribute],\
-              'Attribute %s did not seem to be created!, '\
-              'Expected: %s, Got: %s ' % (\
-              attribute, router_obj[attribute],response['router'][attribute])
+                'Attribute %s did not seem to be created!, '\
+                'Expected: %s, Got: %s ' % (
+                    attribute, router_obj[attribute], response['router'][attribute])
             self.log.info('Attribute %s is created' % (attribute))
         # end for attribute
 
         for attribute_list in combos(get_router_read_attributes()):
-            fields = {'fields':[]}
+            fields = {'fields': []}
             for attribute in attribute_list:
                 fields['fields'].append(attribute)
             item_count = len(fields['fields'])
             try:
-                response = self.neutron_h.show_router(router_id,**fields)
-            except NeutronClientException,e:
+                response = self.neutron_h.show_router(router_id, **fields)
+            except NeutronClientException, e:
                 assert False,\
-                   "NeutronClientException rs with show_router:  %s" % (e)
+                    "NeutronClientException rs with show_router:  %s" % (e)
             assert len(response['router']) == item_count,\
                 "Mismatch in number of fields returned!"\
                 "Expected : %s, Got : %s" % (fields, response['router'])
@@ -568,21 +568,22 @@ class TestCRUD(BaseNeutronTest):
             response = None
             try:
                 response = self.neutron_h.update_router(router_id, body)
-            except NeutronClientException,e:
+            except NeutronClientException, e:
                 assert False,\
-                "NeutronClientException %s with router update : %s" %(e, body)
+                    "NeutronClientException %s with router update : %s" % (
+                        e, body)
             assert response and response['router'],\
                 "Router Update request FAILED!!,  "\
                 "Body : %s, Response : %s" % (body, response)
-            self.log.info("Router Update request PASSED,Body : %s" %(body))
-            self.log.info("Response : %s" %(response))
+            self.log.info("Router Update request PASSED,Body : %s" % (body))
+            self.log.info("Response : %s" % (response))
             updated = True
             for attribute in attribute_list:
                 assert compare(body['router'][attribute],
                                response['router'][attribute]),\
                     "Router update on attribute failed!"\
-                    "Expected : %s, Got : %s" % (\
-                     body['router'][attribute],response['router'][attribute])
+                    "Expected : %s, Got : %s" % (
+                        body['router'][attribute], response['router'][attribute])
             self.log.info("Updation of Router %s with body %s passed" % (
                           router_id, body))
             self.log.info('-' * 80)

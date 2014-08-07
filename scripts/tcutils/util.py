@@ -301,35 +301,43 @@ def get_random_cidr(mask='24'):
     third_octet = random.randint(0, 254)
     return "%i.%i.%i.0/%s" % (first_octet, second_octet, third_octet, mask)
 
+
 def get_an_ip(cidr, offset=0):
     return str(IPNetwork(cidr)[offset])
+
 
 def get_random_ip(cidr):
     net = IPNetwork(cidr)
     ip_list = list(net.iter_hosts())
-    index = random.randint(0,len(ip_list)-1)
+    index = random.randint(0, len(ip_list) - 1)
     return str(ip_list[index])
+
 
 def get_random_string_list(max_list_length, prefix='', length=8):
     final_list = []
     list_length = random.randint(0, max_list_length)
-    for i in range(0,list_length):
+    for i in range(0, list_length):
         final_list.append(prefix + '-' + get_random_string(length))
     return final_list
 
+
 def get_random_mac():
-    return ':'.join(map(lambda x: "%02x" % x, [ 0x00, 0x16, 0x3E,
-            random.randint(0x00, 0x7F), random.randint(0x00, 0xFF),
-            random.randint(0x00, 0xFF) ]))
+    return ':'.join(map(lambda x: "%02x" % x, [0x00, 0x16, 0x3E,
+                                               random.randint(0x00, 0x7F), random.randint(
+                                                   0x00, 0xFF),
+                                               random.randint(0x00, 0xFF)]))
+
 
 def get_random_boolean():
     bool_list = [True, False]
     return random.choice(bool_list)
 
+
 def get_uuid():
     return str(uuid.uuid1())
 
-def compare(val1, val2, operator = 'subset'):
+
+def compare(val1, val2, operator='subset'):
     if type(val1) is bool:
         val1 = str(val1)
     if type(val2) is bool:
@@ -341,6 +349,7 @@ def compare(val1, val2, operator = 'subset'):
         return val1 <= val2
     else:
         return val1 == val2
+
 
 def run_once(f):
     '''A decorator which can be used to call a function only once
