@@ -45,8 +45,7 @@ class AnalyticsTestSanity(base.AnalyticsBaseTest):
         vm_uuid=vm1_fixture.vm_id
         self.logger.info("Waiting for logs to be updated in the database...")
         time.sleep(10)
-        #creating query: '(ObjectId=default-domain:admin:vn1)'
-        query='('+'ObjectId=default-domain:admin:'+vn_name+')'
+        query='('+'ObjectId=%s)'%vn_fixture.vn_fq_name
         result=True
         self.logger.info("Verifying ObjectVNTable through opserver %s.."%(self.inputs.collector_ips[0]))    
         res2=self.analytics_obj.ops_inspect[self.inputs.collector_ips[0]].post_query('ObjectVNTable',
