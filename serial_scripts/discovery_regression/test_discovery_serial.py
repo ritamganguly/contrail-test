@@ -6,6 +6,7 @@ from scripts.tcutils.wrappers import preposttest_wrapper
 import uuid
 import base
 import test
+import time
 
 
 class TestDiscoverySerial(base.BaseDiscoveryTest):
