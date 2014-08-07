@@ -617,29 +617,49 @@ def checkNAddAdminRole(self):
 
 def createServiceInstance(self):
     self.si_fixture = {}
-    if hasattr(self.topo, 'si_list'):
-        self.logger.info("Setup step: Creating Service Instances")
-        #For SVC case to work in non-admin tenant, link "admin" user
-        checkNAddAdminRole(self)
-        for si_name in self.topo.si_list:
-            self.si_fixture[si_name] = self.useFixture(SvcInstanceFixture(
-                connections=self.project_connections, inputs=self.project_inputs,
-                domain_name=self.topo.domain, project_name=self.topo.project, si_name=si_name,
-                svc_template=self.st_fixture[self.topo.si_params[si_name][
-                    'svc_template']].st_obj, if_list=self.topo.si_params[si_name]['if_list'],
+    if not hasattr(self.topo, 'si_list'):
+        return self
+
+    self.logger.info("Setup step: Creating Service Instances")
+    # For SVC case to work in non-admin tenant, link "admin" user
+    checkNAddAdminRole(self)
+    for si_name in self.topo.si_list:
+        self.si_fixture[si_name] = self.useFixture(
+            SvcInstanceFixture(
+                connections=self.project_connections,
+                inputs=self.project_inputs,
+                domain_name=self.topo.domain,
+                project_name=self.topo.project,
+                si_name=si_name,
+                svc_template=self.st_fixture[
+                    self.topo.si_params[si_name]['svc_template']].st_obj,
+                if_list=self.topo.si_params[si_name]['if_list'],
                 left_vn_name=self.topo.si_params[si_name]['left_vn']))
+
+    self.logger.info("Setup step: Verify Service Instances")
+    for si_name in self.topo.si_list:
+        # Irrespective of verify flag, run minimum verification to make sure SI is up..
+        # Include retry to handle time taken by less powerful computes ..
+        retry = 0
+        while True:
+            ret, msg = self.self.si_fixture[si_name].verify_si()
+            retry += 1
+            if ret or retry > 2:
+                break
+        # In case of failure, set verify flag to get more data, even if global
+        # verify flag is diabled
+        if not ret:
+            self.skip_verify = 'no'
+
         if self.skip_verify == 'no':
-            # Include retry to handle time taken by less powerful computes or if launching more VMs...
-            retry= 0
-            while True:
-                ret, msg = self.si_fixture[si_name].verify_on_setup(report=False)
-                retry += 1
-                if ret == True or retry > 2:
-                    break
-            if ret == False:
-                m = "service instance %s verify failed after setup with error %s" % (si_name, msg)
-                self.err_msg.append(m)
-                assert ret, self.err_msg
+            ret, msg = self.si_fixture[si_name].verify_on_setup(report=False)
+
+        if not ret:
+            m = "service instance %s verify failed after setup with error %s" % (
+                si_name, msg)
+            self.err_msg.append(m)
+            assert ret, self.err_msg
+
     return self
 # end createServiceInstance
 
