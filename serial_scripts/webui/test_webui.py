@@ -12,7 +12,7 @@ import testtools
 import re
 import test
 from tcutils.wrappers import preposttest_wrapper
-from webui import base
+from serial_scripts.webui import base
 
 class WebuiTestSanity(base.WebuiBaseTest):
 
