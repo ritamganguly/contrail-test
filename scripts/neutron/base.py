@@ -77,13 +77,27 @@ class BaseNeutronTest(test.BaseTestCase):
     def add_vn_to_router(self, router_id, vn_fixture):
         self.add_router_interface(router_id, vn_fixture.vn_subnet_objs[0]['id'])
 
-    def create_security_group(self, name):
-        obj = self.quantum_fixture.create_security_group(name)
+    def create_security_group(self, name, quantum_handle = None):
+        q_h = None
+        if quantum_handle:
+            q_h = quantum_handle
+        else:
+            q_h = self.quantum_fixture
+        obj = q_h.create_security_group(name)
         if obj:
             self.addCleanup(self.delete_security_group, obj['id'])
         return obj
     # end create_security_group
 
-    def delete_security_group(self, sg_id):
-        self.quantum_fixture.delete_security_group(sg_id)
+    def delete_security_group(self, sg_id, quantum_handle = None):
+        q_h = None
+        if quantum_handle:
+            q_h = quantum_handle
+        else:
+            q_h = self.quantum_fixture
+        q_h.delete_security_group(sg_id)
         
+    def _remove_from_cleanup(self, func_call, args):
+        for cleanup in self._cleanups:
+            if func_call in cleanup and args in cleanup[1]:
+                self._cleanups.remove(cleanup)

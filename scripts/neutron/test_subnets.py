@@ -25,9 +25,6 @@ class TestSubnets(BaseNeutronTest):
     def setUpClass(cls):
         super(TestSubnets, cls).setUpClass()
 
-    def runTest(self):
-        pass
-
     @classmethod
     def tearDownClass(cls):
         super(TestSubnets, cls).tearDownClass()
@@ -90,7 +87,7 @@ class TestSubnets(BaseNeutronTest):
         '''
         vn1_name = get_random_name('vn1')
         vn1_subnets = [get_random_cidr()]
-        vn1_gateway = get_an_ip(vn1_subnets[0])
+        vn1_gateway = get_an_ip(vn1_subnets[1])
         dns1_ip = '8.8.8.8'
         dns2_ip = '4.4.4.4'
         vn1_subnets = [{'cidr': vn1_subnets[0],
