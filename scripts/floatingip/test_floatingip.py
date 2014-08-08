@@ -2845,7 +2845,7 @@ class FloatingipTestSanity3(base.FloatingIpBaseTest):
         fip_fixture.disassoc_and_delete_fip(fip_id)
         if not result:
             self.logger.error('Test to ping between VMs %s and %s' %
-                              (vn1_vm1_name, fvn_vm1_name))
+                              (self.vn1_vm1_name, self.fvn1_vm1_name))
             assert result
         return True
     # end test_floating_ip
