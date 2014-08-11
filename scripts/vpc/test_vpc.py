@@ -884,10 +884,10 @@ class VpcSanityTests3(base.VpcBaseTest):
         # create public VN for floating ip pool
 
         ec2_base = EC2Base(logger=self.inputs.logger,
-                           inputs=self.inputs, tenant='admin')
+                           inputs=self.admin_inputs, tenant='admin')
         fip_vn_fixture = self.useFixture(VNFixture(project_name='admin',
-                                                   connections=self.connections,
-                                                   inputs=self.inputs,
+                                                   connections=self.admin_connections,
+                                                   inputs=self.admin_inputs,
                                                    vn_name='public',
                                                    subnets=[floatingIpCidr]))
         # Add rules in public VM's SG to reach the private VM"
@@ -897,7 +897,7 @@ class VpcSanityTests3(base.VpcBaseTest):
 
         fip_vm_fixture = self.useFixture(VMFixture(
             project_name='admin',
-            connections=self.connections,
+            connections=self.admin_connections,
             vn_obj=fip_vn_fixture.obj,
             vm_name='fip_vm1'))
         assert fip_vm_fixture.verify_on_setup(
