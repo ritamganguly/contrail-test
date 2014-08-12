@@ -42,8 +42,8 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
         self.get_rt_info_tap_intf_list(
             self.vn1_fixture, self.vm1_fixture, svm_ids)
         dst_vm_list= [self.vm2_fixture]
-        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
-
+#        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
+        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
         for compute_ip in self.inputs.compute_ips:
             self.inputs.restart_service('contrail-vrouter', [compute_ip])
         self.logger.info('Sleeping for 30 seconds')
@@ -57,8 +57,8 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
         self.get_rt_info_tap_intf_list(
             self.vn1_fixture, self.vm1_fixture, svm_ids)
         fab_connections.clear()
-        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
-
+#        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
+        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
         for bgp_ip in self.inputs.bgp_ips:
             self.inputs.restart_service('contrail-control', [bgp_ip])
         self.logger.info('Sleeping for 30 seconds')
@@ -72,7 +72,8 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
         self.get_rt_info_tap_intf_list(
             self.vn1_fixture, self.vm1_fixture, svm_ids)
         fab_connections.clear()
-        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
+#        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
+        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
         return True
     # end test_ecmp_svc_in_network_with_3_instance_service_restarts
 
@@ -89,8 +90,8 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
             self.vn1_fixture, self.vm1_fixture, svm_ids)
         
         dst_vm_list= [self.vm2_fixture]
-        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
-
+#        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
+        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
         self.logger.info('Will reboot the Compute and Control nodes')
         nodes= []
         nodes= list(set(self.inputs.compute_ips + self.inputs.bgp_ips))
@@ -122,6 +123,7 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
         self.vm2_fixture.verify_vm_in_agent()
         self.vm2_fixture.wait_till_vm_is_up()
 
-        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
+#        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
+        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
         return True
     # end test_ecmp_svc_in_network_with_3_instance_reboot_nodes
