@@ -55,11 +55,6 @@ class TestECMPSanity(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffic
         """
         self.verify_svc_transparent_datapath(
             si_count=1, svc_scaling=True, max_inst=3)
-        self.logger.info('Verify Traffic Flow in both the directions')
-        dst_vm_list1= [self.vm2_fixture]
-        dst_vm_list2= [self.vm1_fixture]
-        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list1)
-        self.verify_traffic_flow(self.vm2_fixture, dst_vm_list2)
         return True
     # end test_ecmp_svc_transparent_with_3_instance
 
@@ -475,15 +470,9 @@ class TestECMPwithFIP(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
             self.vn1_fixture, self.vm1_fixture, svm_ids)
-
-        recv_vm_list = []
-        recv_vm_list = [self.vm2_fixture, self.vm2_1, self.vm2_2]
-        for vm in recv_vm_list:
-            vm.install_pkg("Traffic")
-        self.vm1_fixture.install_pkg("Traffic")
-#        self.verify_traffic_flow(self.vm1_fixture, recv_vm_list, self.vm1_fixture.vm_ip, '10.1.1.10')
-        self.verify_traffic_flow(self.vm1_fixture, recv_vm_list, self.si_fixtures[0], self.vn1_fixture, src_ip= self.vm1_fixture.vm_ip, dst_ip= '10.1.1.10') 
-        return True
+        
+        self.vm1_fixture.ping_with_certainty('10.1.1.10')
+        return True   
     # end test_ecmp_with_svc_with_fip_dest
 
     @preposttest_wrapper
