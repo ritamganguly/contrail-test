@@ -12,6 +12,7 @@ from traffic.core.stream import Stream
 from traffic.core.profile import create, ContinuousProfile, ContinuousSportRange
 from traffic.core.helpers import Host
 from traffic.core.helpers import Sender, Receiver
+from tcutils.commands import ssh, execute_cmd, execute_cmd_out
 #from tcutils.pkgs.Traffic.traffic.core.stream import Stream
 #from tcutils.pkgs.Traffic.traffic.core.profile import create, ContinuousProfile
 #from tcutils.pkgs.Traffic.traffic.core.helpers import Host
@@ -23,7 +24,7 @@ from servicechain.verify import VerifySvcChain
 
 class ECMPTraffic(ConfigSvcChain, VerifySvcChain):
 
-    def verify_traffic_flow(self, src_vm, dst_vm_list, src_ip= None, dst_ip= None):
+    def verify_traffic_flow(self, src_vm, dst_vm_list, si_fix, src_vn, src_ip= None, dst_ip= None):
         fab_connections.clear()
         src_ip= src_vm.vm_ip
         if dst_ip == None: 
@@ -34,6 +35,7 @@ class ECMPTraffic(ConfigSvcChain, VerifySvcChain):
         sleep(5)
         stream_list= self.setup_streams(src_vm, dst_vm_list, src_ip= src_ip, dst_ip= dst_ip)
         sender, receiver= self.start_traffic(src_vm, dst_vm_list, stream_list, src_ip= src_ip, dst_ip= dst_ip)
+        self.verify_flow_thru_si(si_fix, src_vn)
         self.verify_flow_records(src_vm, src_ip= src_ip, dst_ip= dst_ip)
         self.stop_traffic(sender, receiver, dst_vm_list, stream_list)
 		
@@ -102,7 +104,45 @@ class ECMPTraffic(ConfigSvcChain, VerifySvcChain):
                 sender[stream][dst_vm].start()
         return sender, receiver
 	# end start_traffic
-    
+     
+    def verify_flow_thru_si(self, si_fix, src_vn):
+        
+        self.logger.info('Will start a tcpdump on the left-interfaces of the Service Instances to find out which flow is entering which Service Instance')
+        flowcount= 0
+        result= True
+        si_count= si_fix.max_inst
+        for i in range(1, si_count+1):
+            svm_name = si_fix.si_name + '_%s'%i
+            host = self.get_svm_compute(svm_name)
+            tapintf = self.get_svm_tapintf_of_vn(svm_name, src_vn)
+            session = ssh(host['host_ip'], host['username'], host['password'])
+            cmd = 'tcpdump -ni %s proto 17 -vvv -c 5 > /tmp/%s_out.log' % (tapintf,tapintf)
+            execute_cmd(session, cmd, self.logger)
+        sleep(5)
+        self.logger.info('***** Will check the result of tcpdump *****')
+        for i in range(1, si_count+1):
+            svm_name = si_fix.si_name + '_%s'%i
+            host = self.get_svm_compute(svm_name)
+            tapintf = self.get_svm_tapintf_of_vn(svm_name, src_vn)
+            session = ssh(host['host_ip'], host['username'], host['password'])
+            output_cmd = 'cat /tmp/%s_out.log' % tapintf 
+            out, err = execute_cmd_out(session, output_cmd, self.logger)
+            if '9000' in out:
+                flowcount= flowcount + 1
+                self.logger.info('Flow with dport 9000 seen flowing inside %s'%svm_name)
+            if '9001' in out:
+                flowcount= flowcount + 1
+                self.logger.info('Flow with dport 9001 seen flowing inside %s'%svm_name)
+            if '9002' in out:
+                flowcount= flowcount + 1
+                self.logger.info('Flow with dport 9002 seen flowing inside %s'%svm_name)
+        if flowcount > 1:
+            self.logger.info('Flows are distributed across the Service Instances')
+        else:
+            result= False
+        assert result, 'No Flow distribution seen' 
+	# end verify_flow_thru_si
+   
     def verify_flow_records(self, src_vm, src_ip= None, dst_ip= None):
 		
         self.logger.info('Checking Flow records')
