@@ -100,7 +100,7 @@ class QuantumFixture(fixtures.Fixture):
 
     def create_port(self, net_id, subnet_id=None, ip_address=None,
                     mac_address=None, no_security_group=False,
-                    security_groups=[]):
+                    security_groups=[], extra_dhcp_opts=None):
         port_req_dict = {
             'network_id': net_id,
         }
@@ -115,6 +115,9 @@ class QuantumFixture(fixtures.Fixture):
             port_req_dict['security_groups'] = None
         if security_groups:
             port_req_dict['security_groups'] = security_groups
+        if extra_dhcp_opts:
+            port_req_dict['extra_dhcp_opts'] = extra_dhcp_opts
+
         port_req_dict['fixed_ips'] = [fixed_ip_req]
         port_rsp = self.obj.create_port({'port': port_req_dict})
         self.logger.debug('Response for create_port : ' + repr(port_rsp))
@@ -122,7 +125,7 @@ class QuantumFixture(fixtures.Fixture):
     # end create_port
 
     def create_security_group(self, name):
-        sg_dict = { 'name' : name, 'description': 'SG-' + name}
+        sg_dict = {'name': name, 'description': 'SG-' + name}
         sg_resp = self.obj.create_security_group({'security_group': sg_dict})
         return sg_resp['security_group']
     # end create_security_group
@@ -132,11 +135,11 @@ class QuantumFixture(fixtures.Fixture):
     # end delete_security_group
 
     def create_security_group_rule(self, sg_id, direction='ingress',
-                                   port_range_min=None, port_range_max=None, 
+                                   port_range_min=None, port_range_max=None,
                                    protocol=None, remote_group_id=None,
                                    remote_ip_prefix=None):
         sg_rule = None
-        sg_rule_dict = { 'security_group_id': sg_id }
+        sg_rule_dict = {'security_group_id': sg_id}
         if direction:
             sg_rule_dict['direction'] = direction
         if port_range_min:
@@ -151,13 +154,13 @@ class QuantumFixture(fixtures.Fixture):
             sg_rule_dict['remote_ip_prefix'] = remote_ip_prefix
         try:
             self.obj.create_security_group_rule(
-                {'security_group_rule': sg_rule_dict })
+                {'security_group_rule': sg_rule_dict})
         except CommonNetworkClientException, e:
             self.logger.exception(
                 'Quantum Exception while creating SG Rule %s' % (sg_rule_dict))
         return sg_rule
     # end create_security_group_rule
-        
+
     def delete_port(self, port_id,):
         port_rsp = self.obj.delete_port(port_id)
         self.logger.debug('Response for delete_port : ' + repr(port_rsp))
@@ -408,5 +411,20 @@ class QuantumFixture(fixtures.Fixture):
             raise e
         return subnet_rsp
     # end update_subnet
+
+    def update_port(self, port_id, port_dict):
+        port_rsp = None
+        body = {}
+        body['port'] = port_dict
+        self.logger.debug('Updating port %s with body : %s' % (
+            port_id, body))
+        try:
+            port_rsp = self.obj.update_port(port_id, body)
+        except CommonNetworkClientException, e:
+            self.logger.error(
+                "Quantum Exception while updating port" + str(e))
+            raise e
+        return port_rsp
+    # end update_port
 
 # end QuantumFixture
