@@ -512,7 +512,7 @@ class TestECMPwithFIP(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
         self.setup_common_objects()
         vm_list = [self.vm1, self.vm2, self.vm3]
         stream1 = Stream(protocol="ip", proto="udp", src=self.fvn_vm1.vm_ip,
-                         dst=self.my_fip, sport=unicode(10000), dport=self.dport1)
+                         dst=self.my_fip, sport=unicode(8000), dport=self.dport1)
         stream2 = Stream(protocol="ip", proto="udp", src=self.fvn_vm1.vm_ip,
                          dst=self.my_fip, sport=unicode(11000), dport=self.dport1)
         stream3 = Stream(protocol="ip", proto="udp", src=self.fvn_vm1.vm_ip,
