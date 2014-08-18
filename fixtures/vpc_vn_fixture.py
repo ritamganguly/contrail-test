@@ -18,7 +18,8 @@ class VPCVNFixture(fixtures.Fixture):
     '''
 
     def __init__(self, vpc_fixture, subnet_cidr=None, connections=None):
-        self.connections = connections
+        self.connections = vpc_fixture.get_project_connections()
+        #self.connections = connections
         self.inputs = connections.inputs
         self.logger = self.inputs.logger
         self.vpc_id = vpc_fixture.vpc_id

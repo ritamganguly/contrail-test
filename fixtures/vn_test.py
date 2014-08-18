@@ -814,8 +814,13 @@ class VNFixture(fixtures.Fixture):
             self.logger.error("%s not configured for VN %s" %
                               (rtgt_val, rt_inst_fq_name[:-1]))
             result = False
-
-        net_obj.get_route_target_list().get_route_target().remove(rtgt_val)
+#        net_obj.get_route_target_list().get_route_target().remove(rtgt_val)
+        route_targets = net_obj.get_route_target_list()
+        route_targets.delete_route_target(rtgt_val)
+        if route_targets.get_route_target():
+            net_obj.set_route_target_list(route_targets)
+        else:
+            net_obj.set_route_target_list(None)
         vnc_lib.virtual_network_update(net_obj)
         return result
     # end del_route_target

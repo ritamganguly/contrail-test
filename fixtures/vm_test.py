@@ -1720,6 +1720,7 @@ class VMFixture(fixtures.Fixture):
 
         self.local_ip = False
         for vn_fq_name in self.vn_fq_names:
+            fw_mode = self.vnc_lib_fixture.get_forwarding_mode(vn_fq_name)
             (domain, project, vn) = vn_fq_name.split(':')
             vna_tap_id = inspect_h.get_vna_tap_interface_by_vmi(
                 vmi_id=self.cs_vmi_obj[vn_fq_name][
@@ -1727,7 +1728,8 @@ class VMFixture(fixtures.Fixture):
             self.tap_intf[vn_fq_name] = vna_tap_id[0]
             self.tap_intf[vn_fq_name] = inspect_h.get_vna_intf_details(
                 self.tap_intf[vn_fq_name]['name'])[0]
-            if 'Active' not in self.tap_intf[vn_fq_name]['active']:
+            if fw_mode != unicode('l2'):
+             if 'Active' not in self.tap_intf[vn_fq_name]['active']:
                 self.logger.warn('VMI %s status is not active, it is %s' % (
                     self.tap_intf[vn_fq_name]['name'],
                     self.tap_intf[vn_fq_name]['active']))

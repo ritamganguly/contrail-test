@@ -149,6 +149,26 @@ class ControlNodeInspect (VerificationUtilBase):
         p = self.dict_get(path)
         return EtreeToDict(xpath).get_all_entry(p)
 
+    def get_cn_rtarget_group(self, route_target):
+        '''Returns the dictionary of the rtarget_group.
+        '''
+        path = 'Snh_ShowRtGroupReq?'
+        xpath = '/ShowRtGroupResp/rtgroup_list/list/ShowRtGroupInfo'
+        p = self.dict_get(path)
+        rt = EtreeToDict(xpath).get_all_entry(p)
+        for r in rt:
+            if r['rtarget'] == route_target:
+                return r
+
+    def get_cn_rtarget_table(self):
+        '''Returns the dictionary of the bgp.rtarget.0 table.
+        '''
+        path = 'Snh_ShowRouteReq?x=bgp.rtarget.0'
+        xpath = '/ShowRouteResp/tables/list/ShowRouteTable'
+        p = self.dict_get(path)
+        rt = EtreeToDict(xpath).get_all_entry(p)
+        return rt['routes']
+
     def get_cn_route_table_entry(self, prefix, ri_name, table='inet.0'):
         '''Returns the route dictionary for requested prefix and routing instance.
         '''

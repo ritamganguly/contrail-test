@@ -18,7 +18,7 @@ class ECMPSolnSetup():
 
         self.fip_pool_name = 'some-pool1'
         self.my_fip_name = 'fip'
-        self.my_fip = '30.1.1.3'
+        self.my_fip = '30.1.1.30'
         self.dport1 = '9000'
         self.dport2 = '9001'
         self.dport3 = '9002'
@@ -26,7 +26,7 @@ class ECMPSolnSetup():
 
         self.fvn = self.useFixture(
             VNFixture(project_name=self.inputs.project_name,
-                      connections=self.connections, vn_name='fvn', inputs=self.inputs, subnets=['30.1.1.0/29']))
+                      connections=self.connections, vn_name='fvn', inputs=self.inputs, subnets=['30.1.1.0/24']))
         self.vn1 = self.useFixture(
             VNFixture(project_name=self.inputs.project_name,
                       connections=self.connections, vn_name='vn1', inputs=self.inputs, subnets=['10.1.1.0/29']))

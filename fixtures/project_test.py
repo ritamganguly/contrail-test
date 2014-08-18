@@ -143,17 +143,17 @@ class ProjectFixture(fixtures.Fixture):
         vns = vnc_project_obj.get_virtual_networks()
         if vns:
             self.logger.warn('Project %s still has VNs %s before deletion' %(
-                vns))
+                self.project_name, vns))
             return False
         vmis = vnc_project_obj.get_virtual_machine_interfaces()
         if vmis:
             self.logger.warn('Project %s still has VMIs %s before deletion' %(
-                vmis))
+                self.project_name, vmis))
             return False
         sgs = vnc_project_obj.get_security_groups()
         if len(sgs) > 1:
             self.logger.warn('Project %s still has SGs %s before deletion' %(
-                sgs))
+                self.project_name, sgs))
             return False
         return True
     # end check_no_project_references

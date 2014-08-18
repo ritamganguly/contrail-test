@@ -159,7 +159,7 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
     def is_svm_active(self, vm_name):
         vm_status = self.get_svm_obj(vm_name).status
         if vm_status == 'ACTIVE':
-            self.logger.info('SVM state is active')
+            self.logger.debug('SVM state is active')
             return True
         else:
             self.logger.warn('SVM %s is not yet active. Current state: %s' %
@@ -195,7 +195,7 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
         tap_intf_list = []
         for entry in inspect_h.get_vna_tap_interface_by_vm(vm_id=svm_obj.id):
             if entry['vrf_name'] == vn.vrf_name:
-                self.logger.info(
+                self.logger.debug(
                     'The tap interface corresponding to %s on %s is %s' %
                     (vn.vn_name, svm_name, entry['name']))
                 return entry['name']

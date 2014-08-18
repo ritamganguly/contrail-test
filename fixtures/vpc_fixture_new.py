@@ -32,6 +32,7 @@ class VPCFixture(fixtures.Fixture):
         self.acl_association = False
         self.acl_association_id = None
         self.tenant_id = None
+        self.project_connections = None
     # end __init__
 
     def setUp(self):
@@ -719,6 +720,22 @@ True
         else:
             return None
     # end delete_gateway
+
+    def get_project_connections(self, username=None, password=None):
+        if not username:
+            username = 'admin'
+        if not password:
+            password = 'contrail123'
+        if not self.project_connections:
+            self.project_connections = ContrailConnections(
+                inputs=self.inputs,
+                logger=self.logger,
+                project_name=self.vpc_id,
+                username=username,
+                password=password)
+        return self.project_connections
+    # end get_project_connections
+
 
 
 # end VPCFixture
