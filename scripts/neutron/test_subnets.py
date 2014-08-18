@@ -36,7 +36,7 @@ class TestSubnets(BaseNeutronTest):
         Create a VN with subnet having a host-route
         Create a VM using that subnet
         Check the route table in the VM
-        
+
         '''
         vn1_name = get_random_name('vn1')
         vn1_subnets = [get_random_cidr()]
@@ -46,10 +46,10 @@ class TestSubnets(BaseNeutronTest):
         # nh IP does not matter, it will always be the default gw
         nh = '30.1.1.10'
         vn1_subnets = [{'cidr': vn1_subnets[0],
-                       'host_routes': [{'destination': destination,
-                                       'nexthop': nh},
-                                       {'destination': '0.0.0.0/0',
-                                        'nexthop': vn1_gateway}],
+                        'host_routes': [{'destination': destination,
+                                         'nexthop': nh},
+                                        {'destination': '0.0.0.0/0',
+                                         'nexthop': vn1_gateway}],
                         }]
         vn1_vm1_name = get_random_name('vn1-vm1')
         vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
@@ -84,7 +84,7 @@ class TestSubnets(BaseNeutronTest):
         Create a VN with subnet having a dns-nameserver
         Create a VM using that subnet
         Check the resolv.conf in the VM
-        
+
         '''
         vn1_name = get_random_name('vn1')
         vn1_subnets = [get_random_cidr()]
@@ -92,7 +92,7 @@ class TestSubnets(BaseNeutronTest):
         dns1_ip = '8.8.8.8'
         dns2_ip = '4.4.4.4'
         vn1_subnets = [{'cidr': vn1_subnets[0],
-                       'dns_nameservers': [dns1_ip, dns2_ip]
+                        'dns_nameservers': [dns1_ip, dns2_ip]
                         }]
         vn1_vm1_name = get_random_name('vn1-vm1')
         vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
@@ -129,17 +129,15 @@ class TestSubnets(BaseNeutronTest):
     @preposttest_wrapper
     def test_gateway(self):
         '''Validate that GW of first address of the subnet cidr is chosen by
-        default. 
+        default.
         Check that gw cannot be from within the allocation pool
         Check that custom addresses can be given
         '''
         vn1_name = get_random_name('vn1')
         vn1_subnet_cidr = get_random_cidr()
         vn1_gateway = get_an_ip(vn1_subnet_cidr, 1)
-        vn1_subnets = [{'cidr': vn1_subnet_cidr,
-                        'allocation_pools': [{'start': get_an_ip(vn1_subnet_cidr, 3),
-                                              'end': get_an_ip(vn1_subnet_cidr, 10)}],
-                        }]
+        vn1_subnets = [{'cidr': vn1_subnet_cidr, 'allocation_pools': [
+            {'start': get_an_ip(vn1_subnet_cidr, 3), 'end': get_an_ip(vn1_subnet_cidr, 10)}], }]
         vn1_vm1_name = get_random_name('vn1-vm1')
         vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
@@ -150,8 +148,10 @@ class TestSubnets(BaseNeutronTest):
         assert vn1_gateway in route_output, 'First address of CIDR %s : %s'\
             'is NOT set as gateway on the VM' % (
                 vn1_subnet_cidr, vn1_gateway)
-        self.logger.info('First address of CIDR %s : %s'
-                         'is set as gateway on the VM' % (vn1_subnet_cidr, vn1_gateway))
+        self.logger.info(
+            'First address of CIDR %s : %s'
+            'is set as gateway on the VM' %
+            (vn1_subnet_cidr, vn1_gateway))
 
         # Updating the gateway is not supported. Comment it for now
 #        self.logger.info('Try updating gateway ip to be within the alloc pool')
@@ -203,15 +203,15 @@ class TestSubnets(BaseNeutronTest):
         vn1_gateway = get_an_ip(vn1_subnet_cidr, 1)
         # Leave out the second IP...start from 3
         vn1_subnets = [{'cidr': vn1_subnet_cidr,
-                       'allocation_pools': [
-                           {'start': get_an_ip(vn1_subnet_cidr, 3),
-                            'end': get_an_ip(vn1_subnet_cidr, 4)
-                            },
-                           {'start': get_an_ip(vn1_subnet_cidr, 6),
-                            'end': get_an_ip(vn1_subnet_cidr, 6)
-                            }
-                       ],
-        }]
+                        'allocation_pools': [
+                            {'start': get_an_ip(vn1_subnet_cidr, 3),
+                             'end': get_an_ip(vn1_subnet_cidr, 4)
+                             },
+                            {'start': get_an_ip(vn1_subnet_cidr, 6),
+                                'end': get_an_ip(vn1_subnet_cidr, 6)
+                             }
+                        ],
+                        }]
         vn1_vm1_name = get_random_name('vn1-vm1')
         vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
@@ -251,7 +251,7 @@ class TestSubnets(BaseNeutronTest):
         Create a VN with subnet where dhcp is disabled
         Create a VM using that subnet
         Validate that the VM does not get an IP
-        
+
         '''
         vn1_name = get_random_name('vn1')
         vn1_subnets = [get_random_cidr()]
@@ -259,7 +259,7 @@ class TestSubnets(BaseNeutronTest):
         vn1_subnets = [{'cidr': vn1_subnets[0], }]
         vn1_vm1_name = get_random_name('vn1-vm1')
         vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
-        assert vn1_fixture.vn_subnet_objs[0]['enable_dhcp'] == True,\
+        assert vn1_fixture.vn_subnet_objs[0]['enable_dhcp'],\
             'DHCP is not enabled by default in the Subnet!'
 
         # Update subnet to disable dhcp
@@ -338,3 +338,22 @@ class TestSubnets(BaseNeutronTest):
             'It is %s' % (vm3_fixture.vm_name, vn1_subnet_list[0],
                           vm3_fixture.vm_ip)
     # end test_ip_allocation_order
+
+    @preposttest_wrapper
+    def test_subnet_rename(self):
+        '''Launch a vn and rename the associated subnet
+           check if subnet name gets updated or not
+        '''
+        result = True
+        vn1_name = get_random_name('vn1')
+        vn1_subnet_cidr = get_random_cidr()
+        vn1_subnets = [{'cidr': vn1_subnet_cidr}]
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        subnet_dict = {'name': "test_subnet"}
+        subnet_rsp = self.quantum_fixture.update_subnet(
+            vn1_fixture.vn_subnet_objs[0]['id'],
+            subnet_dict)
+        assert subnet_rsp['subnet'][
+            'name'] == "test_subnet", 'Failed to update subnet name'
+
+    # end test_subnet_rename
