@@ -10,9 +10,11 @@ class BaseNeutronTest(test.BaseTestCase):
     @classmethod
     def setUpClass(cls):
         super(BaseNeutronTest, cls).setUpClass()
-        cls.isolated_creds = isolated_creds.IsolatedCreds(cls.__name__,
-                                                          cls.inputs, ini_file=cls.ini_file,
-                                                          logger=cls.logger)
+        cls.isolated_creds = isolated_creds.IsolatedCreds(
+            cls.__name__,
+            cls.inputs,
+            ini_file=cls.ini_file,
+            logger=cls.logger)
         cls.admin_connections = cls.isolated_creds.get_admin_connections()
         cls.isolated_creds.setUp()
         cls.project = cls.isolated_creds.create_tenant()
@@ -25,6 +27,7 @@ class BaseNeutronTest(test.BaseTestCase):
         cls.agent_inspect = cls.connections.agent_inspect
         cls.cn_inspect = cls.connections.cn_inspect
         cls.analytics_obj = cls.connections.analytics_obj
+        cls.api_s_inspect = cls.connections.api_server_inspect
     # end setUpClass
 
     @classmethod
@@ -58,26 +61,30 @@ class BaseNeutronTest(test.BaseTestCase):
 
     def create_router(self, router_name, tenant_id=None):
         obj = self.quantum_fixture.create_router(router_name, tenant_id)
-        self.addCleanup(self.quantum_fixture.delete_router,obj['id'])
+        self.addCleanup(self.quantum_fixture.delete_router, obj['id'])
         return obj
 
     def delete_router(self, router_id=None):
         val = self.quantum_fixture.delete_router(router_id)
 
     def add_router_interface(self, router_id, subnet_id=None, port_id=None):
-        result = self.quantum_fixture.add_router_interface(router_id, subnet_id)
+        result = self.quantum_fixture.add_router_interface(
+            router_id,
+            subnet_id)
         self.addCleanup(self.quantum_fixture.delete_router_interface,
                         router_id, subnet_id)
         return result
 
     def delete_router_interface(self, router_id, subnet_id):
         self.quantum_fixture.delete_router_interface(
-                                            router_id, subnet_id)
-        
-    def add_vn_to_router(self, router_id, vn_fixture):
-        self.add_router_interface(router_id, vn_fixture.vn_subnet_objs[0]['id'])
+            router_id, subnet_id)
 
-    def create_security_group(self, name, quantum_handle = None):
+    def add_vn_to_router(self, router_id, vn_fixture):
+        self.add_router_interface(
+            router_id,
+            vn_fixture.vn_subnet_objs[0]['id'])
+
+    def create_security_group(self, name, quantum_handle=None):
         q_h = None
         if quantum_handle:
             q_h = quantum_handle
@@ -89,14 +96,14 @@ class BaseNeutronTest(test.BaseTestCase):
         return obj
     # end create_security_group
 
-    def delete_security_group(self, sg_id, quantum_handle = None):
+    def delete_security_group(self, sg_id, quantum_handle=None):
         q_h = None
         if quantum_handle:
             q_h = quantum_handle
         else:
             q_h = self.quantum_fixture
         q_h.delete_security_group(sg_id)
-        
+
     def _remove_from_cleanup(self, func_call, args):
         for cleanup in self._cleanups:
             if func_call in cleanup and args in cleanup[1]:

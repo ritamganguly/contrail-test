@@ -37,7 +37,7 @@ class TestPorts(BaseNeutronTest):
         Create a port in a VN
         Create a VM using that port
         Detach the port
-        
+
         '''
         result = True
         vn1_name = get_random_name('vn1')
@@ -63,11 +63,14 @@ class TestPorts(BaseNeutronTest):
 
         vm1_fixture.vm_obj.get()
         if vm1_fixture.vm_obj.status != 'ACTIVE':
-            self.logger.error('VM %s is not ACTIVE(It is %s) after port-detach' % (
-                vn1_vm1_name, vm1_fixture.vm_obj.status))
+            self.logger.error(
+                'VM %s is not ACTIVE(It is %s) after port-detach' %
+                (vn1_vm1_name, vm1_fixture.vm_obj.status))
             result = result and False
 
-        if not vm2_fixture.ping_with_certainty(vm1_fixture.vm_ip, expectation=False):
+        if not vm2_fixture.ping_with_certainty(
+                vm1_fixture.vm_ip,
+                expectation=False):
             self.logger.error('Ping to a detached port %s passed!' %
                               (vm1_fixture.vm_ip))
             result = result and False
@@ -80,8 +83,9 @@ class TestPorts(BaseNeutronTest):
         time.sleep(5)
         vm1_fixture.vm_obj.get()
         if vm1_fixture.vm_obj.status != 'ACTIVE':
-            self.logger.error('VM %s is not ACTIVE(It is %s) during attach-detach' % (
-                vn1_vm1_name, vm1_fixture.vm_obj.status))
+            self.logger.error(
+                'VM %s is not ACTIVE(It is %s) during attach-detach' %
+                (vn1_vm1_name, vm1_fixture.vm_obj.status))
             result = result and False
         if result and not vm2_fixture.ping_with_certainty(vm1_fixture.vm_ip):
             self.logger.error('Ping to a attached port %s failed' %
@@ -95,7 +99,7 @@ class TestPorts(BaseNeutronTest):
     def test_ports_specific_subnet(self):
         '''Create ports from specific subnets
 
-        Create a port in a VN with 2 subnets. 
+        Create a port in a VN with 2 subnets.
         Validate that port can be created in any of the subnets
         Ping between them should pass
         '''
@@ -121,10 +125,14 @@ class TestPorts(BaseNeutronTest):
                                      port_ids=[port2_obj['id']])
         vm1_fixture.wait_till_vm_is_up()
         vm2_fixture.wait_till_vm_is_up()
-        self.assertEqual(vm1_fixture.vm_ip,
-                         port1_obj['fixed_ips'][0]['ip_address'], 'VM IP and Port IP Mismatch')
-        self.assertEqual(vm2_fixture.vm_ip,
-                         port2_obj['fixed_ips'][0]['ip_address'], 'VM IP and Port IP Mismatch')
+        self.assertEqual(
+            vm1_fixture.vm_ip,
+            port1_obj['fixed_ips'][0]['ip_address'],
+            'VM IP and Port IP Mismatch')
+        self.assertEqual(
+            vm2_fixture.vm_ip,
+            port2_obj['fixed_ips'][0]['ip_address'],
+            'VM IP and Port IP Mismatch')
         assert IPAddress(vm1_fixture.vm_ip) in IPNetwork(vn1_subnet_1),\
             'Port IP %s not from subnet %s' % (vm1_fixture.vm_ip, vn1_subnet_1)
         assert IPAddress(vm2_fixture.vm_ip) in IPNetwork(vn1_subnet_2),\
@@ -376,3 +384,49 @@ class TestPorts(BaseNeutronTest):
                                      port_ids=[port2_obj['id']])
         assert vm1_fixture.wait_till_vm_is_up(), 'VM does not seem to be up'
     # end test_port_ip_reuse
+
+    @preposttest_wrapper
+    def test_port_rename(self):
+        result = True
+        vn1_name = get_random_name('vn1')
+        vn1_subnet = get_random_cidr()
+        vn1_fixture = self.create_vn(vn1_name, [vn1_subnet])
+        port1_obj = self.quantum_fixture.create_port(
+            net_id=vn1_fixture.vn_id)
+        port_dict = {'name': "test_port"}
+        port_rsp = self.quantum_fixture.update_port(port1_obj['id'], port_dict)
+        assert port_rsp['port'][
+            'name'] == "test_port", 'Failed to update port name'
+        self.quantum_fixture.delete_port(port1_obj['id'])
+
+    # end test_port_rename
+
+    @preposttest_wrapper
+    def test_port_admin_state_up(self):
+        vn1_name = get_random_name('vn1')
+        vn1_subnets = [get_random_cidr()]
+        vn1_vm1_name = get_random_name('vn1-vm1')
+        vn1_vm2_name = get_random_name('vn1-vm2')
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        port_obj = self.quantum_fixture.create_port(net_id=vn1_fixture.vn_id)
+        vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
+                                     image_name='cirros-0.3.0-x86_64-uec',
+                                     port_ids=[port_obj['id']])
+        vm2_fixture = self.create_vm(vn1_fixture, vn1_vm2_name,
+                                     image_name='cirros-0.3.0-x86_64-uec')
+        vm1_fixture.wait_till_vm_is_up()
+        vm2_fixture.wait_till_vm_is_up()
+        assert vm2_fixture.ping_with_certainty(vm1_fixture.vm_ip)
+        port_dict = {'admin_state_up': False}
+        port_rsp = self.quantum_fixture.update_port(port_obj['id'], port_dict)
+        assert port_rsp['port'][
+            'admin_state_up'] == False, 'Failed to update port admin_state_up to False'
+        assert vm1_fixture.ping_with_certainty(
+            vm2_fixture.vm_ip, expectation=False), 'Port forwards packets with admin_state_up set to False not expected'
+        port_dict = {'admin_state_up': True}
+        port_rsp = self.quantum_fixture.update_port(port_obj['id'], port_dict)
+        assert port_rsp['port'][
+            'admin_state_up'], 'Failed to update port admin_state_up to True '
+        assert vm1_fixture.ping_with_certainty(vm2_fixture.vm_ip)
+
+    # end test_port_admin_state_up
