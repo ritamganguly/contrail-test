@@ -3224,10 +3224,12 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         add_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' + vm2_vmi_id + \
             ' --tenant_name ' + self.admin_inputs.project_name + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
         self.logger.info("Create static IP for 2.2.2.0/24 pointing to vm2 ")
+        username = self.inputs.host_data[self.inputs.cfgm_ip]['username']
+        password = self.inputs.host_data[self.inputs.cfgm_ip]['password']
         with settings(
             host_string='%s@%s' % (
-                self.inputs.username, self.inputs.cfgm_ips[0]),
-                password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
+                username, self.inputs.cfgm_ips[0]),
+                password, warn_only=True, abort_on_prompts=False, debug=True):
 
             status = run('cd /opt/contrail/utils;' + add_static_route_cmd)
             self.logger.debug("%s" % status)
@@ -3289,11 +3291,12 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         del_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' + vm2_vmi_id + \
             ' --tenant_name ' + self.admin_inputs.project_name + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table'
         self.logger.info("Delete static IP for 2.2.2.0/24 pointing to vm2 ")
+        username = self.inputs.host_data[self.inputs.cfgm_ip]['username']
+        password = self.inputs.host_data[self.inputs.cfgm_ip]['password']
         with settings(
             host_string='%s@%s' % (
-                self.inputs.username, self.inputs.cfgm_ips[0]),
-                password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
-
+                username, self.inputs.cfgm_ips[0]),
+                password, warn_only=True, abort_on_prompts=False, debug=True):
             status = run('cd /opt/contrail/utils;' + del_static_route_cmd)
             self.logger.debug("%s" % status)
         assert result
@@ -3516,9 +3519,12 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         add_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' + vm3_vmi_id + \
             ' --tenant_name ' + self.admin_inputs.project_name + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
         self.logger.info("Create static route 2.2.2.0/24 pointing to vm3 \n")
-        with settings(host_string='%s@%s' % (self.inputs.username, self.inputs.cfgm_ips[0]),
-                      password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
-
+        username = self.inputs.host_data[self.inputs.cfgm_ips[0]]['username']
+        password = self.inputs.host_data[self.inputs.cfgm_ips[0]]['password']
+        with settings(
+            host_string='%s@%s' % (
+                username, self.inputs.cfgm_ips[0]),
+                password, warn_only=True, abort_on_prompts=False, debug=True):
             status = run('cd /opt/contrail/utils;' + add_static_route_cmd)
             self.logger.debug("%s" % status)
             m = re.search(r'Creating Route table', status)
@@ -3570,9 +3576,12 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         self.logger.info(
             "Create static route %s pointing to vm111 eth0 interface \n" %
             static_route_vm2)
-        with settings(host_string='%s@%s' % (self.inputs.username, self.inputs.cfgm_ips[0]),
-                      password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
-
+        username = self.inputs.host_data[self.inputs.cfgm_ip]['username']
+        password = self.inputs.host_data[self.inputs.cfgm_ip]['password']
+        with settings(
+            host_string='%s@%s' % (
+                username, self.inputs.cfgm_ip),
+                password, warn_only=True, abort_on_prompts=False, debug=True):
             status = run('cd /opt/contrail/utils;' + add_static_route_cmd)
             self.logger.debug("%s" % status)
 
@@ -3605,9 +3614,12 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
             "Delete static IP for %s pointing to vm111 \n" %
             static_route_vm2)
 
-        with settings(host_string='%s@%s' % (self.inputs.username, self.inputs.cfgm_ips[0]),
-                      password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
-
+        username = self.inputs.host_data[self.inputs.cfgm_ip]['username']
+        password = self.inputs.host_data[self.inputs.cfgm_ip]['password']
+        with settings(
+            host_string='%s@%s' % (
+                username, self.inputs.cfgm_ip),
+                password, warn_only=True, abort_on_prompts=False, debug=True):
             status = run('cd /opt/contrail/utils;' + del_static_route_cmd1)
             self.logger.debug("%s" % status)
             status = run('cd /opt/contrail/utils;' + del_static_route_cmd2)
@@ -3720,9 +3732,12 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         self.logger.info(
             "Create static route %s pointing to eth0 of vm1 \n" %
             static_route_vm1_eth0)
-        with settings(host_string='%s@%s' % (self.inputs.username, self.inputs.cfgm_ips[0]),
-                      password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
-
+        username = self.inputs.host_data[self.inputs.cfgm_ip]['username']
+        password = self.inputs.host_data[self.inputs.cfgm_ip]['password']
+        with settings(
+            host_string='%s@%s' % (
+                username, self.inputs.cfgm_ip),
+                password, warn_only=True, abort_on_prompts=False, debug=True):
             status1 = run('cd /opt/contrail/utils;' + add_static_route_cmd1)
             self.logger.debug("%s" % status1)
             m = re.search(r'Creating Route table', status1)
@@ -3818,9 +3833,12 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
             "Delete static route %s pointing to eth0 of vm1 \n" %
             static_route_vm1_eth0)
 
-        with settings(host_string='%s@%s' % (self.inputs.username, self.inputs.cfgm_ips[0]),
-                      password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
-
+        username = self.inputs.host_data[self.inputs.cfgm_ip]['username']
+        password = self.inputs.host_data[self.inputs.cfgm_ip]['password']
+        with settings(
+            host_string='%s@%s' % (
+                username, self.inputs.cfgm_ip),
+                password, warn_only=True, abort_on_prompts=False, debug=True):
             status1 = run('cd /opt/contrail/utils;' + del_static_route_cmd1)
             self.logger.debug("%s" % status1)
             status2 = run('cd /opt/contrail/utils;' + del_static_route_cmd2)

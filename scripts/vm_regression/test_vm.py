@@ -107,13 +107,21 @@ class TestBasicVMVN0(BaseVnVmTest):
                 self.nova_fixture.get_nova_host_of_vm(vm4_fixture.vm_obj)]['host_ip']
 
             tx_local_host = Host(
-                tx_vm_node_ip, self.inputs.username, self.inputs.password)
+                tx_vm_node_ip,
+                self.inputs.host_data[tx_vm_node_ip]['username'],
+                self.inputs.host_data[tx_vm_node_ip]['password'])
             rx1_local_host = Host(
-                rx1_vm_node_ip, self.inputs.username, self.inputs.password)
+                rx1_vm_node_ip,
+                self.inputs.host_data[rx1_vm_node_ip]['username'],
+                self.inputs.host_data[rx1_vm_node_ip]['password'])
             rx2_local_host = Host(
-                rx2_vm_node_ip, self.inputs.username, self.inputs.password)
+                rx2_vm_node_ip,
+                self.inputs.host_data[rx2_vm_node_ip]['username'],
+                self.inputs.host_data[rx2_vm_node_ip]['password'])
             rx3_local_host = Host(
-                rx3_vm_node_ip, self.inputs.username, self.inputs.password)
+                rx3_vm_node_ip,
+                self.inputs.host_data[rx3_vm_node_ip]['username'],
+                self.inputs.host_data[rx3_vm_node_ip]['password'])
 
             send_host = Host(vm1_fixture.local_ip,
                              vm1_fixture.vm_username, vm1_fixture.vm_password)

@@ -43,7 +43,9 @@ class NewPolicyTestFixture(NewPolicyTestsBase):
 
         self.logger.info("Scenario for the test used is: %s" %
                          (topology_class_name))
-        topo = topology_class_name()
+        topo = topology_class_name(project=self.inputs.stack_tenant,
+                                   username=self.inputs.stack_user,
+                                   password=self.inputs.stack_password)
         #
         # Test setup: Configure policy, VN, & VM
         # return {'result':result, 'msg': err_msg, 'data': [self.topo, config_topo]}
@@ -139,7 +141,9 @@ class NewPolicyTestFixture(NewPolicyTestsBase):
 
         self.logger.info("Scenario for the test used is: %s" %
                          (topology_class_name))
-        topo = topology_class_name()
+        topo = topology_class_name(project=self.inputs.stack_tenant,
+                                   username=self.inputs.stack_user,
+                                   password=self.inputs.stack_password)
         #
         # Test setup: Configure policy, VN, & VM
         # return {'result':result, 'msg': err_msg, 'data': [self.topo, config_topo]}

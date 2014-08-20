@@ -344,10 +344,15 @@ class AnalyticsTestSanityWithResource(base.AnalyticsBaseTest, ConfigSvcChain , V
         self.res.vn1_vm1_fixture.install_pkg("Traffic")
         self.res.vn1_vm2_fixture.install_pkg("Traffic")
 
-        self.tx_vm_node_ip= self.inputs.host_data[self.nova_fixture.get_nova_host_of_vm(self.res.vn1_vm1_fixture.vm_obj)]['host_ip']
-        self.rx_vm_node_ip= self.inputs.host_data[self.nova_fixture.get_nova_host_of_vm(self.res.vn1_vm2_fixture.vm_obj)]['host_ip']
-        self.tx_local_host = Host(self.tx_vm_node_ip, self.inputs.username, self.inputs.password)
-        self.rx_local_host = Host(self.rx_vm_node_ip, self.inputs.username, self.inputs.password)
+        self.tx_vm_node_ip = self.res.vn1_vm1_fixture.vm_node_ip
+        self.rx_vm_node_ip = self.res.vn1_vm2_fixture.vm_node_ip
+        self.tx_local_host = Host(self.tx_vm_node_ip,
+                        self.inputs.host_data[self.tx_vm_node_ip]['username'],
+                        self.inputs.host_data[self.tx_vm_node_ip]['password']) 
+        self.rx_local_host = Host(self.rx_vm_node_ip,
+                        self.inputs.host_data[self.rx_vm_node_ip]['username'],
+                        self.inputs.host_data[self.rx_vm_node_ip]['password']) 
+
         self.send_host = Host(self.res.vn1_vm1_fixture.local_ip,
                             self.res.vn1_vm1_fixture.vm_username,
                             self.res.vn1_vm1_fixture.vm_password)
@@ -472,10 +477,14 @@ class AnalyticsTestSanityWithResource(base.AnalyticsBaseTest, ConfigSvcChain , V
         self.res.vn2_vm2_fixture.install_pkg("Traffic")
         self.res.fvn_vm1_fixture.install_pkg("Traffic")
 
-        self.tx_vm_node_ip= self.inputs.host_data[self.nova_fixture.get_nova_host_of_vm(self.res.vn1_vm1_fixture.vm_obj)]['host_ip']
-        self.rx_vm_node_ip= self.inputs.host_data[self.nova_fixture.get_nova_host_of_vm(self.res.vn2_vm2_fixture.vm_obj)]['host_ip']
-        self.tx_local_host = Host(self.tx_vm_node_ip, self.inputs.username, self.inputs.password)
-        self.rx_local_host = Host(self.rx_vm_node_ip, self.inputs.username, self.inputs.password)
+        self.tx_vm_node_ip= self.res.vn1_vm1_fixture.vm_node_ip
+        self.rx_vm_node_ip= self.res.vn2_vm2_fixture.vm_node_ip
+        self.tx_local_host = Host(self.tx_vm_node_ip,
+                        self.inputs.host_data[self.tx_vm_node_ip]['username'],
+                        self.inputs.host_data[self.tx_vm_node_ip]['password'])
+        self.rx_local_host = Host(self.rx_vm_node_ip,
+                        self.inputs.host_data[self.rx_vm_node_ip]['username'],
+                        self.inputs.host_data[self.rx_vm_node_ip]['password'])
         self.send_host = Host(self.res.vn1_vm1_fixture.local_ip,
                             self.res.vn1_vm1_fixture.vm_username,
                             self.res.vn1_vm1_fixture.vm_password)
@@ -639,10 +648,14 @@ class AnalyticsTestSanityWithResource(base.AnalyticsBaseTest, ConfigSvcChain , V
         self.res.vn2_vm2_fixture.install_pkg("Traffic")
 #        self.res.fvn_vm1_fixture.install_pkg("Traffic")
 
-        self.tx_vm_node_ip= self.inputs.host_data[self.nova_fixture.get_nova_host_of_vm(self.res.vn1_vm1_fixture.vm_obj)]['host_ip']
-        self.rx_vm_node_ip= self.inputs.host_data[self.nova_fixture.get_nova_host_of_vm(self.res.vn2_vm2_fixture.vm_obj)]['host_ip']
-        self.tx_local_host = Host(self.tx_vm_node_ip, self.inputs.username, self.inputs.password)
-        self.rx_local_host = Host(self.rx_vm_node_ip, self.inputs.username, self.inputs.password)
+        self.tx_vm_node_ip = self.res.vn1_vm1_fixture.vm_node_ip
+        self.rx_vm_node_ip = self.res.vn2_vm2_fixture.vm_node_ip
+        self.tx_local_host = Host(self.tx_vm_node_ip,
+                        self.inputs.host_data[self.tx_vm_node_ip]['username'],
+                        self.inputs.host_data[self.tx_vm_node_ip]['password'])
+        self.rx_local_host = Host(self.rx_vm_node_ip,
+                        self.inputs.host_data[self.rx_vm_node_ip]['username'],
+                        self.inputs.host_data[self.rx_vm_node_ip]['password'])
         self.send_host = Host(self.res.vn1_vm1_fixture.local_ip,
                             self.res.vn1_vm1_fixture.vm_username,
                             self.res.vn1_vm1_fixture.vm_password)

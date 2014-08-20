@@ -774,7 +774,11 @@ class TestVMVN(testtools.TestCase, fixtures.TestWithFixtures):
             'virtual-machine-interface']['uuid']
         add_static_route_cmd = 'python provision_static_route.py --prefix 1.2.3.4/32 --virtual_machine_interface_id ' + vm1_vmi_id + ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 \
                 --oper add --route_table_name my_route_table'
-        with settings(host_string='%s@%s' % (self.inputs.username, self.inputs.cfgm_ips[0]), password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
+        with settings(host_string='%s@%s' % (
+                self.inputs.host_data[self.inputs.cfgm_ip]['username'],
+                    self.inputs.cfgm_ip),
+                password=self.inputs.host_data[self.inputs.cfgm_ip]['password'],
+                warn_only=True, abort_on_prompts=False, debug=True):
             status = run('cd /opt/contrail/utils;' + add_static_route_cmd)
             self.logger.debug("%s" % status)
             m = re.search(r'Creating Route table', status)
@@ -823,7 +827,11 @@ class TestVMVN(testtools.TestCase, fixtures.TestWithFixtures):
             '-------------------------Will delete the static route now------------------')
         del_static_route_cmd = 'python provision_static_route.py --prefix 1.2.3.4/32 --virtual_machine_interface_id ' + vm1_vmi_id + ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 \
                 --oper del --route_table_name my_route_table'
-        with settings(host_string='%s@%s' % (self.inputs.username, self.inputs.cfgm_ips[0]), password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
+        with settings(host_string='%s@%s' % (
+                self.inputs.host_data[self.inputs.cfgm_ip]['username'],
+                    self.inputs.cfgm_ip),
+                password=self.inputs.host_data[self.inputs.cfgm_ip]['password'],
+                warn_only=True, abort_on_prompts=False, debug=True):
             del_status = run('cd /opt/contrail/utils;' + del_static_route_cmd)
             self.logger.debug("%s" % del_status)
         time.sleep(10)
@@ -2306,23 +2314,27 @@ class TestVMVN(testtools.TestCase, fixtures.TestWithFixtures):
             profile = ContinuousProfile(
                 stream=stream, listener=ips, capfilter="udp port 8000", chksum=True)
 
-            tx_vm_node_ip = self.inputs.host_data[
-                self.nova_fixture.get_nova_host_of_vm(vm1_fixture.vm_obj)]['host_ip']
-            rx1_vm_node_ip = self.inputs.host_data[
-                self.nova_fixture.get_nova_host_of_vm(vm2_fixture.vm_obj)]['host_ip']
-            rx2_vm_node_ip = self.inputs.host_data[
-                self.nova_fixture.get_nova_host_of_vm(vm3_fixture.vm_obj)]['host_ip']
-            rx3_vm_node_ip = self.inputs.host_data[
-                self.nova_fixture.get_nova_host_of_vm(vm4_fixture.vm_obj)]['host_ip']
+            tx_vm_node_ip = vm1_fixture.vm_node_ip
+            rx1_vm_node_ip = vm2_fixture.vm_node_ip
+            rx2_vm_node_ip = vm3_fixture.vm_node_ip
+            rx3_vm_node_ip = vm4_fixture.vm_node_ip
 
             tx_local_host = Host(
-                tx_vm_node_ip, self.inputs.username, self.inputs.password)
+                tx_vm_node_ip, 
+                self.inputs.host_data[tx_vm_node_ip]['username'],
+                self.inputs.host_data[tx_vm_node_ip]['password'])
             rx1_local_host = Host(
-                rx1_vm_node_ip, self.inputs.username, self.inputs.password)
+                rx1_vm_node_ip, 
+                self.inputs.host_data[rx1_vm_node_ip]['username'],
+                self.inputs.host_data[rx1_vm_node_ip]['password'])
             rx2_local_host = Host(
-                rx2_vm_node_ip, self.inputs.username, self.inputs.password)
+                rx2_vm_node_ip,
+                self.inputs.host_data[rx2_vm_node_ip]['username'],
+                self.inputs.host_data[rx2_vm_node_ip]['password'])
             rx3_local_host = Host(
-                rx3_vm_node_ip, self.inputs.username, self.inputs.password)
+                rx3_vm_node_ip,
+                self.inputs.host_data[rx3_vm_node_ip]['username'],
+                self.inputs.host_data[rx3_vm_node_ip]['password'])
 
             send_host = Host(vm1_fixture.local_ip,
                              vm1_fixture.vm_username, vm1_fixture.vm_password)
