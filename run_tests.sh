@@ -144,6 +144,7 @@ function run_tests {
       ${wrapper} testr run --parallel --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml
       sleep 2
   fi
+  python parse_result.py $result_xml
   generate_html 
 }
 
