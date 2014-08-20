@@ -27,7 +27,14 @@ class NetworkClientException(CommonNetworkClientException):
 
 class QuantumFixture(fixtures.Fixture):
 
-    def __init__(self, username, password, project_id, inputs, cfgm_ip, openstack_ip):
+    def __init__(
+            self,
+            username,
+            password,
+            project_id,
+            inputs,
+            cfgm_ip,
+            openstack_ip):
         httpclient = None
         self.quantum_port = '9696'
         self.username = username
@@ -51,7 +58,7 @@ class QuantumFixture(fixtures.Fixture):
                                     password=self.password,
                                     auth_url=self.auth_url)
             httpclient.authenticate()
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.exception('Exception while connection to Quantum')
             raise e
         OS_URL = 'http://%s:%s/' % (self.cfgm_ip, self.quantum_port)
@@ -82,7 +89,7 @@ class QuantumFixture(fixtures.Fixture):
                     subnet, net_id, ipam_fq_name)
             # end for
             return self.obj.show_network(network=net_id)
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.exception(
                 'Quantum Exception while creating network %s' % (vn_name))
             return None
@@ -100,7 +107,7 @@ class QuantumFixture(fixtures.Fixture):
 
     def create_port(self, net_id, subnet_id=None, ip_address=None,
                     mac_address=None, no_security_group=False,
-                    security_groups=[]):
+                    security_groups=[], extra_dhcp_opts=None):
         port_req_dict = {
             'network_id': net_id,
         }
@@ -115,6 +122,9 @@ class QuantumFixture(fixtures.Fixture):
             port_req_dict['security_groups'] = None
         if security_groups:
             port_req_dict['security_groups'] = security_groups
+        if extra_dhcp_opts:
+            port_req_dict['extra_dhcp_opts'] = extra_dhcp_opts
+
         port_req_dict['fixed_ips'] = [fixed_ip_req]
         port_rsp = self.obj.create_port({'port': port_req_dict})
         self.logger.debug('Response for create_port : ' + repr(port_rsp))
@@ -122,7 +132,7 @@ class QuantumFixture(fixtures.Fixture):
     # end create_port
 
     def create_security_group(self, name):
-        sg_dict = { 'name' : name, 'description': 'SG-' + name}
+        sg_dict = {'name': name, 'description': 'SG-' + name}
         sg_resp = self.obj.create_security_group({'security_group': sg_dict})
         return sg_resp['security_group']
     # end create_security_group
@@ -132,11 +142,11 @@ class QuantumFixture(fixtures.Fixture):
     # end delete_security_group
 
     def create_security_group_rule(self, sg_id, direction='ingress',
-                                   port_range_min=None, port_range_max=None, 
+                                   port_range_min=None, port_range_max=None,
                                    protocol=None, remote_group_id=None,
                                    remote_ip_prefix=None):
         sg_rule = None
-        sg_rule_dict = { 'security_group_id': sg_id }
+        sg_rule_dict = {'security_group_id': sg_id}
         if direction:
             sg_rule_dict['direction'] = direction
         if port_range_min:
@@ -151,13 +161,13 @@ class QuantumFixture(fixtures.Fixture):
             sg_rule_dict['remote_ip_prefix'] = remote_ip_prefix
         try:
             self.obj.create_security_group_rule(
-                {'security_group_rule': sg_rule_dict })
-        except CommonNetworkClientException, e:
+                {'security_group_rule': sg_rule_dict})
+        except CommonNetworkClientException as e:
             self.logger.exception(
                 'Quantum Exception while creating SG Rule %s' % (sg_rule_dict))
         return sg_rule
     # end create_security_group_rule
-        
+
     def delete_port(self, port_id,):
         port_rsp = self.obj.delete_port(port_id)
         self.logger.debug('Response for delete_port : ' + repr(port_rsp))
@@ -174,7 +184,7 @@ class QuantumFixture(fixtures.Fixture):
                 if vn_name == x and project_id in dashed_tenant_id:
                     net_id = y
                     return self.obj.show_network(network=net_id)
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.exception(
                 "Some exception while doing Quantum net-list")
             raise NetworkClientException(message=str(e))
@@ -184,7 +194,7 @@ class QuantumFixture(fixtures.Fixture):
     def get_vn_obj_from_id(self, id):
         try:
             return self.obj.show_network(network=id)
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.exception(
                 "Some exception while doing Quantum net-list")
             return None
@@ -196,7 +206,7 @@ class QuantumFixture(fixtures.Fixture):
             net_rsp = self.obj.delete_network(vn_id)
             self.logger.debug('Response for deleting network %s' %
                               (str(net_rsp)))
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.exception(
                 'Quantum exception while deleting a VN %s' % (vn_id))
             result = False
@@ -208,7 +218,7 @@ class QuantumFixture(fixtures.Fixture):
         try:
             net_rsp = self.obj.list_networks(args)
             return net_rsp
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.debug("Exception while viewing Network list")
             return []
     # end list_networks
@@ -235,13 +245,13 @@ class QuantumFixture(fixtures.Fixture):
 
     def get_port_id(self, vm_id):
         ''' Returns the Quantum port-id of a VM.
-        
+
         '''
         try:
             port_rsp = self.obj.list_ports(device_id=[vm_id])
             port_id = port_rsp['ports'][0]['id']
             return port_id
-        except Exception, e:
+        except Exception as e:
             self.logger.error('Error occured while getting port-id of a VM ')
             return None
     # end
@@ -264,7 +274,7 @@ class QuantumFixture(fixtures.Fixture):
         policy_rsp = None
         try:
             policy_rsp = self.obj.create_policy(policy_dict)
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.error(
                 "Quantum Exception while creating policy" + str(e))
         return policy_rsp
@@ -275,7 +285,7 @@ class QuantumFixture(fixtures.Fixture):
         policy_rsp = None
         try:
             policy_rsp = self.obj.update_policy(policy_id, policy_entries)
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.error(
                 "Quantum Exception while creating policy" + str(e))
         self.logger.info("policy_rsp for policy_id %s after update is %s" %
@@ -296,7 +306,7 @@ class QuantumFixture(fixtures.Fixture):
                     else:
                         policy_id = y
                         return self.obj.show_policy(policy=policy_id)
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.exception(
                 "Some exception while doing Quantum policy-listing")
         return None
@@ -307,7 +317,7 @@ class QuantumFixture(fixtures.Fixture):
         policy_list = None
         try:
             policy_list = self.obj.list_policys(tenant_id=self.project_id)
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.error(
                 "Quantum Exception while listing policies" + str(e))
         return policy_list
@@ -317,7 +327,7 @@ class QuantumFixture(fixtures.Fixture):
         result = True
         try:
             self.obj.delete_policy(policy_id)
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             result = False
             self.logger.error(
                 "Quantum Exception while deleting policy" + str(e))
@@ -332,7 +342,7 @@ class QuantumFixture(fixtures.Fixture):
         net_rsp = None
         try:
             net_rsp = self.obj.update_network(vn_id, network_dict)
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.error(
                 "Quantum Exception while updating network" + str(e))
         return net_rsp
@@ -359,7 +369,7 @@ class QuantumFixture(fixtures.Fixture):
             vn_obj = self.obj.show_network(vn_id)
             for subnet_id in vn_obj['network']['subnets']:
                 subnets.append(self.obj.show_subnet(subnet_id)['subnet'])
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.exception(
                 'Exception while reading network details%s' % (vn_id))
             return None
@@ -368,7 +378,7 @@ class QuantumFixture(fixtures.Fixture):
 
     def add_router_interface(self, router_id, subnet_id=None, port_id=None):
         ''' Add an interface to router.
-            Result will be of form 
+            Result will be of form
             {u'subnet_id': u'd5ae735b-4df2-473f-9d6c-ca9ddb263fdc', u'tenant_id': u'509a5c7a23474f15a456905adcd9fc8d', u'port_id': u'f2d4cb13-2401-4830-b8cc-c23d544bb1d6', u'id': u'da7e4878-04fa-4d1a-8def-4b11c2eaf569'}
         '''
         body = {}
@@ -396,17 +406,58 @@ class QuantumFixture(fixtures.Fixture):
         return result
     # end delete_router_interface
 
+    def update_router(self, router_id, router_dict):
+        router_rsp = None
+        body = {}
+        body['router'] = router_dict
+        try:
+            router_rsp = self.obj.update_router(router_id, body)
+        except CommonNetworkClientException as e:
+            self.logger.error(
+                "Quantum Exception while updating router " + str(e))
+            raise e
+        return router_rsp
+    # end update_router
+
+    def update_security_group(self, sg_id, sg_dict):
+        sg_rsp = None
+        body = {}
+        body['security_group'] = sg_dict
+        try:
+            sg_rsp = self.obj.update_security_group(sg_id, body)
+        except CommonNetworkClientException as e:
+            self.logger.error(
+                "Quantum Exception while updating security group " + str(e))
+            raise e
+        return sg_rsp
+    # end update_security_group
+
     def update_subnet(self, subnet_id, subnet_dict):
         subnet_rsp = None
         body = {}
         body['subnet'] = subnet_dict
         try:
             subnet_rsp = self.obj.update_subnet(subnet_id, body)
-        except CommonNetworkClientException, e:
+        except CommonNetworkClientException as e:
             self.logger.error(
                 "Quantum Exception while updating subnet" + str(e))
             raise e
         return subnet_rsp
     # end update_subnet
+
+    def update_port(self, port_id, port_dict):
+        port_rsp = None
+        body = {}
+        body['port'] = port_dict
+        self.logger.debug('Updating port %s with body : %s' % (
+            port_id, body))
+        try:
+            port_rsp = self.obj.update_port(port_id, body)
+        except CommonNetworkClientException as e:
+            self.logger.error(
+                "Quantum Exception while updating port" + str(e))
+            raise e
+        return port_rsp
+    # end update_port
 
 # end QuantumFixture

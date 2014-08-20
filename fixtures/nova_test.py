@@ -76,17 +76,16 @@ class NovaFixture(fixtures.Fixture):
                             break
                         tries -= 1
                         time.sleep(5)
-                    # end while    
+                    # end while
                 if self.obj.images.get(image.id).status.lower() == 'active':
                     got_image = self.obj.images.get(image.id)
                     break
                 else:
                     self.logger.info('Image %s found, but not active!'
-                        'Will install a new one' % (image_name))
-            else:
-                self.logger.debug('Image %s not found. Will install' % (
-                                  image_name))
+                                     'Will install a new one' % (image_name))
         # end for
+        if not got_image:
+            self.logger.debug('Image by name %s not found' % (image_name))
         return got_image
     # end find_image
 
@@ -236,12 +235,12 @@ class NovaFixture(fixtures.Fixture):
         try:
             nova_services = self.obj.services.list(**kwargs)
             self.logger.debug('Servies List from the nova obj: %s' %
-                             nova_services)
+                              nova_services)
             return nova_services
         except:
             self.logger.debug('Unable to retrieve services from nova obj')
             self.logger.debug('Using \"nova service-list\" to retrieve'
-                             ' services info')
+                              ' services info')
             pass
 
         service_list = []
@@ -274,9 +273,9 @@ class NovaFixture(fixtures.Fixture):
                     service_list.append(service_obj)
         return service_list
 
-    def create_vm(self, project_uuid, image_name, vm_name, vn_ids, 
-                  node_name=None, sg_ids=None, count=1, userdata=None, 
-                 flavor='contrail_flavor_small',port_ids=None, fixed_ips=None):
+    def create_vm(self, project_uuid, image_name, vm_name, vn_ids,
+                  node_name=None, sg_ids=None, count=1, userdata=None,
+                  flavor='contrail_flavor_small', port_ids=None, fixed_ips=None):
         image = self.get_image(image_name=image_name)
         flavor = self.get_flavor(name=flavor)
         # flavor=self.obj.flavors.find(name=flavor_name)
@@ -306,13 +305,15 @@ class NovaFixture(fixtures.Fixture):
 # | tee /tmp/output.txt\n"
         if fixed_ips:
             if vn_ids:
-                nics_list = [{'net-id': x, 'v4-fixed-ip':y} for x,y in zip(vn_ids, fixed_ips)]
+                nics_list = [{'net-id': x, 'v4-fixed-ip': y}
+                             for x, y in zip(vn_ids, fixed_ips)]
             elif port_ids:
-                nics_list = [{'port-id': x, 'v4-fixed-ip':y} for x,y in zip(port_ids, fixed_ips)]
-        elif port_ids: 
-            nics_list = [ {'port-id': x } for x in port_ids ]
+                nics_list = [{'port-id': x, 'v4-fixed-ip': y}
+                             for x, y in zip(port_ids, fixed_ips)]
+        elif port_ids:
+            nics_list = [{'port-id': x} for x in port_ids]
         elif vn_ids:
-            nics_list= [ {'net-id': x } for x in vn_ids ]
+            nics_list = [{'net-id': x} for x in vn_ids]
 
         self.obj.servers.create(name=vm_name, image=image,
                                 security_groups=sg_ids,
@@ -439,7 +440,7 @@ class NovaFixture(fixtures.Fixture):
     # end get_compute_host
 
     def wait_till_vm_is_active(self, vm_obj):
-        return self.wait_till_vm_status(vm_obj,'ACTIVE')
+        return self.wait_till_vm_status(vm_obj, 'ACTIVE')
     # end wait_till_vm_is_active
 
     @retry(tries=20, delay=5)
@@ -447,7 +448,8 @@ class NovaFixture(fixtures.Fixture):
         try:
             vm_obj.get()
             if vm_obj.status == 'ACTIVE' or vm_obj.status == 'ERROR':
-                self.logger.info('VM %s is in %s state now' % (vm_obj,vm_obj.status))
+                self.logger.info('VM %s is in %s state now' %
+                                 (vm_obj, vm_obj.status))
                 return True
             else:
                 self.logger.debug('VM %s is still in %s state' %

@@ -175,7 +175,18 @@ def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False):
         cmd_str += 'sudo_command:\"%s\"' % (cmd)
     else:
         cmd_str += 'command:\"%s\"' % (cmd)
-    output = run(cmd_str)
+    # Sometimes, during bootup, there could be some intermittent conn. issue
+    tries = 5
+    output = None
+    while tries > 0:
+        output = run(cmd_str)
+        if 'Fatal error' in output:
+            tries -= 1
+            time.sleep(5)
+        else:
+            break
+    # end while
+
     real_output = remove_unwanted_output(output)
     return real_output
 # end run_fab_cmd_on_node

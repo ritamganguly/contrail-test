@@ -1559,6 +1559,12 @@ class VMFixture(fixtures.Fixture):
         return True
     # end wait_till_vm_is_up
 
+    def wait_till_vm_boots(self):
+        return self.nova_fixture.wait_till_vm_is_up(self.vm_obj)
+
+    def get_console_output(self):
+        return self.vm_obj.get_console_output()
+
     def wait_for_ssh_on_vm(self):
         self.logger.info('Waiting to SSH to VM %s, IP %s' % (self.vm_name,
                                                              self.vm_ip))
@@ -1729,11 +1735,11 @@ class VMFixture(fixtures.Fixture):
             self.tap_intf[vn_fq_name] = inspect_h.get_vna_intf_details(
                 self.tap_intf[vn_fq_name]['name'])[0]
             if fw_mode != unicode('l2'):
-             if 'Active' not in self.tap_intf[vn_fq_name]['active']:
-                self.logger.warn('VMI %s status is not active, it is %s' % (
-                    self.tap_intf[vn_fq_name]['name'],
-                    self.tap_intf[vn_fq_name]['active']))
-                return False
+                if 'Active' not in self.tap_intf[vn_fq_name]['active']:
+                    self.logger.warn('VMI %s status is not active, it is %s' % (
+                        self.tap_intf[vn_fq_name]['name'],
+                        self.tap_intf[vn_fq_name]['active']))
+                    return False
             self.local_ips[vn_fq_name] = self.tap_intf[
                 vn_fq_name]['mdata_ip_addr']
             if self.local_ips[vn_fq_name] != '0.0.0.0':
@@ -1757,7 +1763,7 @@ class VMFixture(fixtures.Fixture):
                          (port_id, self.vm_obj.name))
         return self.vm_obj.interface_detach(port_id)
 
-    def reboot(self,type='SOFT'):
+    def reboot(self, type='SOFT'):
         self.vm_obj.reboot(type)
 
     def wait_till_vm_status(self, status='ACTIVE'):

@@ -19,6 +19,7 @@ from neutron.base import BaseNeutronTest
 import test
 from tcutils.util import *
 
+
 class TestRouters(BaseNeutronTest):
 
     @classmethod
@@ -48,13 +49,13 @@ class TestRouters(BaseNeutronTest):
         vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
         vn2_fixture = self.create_vn(vn2_name, vn2_subnets)
         vn1_vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
-                                    image_name='cirros-0.3.0-x86_64-uec')
+                                         image_name='cirros-0.3.0-x86_64-uec')
         vn2_vm1_fixture = self.create_vm(vn2_fixture, vn2_vm1_name,
-                                    image_name='cirros-0.3.0-x86_64-uec')
+                                         image_name='cirros-0.3.0-x86_64-uec')
         assert vn1_vm1_fixture.wait_till_vm_is_up()
         assert vn2_vm1_fixture.wait_till_vm_is_up()
-        assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip, 
-                                            expectation=False)
+        assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip,
+                                                   expectation=False)
 
         router_dict = self.create_router(router_name)
         self.add_vn_to_router(router_dict['id'], vn1_fixture)
@@ -62,4 +63,58 @@ class TestRouters(BaseNeutronTest):
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
     # end test_basic_router_behavior
 
+    @preposttest_wrapper
+    def test_router_rename(self):
+        ''' Test router rename
+        '''
+        router_name = get_random_name('router1')
+        router_dict = self.create_router(router_name)
+        router_update_dict = {'name': "test_router"}
+        router_rsp = self.quantum_fixture.update_router(
+            router_dict['id'],
+            router_update_dict)
+        assert router_rsp['router'][
+            'name'] == "test_router", 'Failed to update router name'
 
+    @preposttest_wrapper
+    def test_router_admin_state_up(self):
+        ''' Routing should not work with router's admin_state_up set to False
+        '''
+        result = True
+        vn1_name = get_random_name('vn1')
+        vn1_subnets = [get_random_cidr()]
+        vn2_name = get_random_name('vn2')
+        vn2_subnets = [get_random_cidr()]
+        vn1_vm1_name = get_random_name('vn1-vm1')
+        vn2_vm1_name = get_random_name('vn2-vm1')
+        router_name = get_random_name('router1')
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        vn2_fixture = self.create_vn(vn2_name, vn2_subnets)
+        vn1_vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
+                                         image_name='cirros-0.3.0-x86_64-uec')
+        vn2_vm1_fixture = self.create_vm(vn2_fixture, vn2_vm1_name,
+                                         image_name='cirros-0.3.0-x86_64-uec')
+        assert vn1_vm1_fixture.wait_till_vm_is_up()
+        assert vn2_vm1_fixture.wait_till_vm_is_up()
+        assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip,
+                                                   expectation=False)
+
+        router_dict = self.create_router(router_name)
+        self.add_vn_to_router(router_dict['id'], vn1_fixture)
+        self.add_vn_to_router(router_dict['id'], vn2_fixture)
+        assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
+        router_update_dict = {'admin_state_up': False}
+        router_rsp = self.quantum_fixture.update_router(
+            router_dict['id'],
+            router_update_dict)
+        assert router_rsp['router'][
+            'admin_state_up'] == False, 'Failed to update router admin_state_up'
+        assert vn1_vm1_fixture.ping_with_certainty(
+            vn2_vm1_fixture.vm_ip, expectation=False), 'Routing works with admin_state_up set to False not expected'
+        router_update_dict = {'admin_state_up': True}
+        router_rsp = self.quantum_fixture.update_router(
+            router_dict['id'],
+            router_update_dict)
+        assert router_rsp['router'][
+            'admin_state_up'], 'Failed to update router admin_state_up'
+        assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
