@@ -64,8 +64,13 @@ class TestRouters(BaseNeutronTest):
         self.add_vn_to_router(router_dict['id'], vn2_fixture)
         router_ports = self.quantum_fixture.get_router_interfaces(
             router_dict['id'])
+<<<<<<< HEAD
         router_port_ips = [item['fixed_ips'][0]['ip_address']
                            for item in router_ports]
+=======
+        router_port_ips = [ item['fixed_ips'][0]['ip_address'] 
+                            for item in router_ports]
+>>>>>>> 445f2a43b959de7eb8b684b49a9863430a8fd7de
         assert vn1_gateway in router_port_ips and \
             vn2_gateway in router_port_ips,\
             'One or more router port IPs are not gateway IPs'\
