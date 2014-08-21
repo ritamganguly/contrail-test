@@ -68,11 +68,16 @@ class BaseNeutronTest(test.BaseTestCase):
         val = self.quantum_fixture.delete_router(router_id)
 
     def add_router_interface(self, router_id, subnet_id=None, port_id=None):
-        result = self.quantum_fixture.add_router_interface(
-            router_id,
-            subnet_id)
-        self.addCleanup(self.quantum_fixture.delete_router_interface,
-                        router_id, subnet_id)
+        if subnet_id:
+            result = self.quantum_fixture.add_router_interface(
+                router_id, subnet_id)
+            self.addCleanup(self.quantum_fixture.delete_router_interface,
+                            router_id, subnet_id)
+        elif port_id:
+            result = self.quantum_fixture.add_router_interface(router_id,
+                                                               port_id=port_id)
+            self.addCleanup(self.quantum_fixture.delete_router_interface,
+                            router_id, port_id=port_id)
         return result
 
     def delete_router_interface(self, router_id, subnet_id):

@@ -32,7 +32,7 @@ class TestRouters(BaseNeutronTest):
 
     @preposttest_wrapper
     def test_basic_router_behavior(self):
-        '''Validate a router is able to route packets between tow VNs
+        '''Validate a router is able to route packets between two VNs
         Create a router
         Create 2 VNs, and a VM in each
         Add router port from each VN
@@ -41,8 +41,10 @@ class TestRouters(BaseNeutronTest):
         result = True
         vn1_name = get_random_name('vn1')
         vn1_subnets = [get_random_cidr()]
+        vn1_gateway = get_an_ip(vn1_subnets[0], 1)
         vn2_name = get_random_name('vn2')
         vn2_subnets = [get_random_cidr()]
+        vn2_gateway = get_an_ip(vn2_subnets[0], 1)
         vn1_vm1_name = get_random_name('vn1-vm1')
         vn2_vm1_name = get_random_name('vn2-vm1')
         router_name = get_random_name('router1')
@@ -60,6 +62,14 @@ class TestRouters(BaseNeutronTest):
         router_dict = self.create_router(router_name)
         self.add_vn_to_router(router_dict['id'], vn1_fixture)
         self.add_vn_to_router(router_dict['id'], vn2_fixture)
+        router_ports = self.quantum_fixture.get_router_interfaces(
+            router_dict['id'])
+        router_port_ips = [item['fixed_ips'][0]['ip_address']
+                           for item in router_ports]
+        assert vn1_gateway in router_port_ips and \
+            vn2_gateway in router_port_ips,\
+            'One or more router port IPs are not gateway IPs'\
+            'Router ports : %s' % (router_ports)
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
     # end test_basic_router_behavior
 
@@ -118,3 +128,41 @@ class TestRouters(BaseNeutronTest):
         assert router_rsp['router'][
             'admin_state_up'], 'Failed to update router admin_state_up'
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
+
+    def test_router_with_existing_ports(self):
+        '''Validate routing works by using two existing ports
+        Create a router
+        Create 2 VNs, and a VM in each
+        Create two ports in each of these VNs
+        Attach these two ports to the router
+        Ping between VMs
+        '''
+        result = True
+        vn1_name = get_random_name('vn1')
+        vn1_subnets = [get_random_cidr()]
+        vn2_name = get_random_name('vn2')
+        vn2_subnets = [get_random_cidr()]
+        vn1_vm1_name = get_random_name('vn1-vm1')
+        vn2_vm1_name = get_random_name('vn2-vm1')
+        router_name = get_random_name('router1')
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        vn2_fixture = self.create_vn(vn2_name, vn2_subnets)
+        vn1_vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
+                                         image_name='cirros-0.3.0-x86_64-uec')
+        vn2_vm1_fixture = self.create_vm(vn2_fixture, vn2_vm1_name,
+                                         image_name='cirros-0.3.0-x86_64-uec')
+        assert vn1_vm1_fixture.wait_till_vm_is_up()
+        assert vn2_vm1_fixture.wait_till_vm_is_up()
+        assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip,
+                                                   expectation=False)
+
+        port1_obj = self.quantum_fixture.create_port(
+            net_id=vn1_fixture.vn_id)
+        port2_obj = self.quantum_fixture.create_port(
+            net_id=vn2_fixture.vn_id)
+        router_dict = self.create_router(router_name)
+        self.add_router_interface(router_dict['id'], port_id=port1_obj['id'])
+        self.add_router_interface(router_dict['id'], port_id=port2_obj['id'])
+        assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip),\
+            'Ping between VMs across router failed!'
+    # end test_router_with_existing_ports
