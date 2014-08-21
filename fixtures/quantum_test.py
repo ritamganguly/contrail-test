@@ -432,6 +432,10 @@ class QuantumFixture(fixtures.Fixture):
         return sg_rsp
     # end update_security_group
 
+    def get_router_interfaces(self, router_id):
+        ports_obj = self.obj.list_ports(device_id=router_id)['ports']
+        return ports_obj
+
     def update_subnet(self, subnet_id, subnet_dict):
         subnet_rsp = None
         body = {}
