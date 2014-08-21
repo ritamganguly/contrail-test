@@ -118,6 +118,8 @@ class trafficTestFixture(fixtures.Fixture):
                 self.name, self.profile, self.tx_local_host, self.send_host, self.inputs.logger)
             self.receiver[i] = Receiver(
                 self.name, self.profile, self.rx_local_host, self.recv_host, self.inputs.logger)
+            self.logger.info("tx vm - node %s, mdata_ip %s, vm_ip %s" %(self.tx_local_host.ip, self.send_host.ip, self.tx_vm_fixture.vm_ip))
+            self.logger.info("rx vm - node %s, mdata_ip %s, vm_ip %s" %(self.rx_local_host.ip, self.recv_host.ip, self.rx_vm_fixture.vm_ip))
             self.receiver[i].start()
             if fip is None:
                 self.logger.info("Starting %s traffic from %s to %s" %
@@ -222,7 +224,7 @@ class trafficTestFixture(fixtures.Fixture):
         return ret
     # end of getLiveTrafficStats
 
-    def stopTraffic(self, loose='no', loose_allow=100):
+    def stopTraffic(self, loose='no', loose_allow=100, wait_for_stop=True):
         ''' Stop traffic launched using startTraffic. 
         Return [] if recv = sent, else, return error info
         set loose if you are ok with allowing some loss, used for scale/stress tests.
@@ -234,8 +236,11 @@ class trafficTestFixture(fixtures.Fixture):
             self.sender[i].stop()
             self.logger.info(
                 "Waiting for Receiver to receive all packets in transit after stopping sender..")
-            time.sleep(
-                60) if self.total_single_instance_streams > 1 else time.sleep(2)
+            if wait_for_stop:
+                time.sleep(
+                    60) if self.total_single_instance_streams > 1 else time.sleep(2)
+            else:
+                time.sleep(1)
             self.receiver[i].stop()
             #import pdb; pdb.set_trace()
             if self.sender[i].sent == None or self.receiver[i].recv == None:
