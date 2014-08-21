@@ -416,11 +416,12 @@ class Upgrade(ResourcedTestCase, testtools.TestCase, ConfigSecGroup):
             raise self.skipTest(
                 "Skiping Test. Cfgm and Compute nodes should be different to run  this test case")
         self.logger.info("STARTING UPGRADE")
+        username = self.inputs.host_data[self.inputs.cfgm_ip]['username']
+        password = self.inputs.host_data[self.inputs.cfgm_ip]['password']
         with settings(
             host_string='%s@%s' % (
-                self.inputs.username, self.inputs.cfgm_ips[0]),
-                password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
-
+                username, self.inputs.cfgm_ip),
+                password, warn_only=True, abort_on_prompts=False, debug=True):
             status = run("cd /tmp/temp/;ls")
             self.logger.debug("%s" % status)
 

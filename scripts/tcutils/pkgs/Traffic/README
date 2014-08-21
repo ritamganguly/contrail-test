@@ -212,7 +212,7 @@ Example to send UDP traffic to FIP:
         stream = Stream(protocol="ip", proto="udp", src=fvm_fixture.vm_ip,
                         dst=fip, dport=9000)
         profile = ContinuousProfile(stream=stream, listener=vm1_fixture.vm_ip, capfilter="udp port 8000")
-        local_host = Host(self.inputs.cfgm_ip, self.inputs.username, self.inputs.password)
+        local_host = Host(self.inputs.cfgm_ip, <username>, <password>)
         send_host = Host(fvm_fixture.local_ip)
         recv_host = Host(vm1_fixture.local_ip)
         sender = Sender("sendudp", profile, local_host, send_host, self.inputs.logger)
@@ -235,7 +235,7 @@ Example to send TCP traffic:
         stream = Stream(protocol="ip", proto="tcp", src=fvm_fixture.vm_ip,
                         dst=vm1_fixture.vm_ip, dport=9000)
         profile = ContinuousProfile(stream=stream)
-        local_host = Host(self.inputs.cfgm_ip, self.inputs.username, self.inputs.password)
+        local_host = Host(self.inputs.cfgm_ip, <username>, <password>)
         send_host = Host(fvm_fixture.local_ip)
         recv_host = Host(vm1_fixture.local_ip)
         sender = Sender("sendtcp", profile, local_host, send_host, self.inputs.logger)
