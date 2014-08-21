@@ -22,7 +22,6 @@ def _create_project_return_connection(self, projectname):
     if projectname == 'admin':
         self.logger.info('Project admin already exist, no need to create')
         return [self.inputs, self.connections]
-    auth_url = 'http://%s:5000/v2.0' % (self.inputs.cfgm_ip)
     auth_url = os.getenv('OS_AUTH_URL') or \
                    'http://' + self.inputs.openstack_ip + ':5000/v2.0'
     kc = ksclient.Client(
