@@ -62,4 +62,114 @@ class BaseRtFilterTest(test.BaseTestCase):
                     image_name=image_name,
                     flavor=flavor,
                     node_name=node_name))
+                
+    def verify_rt_group_entry(self, control_node, route_target):
+        rt_group_entry= self.cn_inspect[control_node].get_cn_rtarget_group(route_target)
+        result= False                                                                                                                                                                                                                                                         
+        if rt_group_entry is None:                                                                                                                                                                                                                                            
+            result= False                                                                                                                                                                                                                                                     
+            assert result, 'No entry for RT %s seen in the RTGroup Table of control nodes'%route_target                                                                                                                                                                                        
+        else:                                                                                                                                                                                                                                                                 
+            result= True                                                                                                                                                                                                                                                      
+            self.logger.info('RT %s seen in the RTGroup Table of control node-%s'%(route_target, control_node))
+        return True
+    #end verify_rt_group_entry
+
+    def verify_dep_rt_entry(self, control_node, route_target, ip):
+        rt_group_entry= self.cn_inspect[control_node].get_cn_rtarget_group(route_target)
+        result= False
+        if rt_group_entry is not None:
+            for y in rt_group_entry['dep_route']:
+                if ip in y:
+                    result= True                                                                                                                                                                                                                                          
+                    self.logger.info('IP %s is seen in the dep_routes of RT %s in the RTGroup Table'%(ip, route_target))
+                    break
+        else:
+            assert result, 'IP %s is not seen in the dep_routes of RT %s in the RTGroup Table'%(ip, route_target)
+        return True                                                                                                                                                                                                                                                           
+    #end verify_dep_rt_entry
+
+    def verify_dep_rt_entry_removal(self, control_node, route_target, ip):
+        rt_group_entry= self.cn_inspect[control_node].get_cn_rtarget_group(route_target)
+        result= False
+        if rt_group_entry is not None:
+            for y in rt_group_entry['dep_route']:
+                if ip in y:
+                    assert result, 'IP %s is still seen in the dep_routes of RT %s in the RTGroup Table'%(ip, route_target)
+                    break
+                else:
+                    result= True
+        if result == True:
+            self.logger.info('IP %s is removed from the dep_routes of RT %s in the RTGroup Table'%(ip, route_target))
+        return True                                                                                                                                                                                                                                                           
+    #end verify_dep_rt_entry_removal        
+    
+    def verify_rtarget_table_entry(self, control_node, route_target):
+        rt_table_entry= self.cn_inspect[control_node].get_cn_rtarget_table()
+        result= False                                                                                                                                                                                                                                                         
+        for rt_entry in rt_table_entry:                                                                                                                                                                                                                                       
+            if route_target in rt_entry['prefix']:                                                                                                                                                                                                                            
+                result= True                                                                                                                                                                                                                                                  
+                self.logger.info('RT %s seen in the bgp.rtarget.0 table of the control node-%s'%(route_target, control_node))
+                break                                                                                                                                                                                                                                                         
+        assert result,'RT %s not seen in the bgp.rtarget.0 table of the control nodes'%route_target                                                                                                                                                                           
+        return True                                                                                                                                                                                                                                                           
+    #end verify_rtarget_table_entry                                                                                                                                                                                                                                                                                   
+    def verify_rt_entry_removal(self, control_node, route_target):                                                                                                                                                                                                            
+        rt_group_entry= self.cn_inspect[control_node].get_cn_rtarget_group(route_target)                                                                                                                                                                                      
+        rt_table_entry= self.cn_inspect[control_node].get_cn_rtarget_table()                                                                                                                                                                                                  
+        result= True                                                                                                                                                                                                                                                          
+        sub_result= True                                                                                                                                                                                                                                                      
+        for rt_entry in rt_table_entry:                                                                                                                                                                                                                                       
+            if route_target in rt_entry['prefix']:                                                                                                                                                                                                                            
+                result= False                                                                                                                                                                                                                                                 
+                break                                                                                                                                                                                                                                                         
+        if result == True:                                                                                                                                                                                                                                                    
+            self.logger.info('RT %s removed from the bgp.rtarget.0 table'%route_target)                                                                                                                                                                                       
+        assert result,'RT %s is still seen in the bgp.rtarget.0 table of the control nodes'%route_target                                                                                                                                                                      
+        if rt_group_entry is None:                                                                                                                                                                                                                                            
+            self.logger.info('RT %s removed from the RTGroup Table of the control nodes'%route_target)                                                                                                                                                                                             
+        else:                                                                                                                                                                                                                                                                 
+            sub_result= False                                                                                                                                                                                                                                                 
+        assert sub_result, 'RT %s still seen in the RTGroup Table of the control nodes'%route_target                                                                                                                                                                                               
+        return True                                                                                                                                                                                                                                                           
+    #end verify_rt_entry_removal                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                              
+    def get_active_control_node(self, vm):                                                                                                                                                                                                                                    
+        active_controller = None                                                                                                                                                                                                                                              
+        inspect_h1 = self.agent_inspect[vm.vm_node_ip]                                                                                                                                                                                                                        
+        agent_xmpp_status = inspect_h1.get_vna_xmpp_connection_status()                                                                                                                                                                                                       
+        for entry in agent_xmpp_status:                                                                                                                                                                                                                                       
+            if entry['cfg_controller'] == 'Yes':                                                                                                                                                                                                                              
+                active_controller = entry['controller_ip']                                                                                                                                                                                                                    
+                new_controller = self.inputs.host_data[active_controller]['host_ip']
+        self.logger.info('Active control node is %s' % new_controller)                                                                                                                                                                                                
+        return new_controller
+    #end get_active_control_node
+
+    def remove_rt_filter_family(self):
+        mx= self.vnc_lib.bgp_router_read(fq_name= [u'default-domain', u'default-project', u'ip-fabric', u'__default__', unicode(self.inputs.ext_routers[0][0])])
+        mx.bgp_router_parameters.get_address_families().set_family([u'inet-vpn'])
+        mx._pending_field_updates.add('bgp_router_parameters')
+        for rt_refs in mx.bgp_router_refs:
+            curr_fam= rt_refs['attr'].get_session()[0].get_attributes()[0].get_address_families().get_family()
+            self.logger.info('With %s, the session has the following capablities : %s'%(rt_refs['to'][-1], curr_fam))
+            rt_refs['attr'].get_session()[0].get_attributes()[0].get_address_families().set_family([u'inet-vpn'])
+        mx._pending_field_updates.add('bgp_router_refs')
+        self.vnc_lib.bgp_router_update(mx)
+        return True
+    #end remove_rt_filter_family
+
+    def add_rt_filter_family(self):
+        mx= self.vnc_lib.bgp_router_read(fq_name= [u'default-domain', u'default-project', u'ip-fabric', u'__default__', unicode(self.inputs.ext_routers[0][0])])
+        mx.bgp_router_parameters.get_address_families().set_family([u'route-target', u'inet-vpn'])
+        mx._pending_field_updates.add('bgp_router_parameters')
+        for rt_refs in mx.bgp_router_refs:
+            curr_fam= rt_refs['attr'].get_session()[0].get_attributes()[0].get_address_families().get_family()
+            self.logger.info('With %s, the session has the following capablities : %s'%(rt_refs['to'][-1], curr_fam))
+            rt_refs['attr'].get_session()[0].get_attributes()[0].get_address_families().set_family([u'route-target', u'inet-vpn'])
+        mx._pending_field_updates.add('bgp_router_refs')
+        self.vnc_lib.bgp_router_update(mx)
+        return True
+    #end add_rt_filter_family
 
