@@ -256,13 +256,13 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
             vm.install_pkg("Traffic")
 
         stream1 = Stream(
-            protocol="ip", proto="tcp", src=self.vm1_fixture.vm_ip,
+            protocol="ip", proto="udp", src=self.vm1_fixture.vm_ip,
             dst=self.vm2_fixture.vm_ip, sport=unicode(8000), dport=unicode(9000))
         stream2 = Stream(
-            protocol="ip", proto="tcp", src=self.vm1_fixture.vm_ip,
+            protocol="ip", proto="udp", src=self.vm1_fixture.vm_ip,
             dst=dest_vm2.vm_ip, sport=unicode(8000), dport=unicode(9000))
         stream3 = Stream(
-            protocol="ip", proto="tcp", src=self.vm1_fixture.vm_ip,
+            protocol="ip", proto="udp", src=self.vm1_fixture.vm_ip,
             dst=dest_vm3.vm_ip, sport=unicode(8000), dport=unicode(9000))
 
         self.stream_list = [stream1, stream2, stream3]
