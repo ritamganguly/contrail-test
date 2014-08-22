@@ -169,6 +169,22 @@ class ControlNodeInspect (VerificationUtilBase):
         rt = EtreeToDict(xpath).get_all_entry(p)
         return rt['routes']
 
+    def get_cn_vpnv4_table(self, prefix):
+        '''Searches the bgp.l3vpn.0 table for the required prefix.
+        '''
+        result= True
+        path = 'Snh_ShowRouteReq?x=bgp.l3vpn.0'
+        xpath = '/ShowRouteResp/tables/list/ShowRouteTable'
+        p = self.dict_get(path)
+        rt = EtreeToDict(xpath).get_all_entry(p)
+        for route in rt['routes']:
+            if prefix in route['prefix']:
+                result= True
+                break
+            else:
+                result= False
+        return result
+
     def get_cn_route_table_entry(self, prefix, ri_name, table='inet.0'):
         '''Returns the route dictionary for requested prefix and routing instance.
         '''
