@@ -37,8 +37,8 @@ class ContrailConnections():
             username=username,
             password=password,
             tenant_name=project_name,
-            auth_url='http://%s:5000/v2.0/' % (
-                self.keystone_ip)
+            auth_url = os.getenv('OS_AUTH_URL') or \
+                                 'http://' + self.keystone_ip + ':5000/v2.0'
         )
         self.project_id = get_dashed_uuid(self.ks_client.tenant_id)
 

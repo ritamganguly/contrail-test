@@ -53,7 +53,8 @@ class IsolatedCreds(fixtures.Fixture):
 	else:
 	    user = self.user
         try:
-            auth_url= 'http://%s:5000/v2.0' %(self.inputs.openstack_ip)
+            self.auth_url = os.getenv('OS_AUTH_URL') or \
+                                 'http://' + self.inputs.openstack_ip + ':5000/v2.0'
             self.key_stone_clients= KeystoneCommands(username= self.inputs.stack_user, password= self.inputs.stack_password,
                                                    tenant= self.inputs.project_name, auth_url= auth_url )
 
@@ -64,7 +65,8 @@ class IsolatedCreds(fixtures.Fixture):
     def create_and_attach_user_to_tenant(self):
 
         try:
-            auth_url= 'http://%s:5000/v2.0' %(self.inputs.openstack_ip)
+            auth_url = os.getenv('OS_AUTH_URL') or \
+                                 'http://' + self.inputs.openstack_ip + ':5000/v2.0'
             self.key_stone_clients= KeystoneCommands(username= self.inputs.stack_user, password= self.inputs.stack_password,
                                                    tenant= self.inputs.project_name, auth_url= auth_url )
             try:
