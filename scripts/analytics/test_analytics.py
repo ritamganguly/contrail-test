@@ -44,8 +44,8 @@ class AnalyticsTestSanity(base.AnalyticsBaseTest):
         '''Test to validate collector uve.
         '''
         result=True
-        process_list = ['redis-query', 'contrail-qe','contrail-collector',\
-			'contrail-analytics-nodemgr','redis-uve','contrail-opserver']
+        process_list = ['contrail-query-engine', 'contrail-analytics-api', 'contrail-collector',
+                        'contrail-analytics-nodemgr']
         for process in process_list:
             result = result and self.analytics_obj.verify_collector_uve_module_state\
 							(self.inputs.collector_names[0],\
@@ -66,8 +66,8 @@ class AnalyticsTestSanity(base.AnalyticsBaseTest):
         '''Test to validate config node uve.
         '''
         result=True
-        process_list = ['contrail-discovery', 'redis-config','contrail-config-nodemgr',
-			'contrail-svc-monitor','ifmap','contrail-api','contrail-schema']
+        process_list = ['contrail-discovery', 'contrail-config-nodemgr','rabbitmq-server'
+                        ,'contrail-svc-monitor', 'ifmap', 'contrail-api', 'contrail-schema']
         for process in process_list:
             result = result and self.analytics_obj.verify_cfgm_uve_module_state(self.inputs.collector_names[0],
 				self.inputs.cfgm_names[0],process)
