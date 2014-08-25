@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-
 function usage {
   echo "Usage: $0 [OPTION]..."
-  echo "Run Tempest test suite"
+  echo "Run Contrail test suite"
   echo ""
   echo "  -V, --virtual-env        Always use virtualenv.  Install automatically if not present"
   echo "  -N, --no-virtual-env     Don't use virtualenv.  Run tests in local environment"
@@ -18,10 +17,13 @@ function usage {
   echo "  -L, --logging-config     Logging config file location.  Default is logging.conf"
   echo "  -r, --result-xml         Path of Junitxml report to be generated"
   echo "  -m, --send-mail          Send the report at the end"
+  echo "  -F, --features           Only run tests from features listed"
+  echo "  -T, --tags               Only run tests taged with tags"
   echo "  -- [TESTROPTIONS]        After the first '--' you can pass arbitrary arguments to testr "
 }
-
 testrargs=""
+path=""
+tags=""
 venv=.venv
 with_venv=tools/with_venv.sh
 serial=0
@@ -40,7 +42,8 @@ result_xml="result.xml"
 serial_result_xml="result1.xml"
 send_mail=0
 
-if ! options=$(getopt -o VNnfusthdC:lLmr: -l virtual-env,no-virtual-env,no-site-packages,force,update,sanity,serial,help,debug,config:,logging,logging-config,send-mail,result-xml: -- "$@")
+
+if ! options=$(getopt -o VNnfusthdC:lLmr:F:T: -l virtual-env,no-virtual-env,no-site-packages,force,update,sanity,serial,help,debug,config:logging,logging-config,send-mail,result-xml:features:tags: -- "$@")
 then
     # parse error
     usage
@@ -59,7 +62,9 @@ while [ $# -gt 0 ]; do
     -u|--update) update=1;;
     -d|--debug) debug=1;;
     -C|--config) config_file=$2; shift;;
-    -s|--sanity) testrargs+="sanity";;
+    -s|--sanity) tags+="sanity";;
+    -F|--features) path=$2; shift;;
+    -T|--tags) tags="$tags $2"; shift;;
     -t|--serial) serial=1;;
     -l|--logging) logging=1;;
     -L|--logging-config) logging_config=$2; shift;;
@@ -70,6 +75,9 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+#if [ -n $tags ];then
+#    testrargs+=$tags
+#fi
 
 if [ -n "$config_file" ]; then
     config_file=`readlink -f "$config_file"`
@@ -110,10 +118,11 @@ function send_mail {
 }
 
 function run_tests_serial {
+  echo in serial_run_test
   rm -f $serial_result_xml
   testr_init
   ${wrapper} find . -type f -name "*.pyc" -delete
-  export OS_TEST_PATH=./serial_scripts
+  export OS_TEST_PATH=./serial_scripts/$1
   if [ $debug -eq 1 ]; then
       if [ "$testrargs" = "" ]; then
            testrargs="discover $OS_TEST_PATH"
@@ -126,10 +135,11 @@ function run_tests_serial {
 }
 
 function run_tests {
+  echo in run_test
   rm -f $result_xml
   testr_init
   ${wrapper} find . -type f -name "*.pyc" -delete
-  export OS_TEST_PATH=./scripts
+  export OS_TEST_PATH=./scripts/$1
   if [ $debug -eq 1 ]; then
       if [ "$testrargs" = "" ]; then
            testrargs="discover $OS_TEST_PATH"
@@ -144,7 +154,7 @@ function run_tests {
       ${wrapper} testr run --parallel --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml
       sleep 2
   fi
-  python parse_result.py $result_xml
+  python parse_result.py $result_xml 
   generate_html 
 }
 
@@ -187,9 +197,32 @@ then
 fi
 
 export PYTHONPATH=$PATH:$PWD/scripts:$PWD/fixtures
-run_tests
-run_tests_serial
-send_mail $TEST_CONFIG_FILE $REPORT_FILE
+
+if [[ ! -z $path ]];then
+    for p in $path
+        do
+            run_tests $p
+            run_tests_serial $p
+            send_mail $TEST_CONFIG_FILE $REPORT_FILE
+        done
+fi
+
+if [ -n $tags ];then
+    testrargs+=$tags
+fi
+
+if [[ ! -z $testrargs ]];then
+    run_tests
+    run_tests_serial
+    send_mail $TEST_CONFIG_FILE $REPORT_FILE
+fi
+
+if [[ -z $path ]] && [[ -z $testrargs ]];then
+    run_tests
+    run_tests_serial
+    send_mail $TEST_CONFIG_FILE $REPORT_FILE
+fi
+
 retval=$?
 
 exit $retval
