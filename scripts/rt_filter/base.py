@@ -82,25 +82,25 @@ class BaseRtFilterTest(test.BaseTestCase):
             for y in rt_group_entry['dep_route']:
                 if ip in y:
                     result= True                                                                                                                                                                                                                                          
-                    self.logger.info('IP %s is seen in the dep_routes of RT %s in the RTGroup Table'%(ip, route_target))
+                    self.logger.info('IP %s is seen in the dep_routes of RT %s in the RTGroup Table of ctrl_node %s'%(ip, route_target, control_node))
                     break
-        else:
-            assert result, 'IP %s is not seen in the dep_routes of RT %s in the RTGroup Table'%(ip, route_target)
+                else:
+                    result= False
+        assert result, 'IP %s is not seen in the dep_routes of RT %s in the RTGroup Table of ctrl_node %s'%(ip, route_target, control_node)
         return True                                                                                                                                                                                                                                                           
     #end verify_dep_rt_entry
 
     def verify_dep_rt_entry_removal(self, control_node, route_target, ip):
         rt_group_entry= self.cn_inspect[control_node].get_cn_rtarget_group(route_target)
-        result= False
-        if rt_group_entry is not None:
+        result= True
+        if rt_group_entry['dep_route'] is not None:
             for y in rt_group_entry['dep_route']:
                 if ip in y:
-                    assert result, 'IP %s is still seen in the dep_routes of RT %s in the RTGroup Table'%(ip, route_target)
+                    result= False
+                    assert result, 'IP %s is still seen in the dep_routes of RT %s in the RTGroup Table of ctrl_node %s'%(ip, route_target, control_node)
                     break
-                else:
-                    result= True
         if result == True:
-            self.logger.info('IP %s is removed from the dep_routes of RT %s in the RTGroup Table'%(ip, route_target))
+            self.logger.info('IP %s not seen in the dep_routes of RT %s in the RTGroup Table of ctrl_node %s'%(ip, route_target, control_node))
         return True                                                                                                                                                                                                                                                           
     #end verify_dep_rt_entry_removal        
     
