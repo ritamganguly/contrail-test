@@ -430,3 +430,47 @@ class TestPorts(BaseNeutronTest):
         assert vm1_fixture.ping_with_certainty(vm2_fixture.vm_ip)
 
     # end test_port_admin_state_up
+
+    @preposttest_wrapper
+    def test_ports_update_sg(self):
+        '''For a port, verify updating the SG
+
+        Create a port with default SG
+        Update the port with custom SG
+        Attach it to a VM
+        Validate with another VM that SG applied is working
+        '''
+        vn1_name = get_random_name('vn1')
+        vn1_subnet_1 = get_random_cidr()
+        vn1_vm1_name = get_random_name('vn1-vm1')
+        vn1_vm2_name = get_random_name('vn1-vm2')
+        vn1_fixture = self.create_vn(vn1_name, [vn1_subnet_1])
+
+        sg1 = self.create_security_group(get_random_name('sg1'))
+
+        port1_obj = self.quantum_fixture.create_port(
+            net_id=vn1_fixture.vn_id)
+        port2_obj = self.quantum_fixture.create_port(
+            net_id=vn1_fixture.vn_id)
+        vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
+                                     image_name='cirros-0.3.0-x86_64-uec',
+                                     port_ids=[port1_obj['id']])
+        vm2_fixture = self.create_vm(vn1_fixture, vn1_vm2_name,
+                                     image_name='cirros-0.3.0-x86_64-uec',
+                                     port_ids=[port2_obj['id']])
+        assert vm1_fixture.wait_till_vm_is_up(), 'VM does not seem to be up'
+        assert vm2_fixture.wait_till_vm_is_up(), 'VM does not seem to be up'
+
+        # Update the port with custom sg
+        port_dict = {'security_groups':[sg1['id']]}
+        self.quantum_fixture.update_port(port1_obj['id'], port_dict)
+
+        assert vm1_fixture.ping_with_certainty(vm2_fixture.vm_ip,
+                                               expectation=False), ''\
+            'Ping from VM %s to %s, should have failed' % (vm1_fixture.vm_ip,
+                                                           vm2_fixture.vm_ip)
+        assert vm2_fixture.ping_with_certainty(vm1_fixture.vm_ip,
+                                               expectation=False), ''\
+            'Ping from VM %s to %s, should have failed' % (vm2_fixture.vm_ip,
+                                                           vm1_fixture.vm_ip)
+    # end test_ports_update_sg
