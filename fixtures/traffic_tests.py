@@ -4,11 +4,11 @@ import fixtures
 #from contrail_test_init import *
 from nova_test import *
 from connections import ContrailConnections
-#sys.path.append(os.path.realpath('scripts/tcutils/pkgs/Traffic'))
-from tcutils.pkgs.Traffic.traffic.core.stream import Stream
-from tcutils.pkgs.Traffic.traffic.core.profile import create, ContinuousProfile, ContinuousSportRange
-from tcutils.pkgs.Traffic.traffic.core.helpers import Host
-from tcutils.pkgs.Traffic.traffic.core.helpers import Sender, Receiver
+sys.path.append(os.path.realpath('scripts/tcutils/pkgs/Traffic'))
+from traffic.core.stream import Stream
+from traffic.core.profile import create, ContinuousProfile, ContinuousSportRange
+from traffic.core.helpers import Host
+from traffic.core.helpers import Sender, Receiver
 
 class trafficTestFixture(fixtures.Fixture):
 
@@ -73,8 +73,8 @@ class trafficTestFixture(fixtures.Fixture):
                 self.inputs.host_data[self.tx_vm_node_ip]['password'])
             self.rx_local_host = Host(
                 self.rx_vm_node_ip,
-                self.inputs.host_data[rx_vm_node_ip]['username'],
-                self.inputs.host_data[rx_vm_node_ip]['password'])
+                self.inputs.host_data[self.rx_vm_node_ip]['username'],
+                self.inputs.host_data[self.rx_vm_node_ip]['password'])
             self.send_host = Host(self.tx_vm_fixture.local_ip,
                                   self.tx_vm_fixture.vm_username, self.tx_vm_fixture.vm_password)
             self.recv_host = Host(self.rx_vm_fixture.local_ip,
