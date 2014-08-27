@@ -236,3 +236,52 @@ class TestBasicRTFilter(BaseRtFilterTest):
         self.verify_dep_rt_entry(active_ctrl_node, user_def_rt, ip1)
         return True
     #end test_dep_routes_two_vns_with_same_rt
+
+    #@preposttest_wrapper
+    def test_rt_entry_with_multiple_ctrl_nodes(self):
+        ''' Validate that the dep_routes in the RTGroup Table and paths in the bgp.l3vpn.0 corresponding to the VM is seen only in the control_node, the VM's compute node has a session with.
+        '''
+        if len(self.inputs.bgp_ips) > 2:
+            vn1_name = get_random_name('vn30')
+            vn1_subnets = [get_random_cidr()]
+            vn1_vm1_name = get_random_name('vm1')
+            vn1_vm2_name = get_random_name('vm2')
+            vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+            assert vn1_fixture.verify_on_setup()
+            self.logger.info('The RTGroup Table in all the control nodes will have the Route-Target Entry')
+            route_target= vn1_fixture.rt_names[0]
+            for bgp_ip in self.inputs.bgp_ips:
+                self.verify_rt_group_entry(bgp_ip, route_target) 
+            self.logger.info('Will create a VM and check that the dep_route is created in the rt_group table of the control nodes the VMs compute node has a XMPP seesion with')
+            vm1_fixture = self.create_vm(vn1_fixture,vm_name=vn1_vm1_name,
+                    flavor='contrail_flavor_small', image_name='ubuntu-traffic')
+            assert vm1_fixture.wait_till_vm_is_up()
+            ip1= vm1_fixture.vm_ip + '/32'
+            for bgp_ip in vm1_fixture.get_control_nodes():
+                ctrl_node= self.inputs.host_data[bgp_ip]['host_ip']
+                self.verify_rt_group_entry(ctrl_node, route_target)
+                self.verify_dep_rt_entry(ctrl_node, route_target, ip1)
+                self.verify_rtarget_table_entry(ctrl_node, route_target)
+            self.logger.info('dep_route corresponding to the VM should not be in the rt_group table of the control nodes the VMs compute node has no XMPP session with')
+            x= set(self.inputs.bgp_control_ips) - set(vm1_fixture.get_control_nodes())
+            other_ctrl_ips= list(x)
+            for ctrl_ip in other_ctrl_ips:
+                ctrl_node= self.inputs.host_data[ctrl_ip]['host_ip'] 
+                self.verify_dep_rt_entry_removal(ctrl_node, route_target, ip1)
+            self.logger.info('Will launch a second VM and verify that the dep_routes is now populated in the RTGroup Table in the control_node, the VMs compute node has a session with.')
+            vm2_fixture = self.create_vm(vn1_fixture,vm_name=vn1_vm2_name,                                                                                                                                                                                                    
+                                    flavor='contrail_flavor_small', image_name='ubuntu-traffic')
+            assert vm2_fixture.wait_till_vm_is_up()
+            ip2= vm2_fixture.vm_ip + '/32'
+            for ip in vm2_fixture.get_control_nodes():
+                ctrl_node= self.inputs.host_data[ip]['host_ip']
+                self.verify_dep_rt_entry(ctrl_node, route_target, ip2)
+            self.logger.info('Now that both the VMs are associated with the same RT, we should see the dep_routes of both the VMs in all the control nodes')
+            for bgp_ip in self.inputs.bgp_ips:
+                ctrl_node= self.inputs.host_data[bgp_ip]['host_ip']                                                                                                                                                                                                           
+                self.verify_dep_rt_entry(ctrl_node, route_target, ip1)                                                                                                                                                                                                        
+                self.verify_dep_rt_entry(ctrl_node, route_target, ip2)
+        else:
+            self.logger.info('WIll run this test in multiple control-node setup')
+        return True
+    #end test_rt_entry_with_multiple_ctrl_nodes
