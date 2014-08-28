@@ -42,9 +42,9 @@ class TestBasicVMVN0(BaseVnVmTest):
                 flavor='contrail_flavor_small', image_name='ubuntu-traffic')
         vm2_fixture = self.create_vm(vn1_fixture,vm_name=vn1_vm2_name,
                 flavor='contrail_flavor_small', image_name='ubuntu-traffic')
-        vm2_fixture = self.create_vm(vn1_fixture,vm_name=vn1_vm3_name,
+        vm3_fixture = self.create_vm(vn1_fixture,vm_name=vn1_vm3_name,
                 flavor='contrail_flavor_small', image_name='ubuntu-traffic')
-        vm2_fixture = self.create_vm(vn1_fixture,vm_name=vn1_vm4_name,
+        vm4_fixture = self.create_vm(vn1_fixture,vm_name=vn1_vm4_name,
                 flavor='contrail_flavor_small', image_name='ubuntu-traffic')
         assert vm1_fixture.verify_on_setup()
         assert vm2_fixture.verify_on_setup()
