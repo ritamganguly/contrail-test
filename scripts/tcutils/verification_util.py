@@ -27,7 +27,7 @@ class JsonDrv (object):
             self._authn_body = \
                 '{"auth":{"passwordCredentials":{"username": "%s", "password": "%s"}, "tenantName":"%s"}}' % (
                     self._args.stack_user, self._args.stack_password,
-                    self._args.stack_tenant)
+                    self._args.project_name)
             response = requests.post(url, data=self._authn_body,
                                      headers=self._DEFAULT_HEADERS)
             if response.status_code == 200:

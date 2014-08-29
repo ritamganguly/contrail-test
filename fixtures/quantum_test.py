@@ -101,6 +101,7 @@ class QuantumFixture(fixtures.Fixture):
         subnet_req['network_id'] = net_id
         subnet_req['ip_version'] = 4
         subnet_req['cidr'] = unicode(subnet_req['cidr'])
+        subnet_req['contrail:ipam_fq_name'] = ipam_fq_name
 
         subnet_rsp = self.obj.create_subnet({'subnet': subnet_req})
         self.logger.debug('Response for create_subnet : ' + repr(subnet_rsp))
