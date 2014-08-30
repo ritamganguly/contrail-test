@@ -6,8 +6,8 @@
 # Set the env variable PARAMS_FILE to point to your ini file. Else it will try to pick params.ini in PWD
 
 from tcutils.wrappers import preposttest_wrapper
-from evpn.verify import VerifyEvpnCases
-from evpn import base
+from verify import VerifyEvpnCases
+import base
 import test
 
 class TestEvpnCasesMplsoGre(base.BaseEvpnTest, VerifyEvpnCases):
