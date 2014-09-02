@@ -170,6 +170,8 @@ class ContrailTestInit(fixtures.Fixture):
             'WebServer', 'path') + '/' + self.build_folder + '/'
         self.html_log_link = 'http://%s/%s/%s/%s' % (self.web_server, self.web_root,
                                       self.build_folder, self.html_report.split('/')[-1])
+        self.log_link = 'http://%s/%s/%s/logs/' % (self.web_server, self.web_root,
+                                      self.build_folder)
 #        self.html_log_link = '<a href=\"%s\">%s</a>' % (html_log_link,
 #                                                        html_log_link)
 
@@ -749,6 +751,7 @@ class ContrailTestInit(fixtures.Fixture):
         config.set('Test', 'Build', self.build_id)
         config.set('Test', 'timestamp', self.ts)
         config.set('Test', 'Report', self.html_log_link)
+        config.set('Test', 'LogsLocation', self.log_link)
         config.set('Test', 'Topology', phy_topology)
         config.write(details_h)
 
