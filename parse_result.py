@@ -21,7 +21,10 @@ def change_tests_name(doc):
         classname = el.get('classname').split('.')[-1]
         name = el.get('name')
         name = "%s.%s"%(classname,name) 
-        el.set('name',name)      
+        el.set('name',name)
+    el = elem[0]
+    pkg = el.get('classname').split('.')[0] 
+    root.set('name',pkg)     
 
 def write_to_a_file(file):
     with open(file, 'w') as the_file:
