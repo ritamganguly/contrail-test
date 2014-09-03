@@ -242,8 +242,13 @@ class VMFixture(fixtures.Fixture):
             self.verify_vm_flag = False
             result = result and False
             return result
-        self.verify_vm_flag = result and self.nova_fixture.wait_till_vm_is_active(
-            self.vm_obj)
+        vm_status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
+        if vm_status[1] != 'ACTIVE':
+            self.verify_vm_flag = False
+            result = result and False
+            return result
+
+        self.verify_vm_flag = result and vm_status[0] 
         if self.inputs.webui_verification_flag:
             self.webui.verify_vm_in_webui(self)
         t_api = threading.Thread(target=self.verify_vm_in_api_server, args=())

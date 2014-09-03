@@ -457,7 +457,7 @@ class NovaFixture(fixtures.Fixture):
             if vm_obj.status == 'ACTIVE' or vm_obj.status == 'ERROR':
                 self.logger.info('VM %s is in %s state now' %
                                  (vm_obj, vm_obj.status))
-                return True
+                return (True,vm_obj.status)
             else:
                 self.logger.debug('VM %s is still in %s state' %
                                   (vm_obj, vm_obj.status))
