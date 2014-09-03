@@ -25,6 +25,7 @@ import flow_test_utils
 from compute_node_test import ComputeNodeFixture
 import system_test_topo
 import flow_test_topo
+import sdn_flow_test_topo_multiple_projects
 from test_lib.test_utils import assertEqual, get_ip_list_from_prefix
 import math
 
@@ -196,11 +197,9 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
             build_version - os_version, release_version and build_version for logging purposes.
         """
         for cmp_node in self.inputs.compute_ips:
-            self.agent_objs[cmp_node] = self.useFixture(
-                ComputeNodeFixture(
-                    self.connections,
-                    cmp_node))
-            flows_now = self.agent_objs[cmp_node].get_vrouter_flow_count()
+            comp_node_fixt = self.useFixture(ComputeNodeFixture(
+                    self.connections, cmp_node))
+            flows_now = comp_node_fixt.get_vrouter_flow_count()
             for action, count in flows_now.iteritems():
                 # Any flows set by previous traffic tests should have retired
                 # by now..
@@ -283,6 +282,9 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         sleep_interval = (float(TotalFlows) / float(DefinedSetupRate)) / \
             float(NoOfIterations)
 
+        # For scaled flows & low profile VM, it takes time for VM/tool to start sending packets...
+        #self.logger.info("Sleeping for 20 sec, for VM to start sending packets.")
+        #time.sleep(20)
         #
         # After each sleep_interval we get the number of active forward or nat flows setup on the vrouter which is repeated for
         # NoOfIterations times. and the average is calculated in each
@@ -432,8 +434,8 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         """Tests related to flow setup rate and flow table stability accross various triggers for verification
            accross VN's within a single project"""
         result = True
-        self.agent_objs = {}
-        self.set_flow_tear_time()
+        #self.agent_objs = {}
+        #self.set_flow_tear_time()
         #
         # Check if there are enough nodes i.e. atleast 2 compute nodes to run this test.
         # else report that minimum 2 compute nodes are needed for this test and
@@ -485,7 +487,7 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
             # verify_system_parameters(self, out)
             self.delete_agent_flows()
             if not result:
-                return False
+                 False
 
         return True
 
@@ -496,8 +498,8 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         """Basic systest with single project with many features & traffic..
         """
         result = True
-        self.agent_objs = {}
-        self.set_flow_tear_time()
+        #self.agent_objs = {}
+        #self.set_flow_tear_time()
         #
         # Check if there are enough nodes i.e. atleast 2 compute nodes to run this test.
         # else report that minimum 2 compute nodes are needed for this test and
@@ -561,8 +563,10 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         """Tests related to flow setup rate and flow table stability accross various triggers for verification
            accross VN's and accross multiple projects"""
         result = True
-        self.agent_objs = {}
-        topology_class_name = None
+        self.comp_node_fixt = {}
+        for cmp_node in self.inputs.compute_ips:
+            self.comp_node_fixt[cmp_node] = self.useFixture(ComputeNodeFixture(
+                self.connections, cmp_node))
         #
         # Check if there are enough nodes i.e. atleast 2 compute nodes to run this test.
         # else report that minimum 2 compute nodes are needed for this test and
@@ -575,11 +579,8 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
             return True
         #
         # Get config for test from topology
-        import sdn_flow_test_topo_multiple_projects
-        result = True
         msg = []
-        if not topology_class_name:
-            topology_class_name = sdn_flow_test_topo_multiple_projects.multi_project_topo
+        topology_class_name = sdn_flow_test_topo_multiple_projects.multi_project_topo
 
         self.logger.info("Scenario for the test used is: %s" %
                          (topology_class_name))
@@ -589,84 +590,92 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         topo = topology_class_name(
             compute_node_list=self.inputs.compute_ips)
         #
-        # Test setup: Configure policy, VN, & VM
+        # 1. Test setup: Configure policy, VN, & VM
         # return {'result':result, 'msg': err_msg, 'data': [self.topo, config_topo]}
         # Returned topo is of following format:
         # config_topo= {'policy': policy_fixt, 'vn': vn_fixture, 'vm':
         # vm_fixture}
-        out = self.useFixture(
+        setup_obj = self.useFixture(
             sdnTopoSetupFixture(self.connections, topo))
-        assertEqual(out.result, True, out.msg)
-        if out.result:
-            topo, config_topo = out.data
-
-        # Create traffic based on traffic profile defined in topology.
-        traffic_profiles = {}
-        count = 0
-        num_ports_per_ip = 50000.00
-        # forward flows = (total no. of flows / 2), so fwd_flow_factor = 2
-        fwd_flow_factor = 2
-        for TrafficProfile in topo_obj.traffic_profile:
-            src_min_ip = 0
-            src_max_ip = 0
-            dst_ip = 0
-            pkt_cnt = 0
-            dst_min_port = 5000
-            dst_max_port = 55000
-            count += 1
-            profile = 'profile' + str(count)
-            src_vm = topo_obj.traffic_profile[TrafficProfile]['src_vm']
-            src_vm_obj = None
-            pkt_cnt = topo_obj.traffic_profile[TrafficProfile]['num_pkts']
-            for proj in config_topo:
-                for vm in config_topo[proj]:
-                    for vm_name in config_topo[proj][vm]:
-                        if topo_obj.traffic_profile[
-                                TrafficProfile]['dst_vm'] == vm_name:
-                            dst_ip = config_topo[proj][vm][vm_name].vm_ip
-                            dst_vm_obj = config_topo[proj][vm][vm_name]
-                        if src_vm == vm_name:
-                            src_vm_obj = config_topo[proj][vm][vm_name]
-
-            prefix = topo_obj.vm_static_route_master[src_vm]
-            ip_list = get_ip_list_from_prefix(prefix)
-            no_of_ip = int(
-                math.ceil(
-                    (topo_obj.traffic_profile[TrafficProfile]['num_flows'] /
-                     fwd_flow_factor) /
-                    num_ports_per_ip))
-            forward_flows = topo_obj.traffic_profile[
-                TrafficProfile]['num_flows'] / fwd_flow_factor
-            result_dict = self.src_min_max_ip_and_dst_max_port(
-                ip_list, no_of_ip, dst_min_port, forward_flows)
-            traffic_profiles[profile] = [src_vm_obj,  # src_vm obj
-                                         # src_ip_min
-                                         result_dict['src_min_ip'],
-                                         # src_ip_max
-                                         result_dict['src_max_ip'],
-                                         dst_ip,  # dest_vm_ip
-                                         dst_min_port,  # dest_port_min
-                                         # dest_port_max
-                                         result_dict['dst_max_port'],
-                                         # packet_count
-                                         topo_obj.traffic_profile[
-                                             TrafficProfile]['num_pkts'],
-                                         dst_vm_obj]  # dest_vm obj
-
-        # Get the vrouter build version for logging purposes.
-        BuildVersion = get_OS_Release_BuildVersion(self)
-
-        for each_profile in traffic_profiles:
-            result = self.generate_udp_flows_and_do_verification(
-                traffic_profiles[each_profile], str(BuildVersion))
-            verify_system_parameters(self, out)
-            if not result:
-                return False
+        out = setup_obj.sdn_topo_setup()
+        assertEqual(out['result'], True, out['msg'])
+        self.topo, self.config_topo = out['data'][0], out['data'][1]
+        self.proj = list(self.topo.keys())[0]
+        # 2. Start Traffic
+        for profile, details in self.topo[self.proj].traffic_profile.items():
+            self.logger.info("Profile under test: %s, details: %s" %(profile, details))
+            self.src_vm = details['src_vm']
+            self.dst_vm = details['dst_vm']
+            self.src_proj = details['src_proj']
+            self.dst_proj = details['dst_proj']
+            # Not flow scaling test, limit num_flows to low number..
+            num_flows = 15000
+            self.generated_flows = 2*num_flows
+            self.flow_gen_rate = 1000
+            src_vm_fixture = self.config_topo[self.src_proj]['vm'][self.src_vm]
+            src_vm_vn = src_vm_fixture.vn_names[0]
+            src_vm_vn_fix = self.config_topo[self.src_proj]['vn'][src_vm_vn]
+            dst_vm_fixture = self.config_topo[self.dst_proj]['vm'][self.dst_vm]
+            self.proto = 'udp'
+            self.cmp_node = src_vm_fixture.vm_node_ip
+            self.comp_node_fixt[self.cmp_node].get_config_per_vm_flow_limit()
+            self.comp_node_fixt[self.cmp_node].get_config_flow_aging_time()
+            self.max_vm_flows = self.comp_node_fixt[self.cmp_node].max_vm_flows
+            self.flow_cache_timeout = self.comp_node_fixt[self.cmp_node].flow_cache_timeout
+            self.traffic_obj = self.useFixture(
+                traffic_tests.trafficTestFixture(self.connections))
+            # def startTraffic (tx_vm_fixture= None, rx_vm_fixture= None,
+            # stream_proto= 'udp', start_sport= 8000,
+            # total_single_instance_streams= 20):
+            startStatus = self.traffic_obj.startTraffic(
+                total_single_instance_streams=num_flows,
+                pps=self.flow_gen_rate,
+                start_sport=1000,
+                cfg_profile='ContinuousSportRange',
+                tx_vm_fixture=src_vm_fixture,
+                rx_vm_fixture=dst_vm_fixture,
+                stream_proto=self.proto)
+            msg1 = "Status of start traffic : %s, %s, %s" % (
+                self.proto, src_vm_fixture.vm_ip, startStatus['status'])
+            self.logger.info(msg1)
+            assert startStatus['status'], msg1
+            # 3. Poll live traffic & verify VM flow count
+            self.verify_node_flow_setup()
+            # 4. Stop Traffic
+            self.logger.info("Proceed to stop traffic..")
+            self.traffic_obj.stopTraffic(wait_for_stop=False)
+            start_time = time.time()
+            # 5. Verify flow ageing
             self.logger.info(
-                "Sleeping for %s sec, for the flows to age out and get purged." %
-                (self.time_to_retire_flows))
-            time.sleep(self.time_to_retire_flows)
-
+                "With traffic stopped, wait for flow_cache_timeout to trigger flow ageing")
+            sleep(self.flow_cache_timeout)
+            while True:
+                begin_flow_count = self.comp_node_fixt[
+                    self.cmp_node].get_vrouter_matching_flow_count(
+                    self.flow_data)
+                if begin_flow_count['all'] == 0:
+                    break
+                flow_teardown_time = math.ceil(flow_test_utils.get_max_flow_removal_time(begin_flow_count['all'], self.flow_cache_timeout))
+                # flow_teardown_time is not the actual time to remove flows
+                # Based on flow_count at this time, teardown_time is calculated to the value
+                # which will vary with agent's poll, which is done at regular intervals..
+                sleep(flow_teardown_time)
+                # at the end of wait, actual_flows should be atleast < 50% of total flows before start of teardown
+                current_flow_count = self.comp_node_fixt[
+                    self.cmp_node].get_vrouter_matching_flow_count(
+                    self.flow_data)
+                if current_flow_count['all'] > (0.5*begin_flow_count['all']):
+                    msg = ['Flow removal not happening as expected in node %s' %self.cmp_node]
+                    msg.append('Flow count before wait: %s, after wait of %s secs, its: %s' %
+                        (begin_flow_count['all'], flow_teardown_time, current_flow_count['all']))
+                    assert False, msg
+                if current_flow_count['all'] < (0.1*begin_flow_count['all']):
+                    break
+            # end of while loop
+            elapsed_time = time.time() - start_time
+            self.logger.info(
+                "Flows aged out as expected in configured flow_cache_timeout")
+        # end of profile for loop
         return True
     # end test_flow_multi_projects
 
@@ -685,10 +694,12 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         expected_flows: expected non FlowLimited flows based on above 2 values
         '''
         self.flow_data = flow_test_utils.get_flow_data(
-            self.config_topo[self.proj],
+            self.config_topo,
             self.src_vm,
             self.dst_vm,
-            self.proto)
+            self.proto,
+            self.src_proj,
+            self.dst_proj)
         self.logger.info(
             "Received flow_data for checking: %s" %
             self.flow_data)
@@ -810,6 +821,8 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
             self.logger.info("Profile under test: %s, details: %s" %(profile, details))
             self.src_vm = details['src_vm']
             self.dst_vm = details['dst_vm']
+            self.src_proj = self.proj
+            self.dst_proj = self.proj
             # Set num_flows to fixed, smaller value but > 1% of
             # system max flows
             num_flows = 5555
