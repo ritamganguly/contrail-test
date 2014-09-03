@@ -3229,7 +3229,7 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         with settings(
             host_string='%s@%s' % (
                 username, self.inputs.cfgm_ips[0]),
-                password, warn_only=True, abort_on_prompts=False, debug=True):
+                password=password, warn_only=True, abort_on_prompts=False, debug=True):
 
             status = run('cd /opt/contrail/utils;' + add_static_route_cmd)
             self.logger.debug("%s" % status)
@@ -3296,7 +3296,7 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         with settings(
             host_string='%s@%s' % (
                 username, self.inputs.cfgm_ips[0]),
-                password, warn_only=True, abort_on_prompts=False, debug=True):
+                password=password, warn_only=True, abort_on_prompts=False, debug=True):
             status = run('cd /opt/contrail/utils;' + del_static_route_cmd)
             self.logger.debug("%s" % status)
         assert result
@@ -3524,7 +3524,7 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         with settings(
             host_string='%s@%s' % (
                 username, self.inputs.cfgm_ips[0]),
-                password, warn_only=True, abort_on_prompts=False, debug=True):
+                password=password, warn_only=True, abort_on_prompts=False, debug=True):
             status = run('cd /opt/contrail/utils;' + add_static_route_cmd)
             self.logger.debug("%s" % status)
             m = re.search(r'Creating Route table', status)
@@ -3581,7 +3581,7 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         with settings(
             host_string='%s@%s' % (
                 username, self.inputs.cfgm_ip),
-                password, warn_only=True, abort_on_prompts=False, debug=True):
+                password=password, warn_only=True, abort_on_prompts=False, debug=True):
             status = run('cd /opt/contrail/utils;' + add_static_route_cmd)
             self.logger.debug("%s" % status)
 
@@ -3619,7 +3619,7 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         with settings(
             host_string='%s@%s' % (
                 username, self.inputs.cfgm_ip),
-                password, warn_only=True, abort_on_prompts=False, debug=True):
+                password=password, warn_only=True, abort_on_prompts=False, debug=True):
             status = run('cd /opt/contrail/utils;' + del_static_route_cmd1)
             self.logger.debug("%s" % status)
             status = run('cd /opt/contrail/utils;' + del_static_route_cmd2)
@@ -3737,7 +3737,7 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         with settings(
             host_string='%s@%s' % (
                 username, self.inputs.cfgm_ip),
-                password, warn_only=True, abort_on_prompts=False, debug=True):
+                password=password, warn_only=True, abort_on_prompts=False, debug=True):
             status1 = run('cd /opt/contrail/utils;' + add_static_route_cmd1)
             self.logger.debug("%s" % status1)
             m = re.search(r'Creating Route table', status1)
@@ -3838,7 +3838,7 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         with settings(
             host_string='%s@%s' % (
                 username, self.inputs.cfgm_ip),
-                password, warn_only=True, abort_on_prompts=False, debug=True):
+                password=password, warn_only=True, abort_on_prompts=False, debug=True):
             status1 = run('cd /opt/contrail/utils;' + del_static_route_cmd1)
             self.logger.debug("%s" % status1)
             status2 = run('cd /opt/contrail/utils;' + del_static_route_cmd2)
