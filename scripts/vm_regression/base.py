@@ -42,6 +42,13 @@ class BaseVnVmTest(test.BaseTestCase):
             #break
    #end remove_from_cleanups
 
+    def trim_command_output_from_vm(self, output):
+        output = output.replace("\r", "")
+        output = output.replace("\t", "")
+        output = output.replace("\n", " ")
+        return output
+    # end trim_command_output_from_vm
+
     def create_vn(self, vn_name, vn_subnets):
         return self.useFixture(
                 VNFixture(project_name=self.inputs.project_name,

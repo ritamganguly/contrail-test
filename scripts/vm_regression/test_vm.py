@@ -13,6 +13,7 @@ from tcutils.pkgs.Traffic.traffic.core.helpers import Sender, Receiver
 from base import BaseVnVmTest
 from common import isolated_creds
 import inspect
+from tcutils.commands import ssh, execute_cmd, execute_cmd_out
 
 import test
 
@@ -954,98 +955,6 @@ class TestBasicVMVN2(BaseVnVmTest):
         assert vm2_fixture.ping_to_ip(vm1_fixture.vm_ip)
         return True
     # end test_ping_within_vn
-
-    @preposttest_wrapper
-    def test_ping_on_broadcast_multicast_with_frag(self):
-        ''' Validate Ping on subnet broadcast,link local multucast,network broadcastwith packet sizes > MTU and see that fragmentation and assembly work fine .
-
-        '''
-        vn1_name = get_random_name('vn30')
-        vn1_subnets = ['30.1.1.0/24']
-        ping_count = '5'
-        vn1_vm1_name = 'vm1'
-        vn1_vm2_name = 'vm2'
-        vn1_vm3_name = 'vm3'
-        vn1_vm4_name = 'vm4'
-        vn1_fixture = self.useFixture(
-            VNFixture(
-                project_name=self.inputs.project_name, connections=self.connections,
-                vn_name=vn1_name, inputs=self.inputs, subnets=vn1_subnets))
-        assert vn1_fixture.verify_on_setup()
-        vm1_fixture = self.useFixture(
-            VMFixture(
-                project_name=self.inputs.project_name, connections=self.connections,
-                vn_obj=vn1_fixture.obj, vm_name=vn1_vm1_name))
-        vm2_fixture = self.useFixture(
-            VMFixture(
-                project_name=self.inputs.project_name, connections=self.connections,
-                vn_obj=vn1_fixture.obj, vm_name=vn1_vm2_name))
-        vm3_fixture = self.useFixture(
-            VMFixture(
-                project_name=self.inputs.project_name, connections=self.connections,
-                vn_obj=vn1_fixture.obj, vm_name=vn1_vm3_name))
-        vm4_fixture = self.useFixture(
-            VMFixture(
-                project_name=self.inputs.project_name, connections=self.connections,
-                vn_obj=vn1_fixture.obj, vm_name=vn1_vm4_name))
-        assert vm1_fixture.verify_on_setup()
-        assert vm2_fixture.verify_on_setup()
-        assert vm3_fixture.verify_on_setup()
-        assert vm4_fixture.verify_on_setup()
-        vm1_fixture.wait_till_vm_is_up()
-        vm2_fixture.wait_till_vm_is_up()
-        vm3_fixture.wait_till_vm_is_up()
-        vm4_fixture.wait_till_vm_is_up()
-
-        # Geting the VM ips
-        vm1_ip = vm1_fixture.vm_ip
-        vm2_ip = vm2_fixture.vm_ip
-        vm3_ip = vm3_fixture.vm_ip
-        vm4_ip = vm4_fixture.vm_ip
-        ip_list = [vm1_ip, vm2_ip, vm3_ip, vm4_ip]
-        list_of_ip_to_ping = ['30.1.1.255', '224.0.0.1', '255.255.255.255']
-        # passing command to vms so that they respond to subnet broadcast
-        cmd_list_to_pass_vm = [
-            'echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts']
-        vm1_fixture.run_cmd_on_vm(cmds=cmd_list_to_pass_vm, as_sudo=True)
-        vm2_fixture.run_cmd_on_vm(cmds=cmd_list_to_pass_vm, as_sudo=True)
-        vm3_fixture.run_cmd_on_vm(cmds=cmd_list_to_pass_vm, as_sudo=True)
-        vm4_fixture.run_cmd_on_vm(cmds=cmd_list_to_pass_vm, as_sudo=True)
-        for dst_ip in list_of_ip_to_ping:
-            print 'pinging from %s to %s' % (vm1_ip, dst_ip)
-# pinging from Vm1 to subnet broadcast
-            ping_output = vm1_fixture.ping_to_ip(
-                dst_ip, return_output=True, count=ping_count,  size='3000', other_opt='-b')
-            self.logger.info(
-                'The packet is not fragmanted because of the smaller MTU')
-            expected_result = 'Message too long'
-            assert (expected_result in ping_output)
-
-        self.logger.info('Will change the MTU of the VMs and try again')
-        cmd_to_increase_mtu = ['ifconfig eth0 mtu 9000']
-        vm1_fixture.run_cmd_on_vm(cmds=cmd_to_increase_mtu, as_sudo=True)
-        vm2_fixture.run_cmd_on_vm(cmds=cmd_to_increase_mtu, as_sudo=True)
-        vm3_fixture.run_cmd_on_vm(cmds=cmd_to_increase_mtu, as_sudo=True)
-        vm4_fixture.run_cmd_on_vm(cmds=cmd_to_increase_mtu, as_sudo=True)
-
-        for dst_ip in list_of_ip_to_ping:
-            print 'pinging from %s to %s' % (vm1_ip, dst_ip)
-# pinging from Vm1 to subnet broadcast
-            ping_output = vm1_fixture.ping_to_ip(
-                dst_ip, return_output=True, count=ping_count,  size='3000', other_opt='-b')
-            expected_result = 'Message too long'
-            assert (expected_result not in ping_output)
-
-# getting count of ping response from each vm
-            string_count_dict = {}
-            string_count_dict = get_string_match_count(ip_list, ping_output)
-            print string_count_dict
-            for k in ip_list:
-                # this is a workaround : ping utility exist as soon as it gets
-                # one response
-                assert (string_count_dict[k] >= (int(ping_count) - 1))
-        return True
-    # end test_ping_on_broadcast_multicast_with_frag
 
     @test.attr(type=['sanity'])
     @preposttest_wrapper
@@ -2721,129 +2630,6 @@ class TestBasicVMVN6(BaseVnVmTest):
         return True
     # end test_ping_on_broadcast_multicast_with_frag
 
-    @preposttest_wrapper
-    def test_traffic_bw_vms_diff_pkt_size(self):
-        ''' Test to validate TCP, ICMP, UDP traffic of different packet sizes b/w VMs created within a VN.
-        '''
-        vn_name = 'vn222'
-        vn_subnets = ['11.1.1.0/29']
-        vn_fixture = self.useFixture(
-            VNFixture(
-                project_name=self.inputs.project_name, connections=self.connections,
-                vn_name=vn_name, inputs=self.inputs, subnets=vn_subnets))
-        assert vn_fixture.verify_on_setup()
-        # Get all compute host
-        host_list = []
-        for host in self.inputs.compute_ips:
-            host_list.append(self.inputs.host_data[host]['name'])
-        print host_list
-        if len(set(self.inputs.compute_ips)) > 1:
-            self.logger.info("Multi-Node Setup")
-            vm1_fixture = self.useFixture(
-                VMFixture(project_name=self.inputs.project_name,
-                          connections=self.connections, vn_obj=vn_fixture.obj, flavor='contrail_flavor_small', image_name='ubuntu-traffic', vm_name='vm1', node_name=host_list[1]))
-            assert vm1_fixture.verify_on_setup()
-            vm2_fixture = self.useFixture(
-                VMFixture(project_name=self.inputs.project_name,
-                          connections=self.connections, vn_obj=vn_fixture.obj, flavor='contrail_flavor_small', image_name='ubuntu-traffic', vm_name='vm2', node_name=host_list[0]))
-            assert vm2_fixture.verify_on_setup()
-        else:
-            self.logger.info("Single-Node Setup")
-            vm1_fixture = self.useFixture(
-                VMFixture(project_name=self.inputs.project_name,
-                          connections=self.connections, vn_obj=vn_fixture.obj, flavor='contrail_flavor_small', image_name='ubuntu-traffic', vm_name='vm1'))
-            vm2_fixture = self.useFixture(
-                VMFixture(project_name=self.inputs.project_name,
-                          connections=self.connections, vn_obj=vn_fixture.obj, flavor='contrail_flavor_small', image_name='ubuntu-traffic', vm_name='vm2'))
-            assert vm1_fixture.verify_on_setup()
-            assert vm2_fixture.verify_on_setup()
-
-        out1 = vm1_fixture.wait_till_vm_is_up()
-        if out1 == False:
-            return {'result': out1, 'msg': "%s failed to come up" % vm1_fixture.vm_name}
-        else:
-            self.logger.info('Will install Traffic package on %s' %
-                             vm1_fixture.vm_name)
-            vm1_fixture.install_pkg("Traffic")
-
-        out2 = vm2_fixture.wait_till_vm_is_up()
-        if out2 == False:
-            return {'result': out2, 'msg': "%s failed to come up" % vm2_fixture.vm_name}
-        else:
-            self.logger.info('Will install Traffic package on %s' %
-                             vm2_fixture.vm_name)
-            vm2_fixture.install_pkg("Traffic")
-        result = True
-        msg = []
-        traffic_obj = {}
-        startStatus = {}
-        stopStatus = {}
-        traffic_proto_l = ['tcp', 'icmp', 'udp']
-        total_streams = {}
-        total_streams['icmp'] = 1
-        total_streams['udp'] = 2
-        total_streams['tcp'] = 2
-        dpi = 9100
-        proto = 'udp'
-        packet_sizes = [40, 64, 254, 748, 1350]
-        cmd_to_increase_mtu = ['ifconfig eth0 mtu 16436']
-        for packet_size in packet_sizes:
-            if packet_size > 1400:
-                self.logger.info('Increasing the MTU of the eth0 of VM')
-                vm1_fixture.run_cmd_on_vm(
-                    cmds=cmd_to_increase_mtu)
-                vm2_fixture.run_cmd_on_vm(cmds=cmd_to_increase_mtu)
-            self.logger.info("-" * 80)
-            self.logger.info("PACKET SIZE = %sB" % packet_size)
-            self.logger.info("-" * 80)
-            for proto in traffic_proto_l:
-                traffic_obj[proto] = {}
-                startStatus[proto] = {}
-                traffic_obj[proto] = self.useFixture(
-                    traffic_tests.trafficTestFixture(self.connections))
-                # def startTraffic (self, name=name, num_streams= 1, start_port= 9100, tx_vm_fixture= None, rx_vm_fixture= None, stream_proto= 'udp', \
-                # packet_size= 100, start_sport= 8000,
-                # total_single_instance_streams= 20):
-                startStatus[proto] = traffic_obj[proto].startTraffic(
-                    num_streams=total_streams[proto], start_port=dpi,
-                    tx_vm_fixture=vm1_fixture, rx_vm_fixture=vm2_fixture, stream_proto=proto, packet_size=packet_size)
-                self.logger.info("Status of start traffic : %s, %s, %s" %
-                                 (proto, vm1_fixture.vm_ip, startStatus[proto]))
-                if startStatus[proto]['status'] != True:
-                    msg.append(startStatus[proto])
-                    result = False
-            #self.assertEqual(out['result'], True, out['msg'])
-            self.logger.info("-" * 80)
-            # Poll live traffic
-            traffic_stats = {}
-            self.logger.info("Poll live traffic and get status..")
-            for proto in traffic_proto_l:
-                traffic_stats = traffic_obj[proto].getLiveTrafficStats()
-                err_msg = ["Traffic disruption is seen: details: "] + \
-                    traffic_stats['msg']
-            self.assertEqual(traffic_stats['status'], True, err_msg)
-            self.logger.info("-" * 80)
-            # Stop Traffic
-            self.logger.info("Proceed to stop traffic..")
-            self.logger.info("-" * 80)
-            for proto in traffic_proto_l:
-                stopStatus[proto] = {}
-                stopStatus[proto] = traffic_obj[proto].stopTraffic()
-                if stopStatus[proto] != []:
-                    msg.append(stopStatus[proto])
-                    result = False
-                self.logger.info(
-                    "Status of stop traffic for proto %s and packet size of %sB is %s" %
-                    (proto, packet_size, stopStatus[proto]))
-            self.logger.info("-" * 80)
-            print result
-            self.logger.info('Sleeping for 10s')
-            sleep(10)
-        self.assertEqual(result, True, msg)
-
-        return True
-    # end test_traffic_bw_vms_diff_pkt_size
-
     @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_control_node_switchover(self):
@@ -3237,3 +3023,323 @@ echo "Hello World.  The time is now $(date -R)!" | tee /tmp/output.txt
         assert result
         return True
     # end test_generic_link_local_service
+    
+class TestBasicVMVN9(BaseVnVmTest):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBasicVMVN9, cls).setUpClass()
+
+    @preposttest_wrapper
+    def test_static_route_to_vm(self):
+        ''' Test to validate that traffic to a destination for which a VM is a next-hop sis sent to the tap-interface in the agent, corresponding to the VM.
+        '''
+        vm1_name = get_random_name('vm_mine')
+        vn1_name = get_random_name('vn222')
+        vn1_subnets = ['11.1.1.0/24']
+        vm2_name = get_random_name('vm_yours')
+        vn2_name = get_random_name('vn111')
+        vn2_subnets = ['12.1.1.0/24']
+
+        vn1_fixture = self.useFixture(
+            VNFixture(
+                project_name=self.inputs.project_name, connections=self.connections,
+                vn_name=vn1_name, inputs=self.inputs, subnets=vn1_subnets))
+        assert vn1_fixture.verify_on_setup()
+        vn1_obj = vn1_fixture.obj
+
+        vm1_fixture = self.useFixture(VMFixture(connections=self.connections,
+                                                vn_obj=vn1_obj, vm_name=vm1_name, 
+                                                project_name=self.inputs.project_name, 
+                                                flavor='contrail_flavor_small', 
+                                                image_name='ubuntu-traffic'))
+        assert vm1_fixture.wait_till_vm_is_up()
+        assert vm1_fixture.verify_on_setup()
+        vm2_fixture = self.useFixture(VMFixture(connections=self.connections,
+                                                vn_obj=vn1_obj, vm_name=vm2_name, 
+                                                project_name=self.inputs.project_name, 
+                                                flavor='contrail_flavor_small', 
+                                                image_name='ubuntu-traffic'))
+        assert vm2_fixture.wait_till_vm_is_up()
+        assert vm2_fixture.verify_on_setup()
+
+        self.logger.info(
+            '+++++ Will add a static route with the VM1 as the next-hop and verify the route entry in the agent ++++++')
+        vm1_vmi_id = vm1_fixture.cs_vmi_obj[vn1_fixture.vn_fq_name][
+            'virtual-machine-interface']['uuid']
+        add_static_route_cmd = 'python provision_static_route.py \
+                                --prefix 1.2.3.4/32 --virtual_machine_interface_id %s \
+                                 --tenant_name %s --api_server_ip 127.0.0.1 --api_server_port 8082 \
+                                --oper add --route_table_name my_route_table \
+                                --user  %s --password %s'\
+                                  %(vm1_vmi_id,self.inputs.project_name,self.inputs.stack_user,self.inputs.stack_password)
+
+        with settings(host_string='%s@%s' % (self.inputs.username, self.inputs.cfgm_ips[0]), 
+                                    password=self.inputs.password, warn_only=True, 
+                                    abort_on_prompts=False, debug=True):
+            status = run('cd /opt/contrail/utils;' + add_static_route_cmd)
+            self.logger.debug("%s" % status)
+            m = re.search(r'Creating Route table', status)
+            assert m, 'Failed in Creating Route table'
+        time.sleep(10)
+        for vm_fixture in [vm1_fixture, vm2_fixture]:
+            (domain, project, vn) = vn1_fixture.vn_fq_name.split(':')
+            inspect_h = self.agent_inspect[vm_fixture.vm_node_ip]
+            agent_vrf_objs = inspect_h.get_vna_vrf_objs(domain, project, vn)
+            agent_vrf_obj = vm_fixture.get_matching_vrf(
+                agent_vrf_objs['vrf_list'], vn1_fixture.vrf_name)
+            vn_vrf_id = agent_vrf_obj['ucindex']
+            paths = inspect_h.get_vna_active_route(
+                vrf_id=vn_vrf_id, ip='1.2.3.4', prefix='32')['path_list']
+            self.logger.info('There are %s nexthops to 1.2.3.4 on Agent %s' %
+                             (len(paths), vm_fixture.vm_node_ip))
+
+        compute_ip = vm1_fixture.vm_node_ip
+        compute_user = self.inputs.host_data[compute_ip]['username']
+        compute_password = self.inputs.host_data[compute_ip]['password']
+        session = ssh(compute_ip, compute_user, compute_password)
+        vm1_tapintf = vm1_fixture.tap_intf[vn1_fixture.vn_fq_name]['name']
+        cmd = 'tcpdump -ni %s icmp -vvv -c 2 > /tmp/%s_out.log' % (vm1_tapintf,
+                                                                   vm1_tapintf)
+        execute_cmd(session, cmd, self.logger)
+
+        self.logger.info('***** Will start a ping from %s to 1.2.3.4 *****' %
+                         vm2_fixture.vm_name)
+        vm2_fixture.ping_with_certainty('1.2.3.4', expectation=False)
+        self.logger.info('***** Will check the result of tcpdump *****')
+        output_cmd = 'cat /tmp/%s_out.log' % vm1_tapintf
+        output, err = execute_cmd_out(session, output_cmd, self.logger)
+        print output
+        if '1.2.3.4' in output:
+            self.logger.info(
+                'Traffic is going to the tap interface of %s correctly' %
+                vm1_fixture.vm_name)
+        else:
+            result = False
+            assert result
+            self.logger.error(
+                'Traffic to 1.2.3.4 not seen on the tap interface of %s' %
+                vm1_fixture.vm_name)
+
+        self.logger.info(
+            '-------------------------Will delete the static route now------------------')
+        del_static_route_cmd = 'python provision_static_route.py --prefix 1.2.3.4/32 \
+                                --virtual_machine_interface_id %s \
+                                --tenant_name %s --api_server_ip 127.0.0.1 \
+                                --api_server_port 8082 \
+                                --oper del --route_table_name my_route_table \
+                                 --user %s --password %s'\
+                                %(vm1_vmi_id,self.inputs.project_name,self.inputs.stack_user ,self.inputs.stack_password ) 
+
+        with settings(host_string='%s@%s' % (self.inputs.username, self.inputs.cfgm_ips[0]), 
+                        password=self.inputs.password, warn_only=True, 
+                        abort_on_prompts=False, debug=True):
+            del_status = run('cd /opt/contrail/utils;' + del_static_route_cmd)
+            self.logger.debug("%s" % del_status)
+        time.sleep(10)
+
+        for vm_fixture in [vm1_fixture, vm2_fixture]:
+            (domain, project, vn) = vn1_fixture.vn_fq_name.split(':')
+            inspect_h = self.agent_inspect[vm_fixture.vm_node_ip]
+            agent_vrf_objs = inspect_h.get_vna_vrf_objs(domain, project, vn)
+            agent_vrf_obj = vm_fixture.get_matching_vrf(
+                agent_vrf_objs['vrf_list'], vn1_fixture.vrf_name)
+            vn_vrf_id = agent_vrf_obj['ucindex']
+            del_check = True
+            if inspect_h.get_vna_active_route(vrf_id=vn_vrf_id, ip='1.2.3.4', prefix='32') == None:
+                self.logger.info('There is no route to 1.2.3.4 on Agent %s' %
+                                 vm_fixture.vm_node_ip)
+            else:
+                del_check = False
+            assert del_check, 'Static Route Deletion unsuccessful'
+
+        return True
+    # end test_static_route_to_vm
+
+    @preposttest_wrapper
+    def test_dns_resolution_for_link_local_service(self):
+        '''Test to verify DNS resolution for link local service
+            1. Create instance
+            2. Configure few link service using IP/DNS option
+            3. Verify DNS resolution for services created
+            4. Perform ssh,curl and wget operation using services
+        '''
+        cfgm_ip = self.inputs.cfgm_ips[0]
+        cfgm_user = self.inputs.host_data[cfgm_ip]['username']
+        cfgm_pwd = self.inputs.host_data[cfgm_ip]['password']
+        openstack_ip = self.inputs.openstack_ip
+        ks_admin_user = self.inputs.stack_user
+        ks_admin_password = self.inputs.stack_password
+
+        # format: service_name: link_local_service_ip, address_port,
+        # fabric_address
+        service_info = {
+            'cfgm_server': ['169.254.169.245', '22', self.inputs.cfgm_ips[0]],
+            'build_server': ['169.254.169.246', '80', 'ftp.vim.org'],
+            'web_server': ['169.254.169.247', '80', '174.143.194.225']
+        }
+        vn_obj = self.useFixture(
+            VNFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                vn_name= get_random_name('vnlocal'),
+                inputs=self.inputs,
+                subnets=['10.10.10.0/24']))
+        assert vn_obj.verify_on_setup()
+        vm_fixture = self.useFixture(
+            VMFixture(
+                connections=self.connections,
+                vn_obj=vn_obj.obj,
+                flavor='contrail_flavor_small',
+                image_name='ubuntu-traffic',
+                vm_name=get_random_name('vmlocal'),
+                project_name=self.inputs.project_name))
+        vm_fixture.wait_till_vm_is_up()
+        assert vm_fixture.verify_on_setup()
+        for service in service_info:
+            self.logger.info('configure link local service %s' % service)
+            #check if we provided dns/IP
+            try:
+                socket.inet_aton(service_info[service][2])
+                metadata_args = "--admin_user %s\
+                    --admin_password %s --linklocal_service_name %s\
+                    --linklocal_service_ip %s\
+                    --linklocal_service_port %s\
+                    --ipfabric_service_ip %s\
+                    --ipfabric_service_port %s\
+                    --oper add" % (ks_admin_user,
+                                   ks_admin_password,
+                                   service,
+                                   service_info[service][0],
+                                   service_info[service][1],
+                                   service_info[service][2],
+                                   service_info[service][1])
+            except socket.error:
+                metadata_args = "--admin_user %s\
+                    --admin_password %s --linklocal_service_name %s\
+                    --linklocal_service_ip %s\
+                    --linklocal_service_port %s\
+                    --ipfabric_dns_service_name %s\
+                    --ipfabric_service_port %s\
+                    --oper add" % (ks_admin_user,
+                                   ks_admin_password,
+                                   service,
+                                   service_info[service][0],
+                                   service_info[service][1],
+                                   service_info[service][2],
+                                   service_info[service][1])
+            with settings(host_string='%s@%s' % (cfgm_user, cfgm_ip),
+                          password=cfgm_pwd, warn_only=True,
+                          abort_on_prompts=False):
+                status = run(
+                    "python /opt/contrail/utils/provision_linklocal.py %s" %
+                    (metadata_args))
+                self.logger.debug("%s" % status)
+            sleep(2)
+            cmd = 'nslookup ' + service
+            vm_fixture.run_cmd_on_vm(cmds=[cmd])
+            result = vm_fixture.return_output_cmd_dict[cmd]
+            result = self.trim_command_output_from_vm(result)
+            lookup = re.search(r"Name:\s*(\S+)\s*Address:\s*(\S+)", result)
+            if (lookup.group(1) == service) and (
+                    lookup.group(2) == service_info[service][0]):
+                self.logger.info(
+                    'DNS resolution worked for link local service %s' %
+                    service)
+            else:
+                assert False, "DNS resolution for \
+                                link local service %s failed" % service
+        for service in service_info:
+            if service == "build_server":
+                # verify wget from vim.org 
+                sleep(20) #wait before attempting download
+                image_name = 'vim-6.4.tar.bz2'
+                cmd = 'wget ' + \
+                    'http://%s/pub/vim/unix/' % service + image_name
+                vm_fixture.run_cmd_on_vm(cmds=[cmd])
+                result = vm_fixture.return_output_cmd_dict[cmd]
+                result = self.trim_command_output_from_vm(result)
+                cmd = 'ls -l ' + image_name
+                vm_fixture.run_cmd_on_vm(cmds=[cmd])
+                result = vm_fixture.return_output_cmd_dict[cmd]
+                result = self.trim_command_output_from_vm(result)
+                lookup_wget = re.search(r"No such file or directory", result)
+                if lookup_wget:
+                    assert False, "Image download failed with \
+                                    link local service %s: %s" % (
+                                    service, result)
+                else:
+                    self.logger.info(
+                        "File copied to VM using linklocal service %s" %
+                         service)
+            elif service == 'cfgm_server':
+                # verify ssh on cfgm node from vm
+                self.logger.info(
+                    "verify ssh port is opened in remote machine using netcat")
+                cmd = 'nc -zvv %s %s' % (service, service_info[service][1])
+                vm_fixture.run_cmd_on_vm(cmds=[cmd])
+                result = vm_fixture.return_output_cmd_dict[cmd]
+                result = self.trim_command_output_from_vm(result)
+                lookup = re.search(r"succeeded", result)
+                if lookup:
+                    self.logger.info('%s' % result)
+                else:
+                    assert False, "Connection to cfgm_server failed with \
+                                    link local service: %s" % result
+            elif service == 'web_server':
+                # verify curl on openstack.org
+                cmd = 'curl ' + 'http://%s:80/' % service
+                vm_fixture.run_cmd_on_vm(cmds=[cmd])
+                result = vm_fixture.return_output_cmd_dict[cmd]
+                result = self.trim_command_output_from_vm(result)
+                lookup_curl = re.search(r"couldn't connect to host", result)
+                if lookup_curl:
+                    assert False, "curl operation failed with link local \
+                                    service bug_server: %s" % result
+                else:
+                    self.logger.info(
+                        "curl operation succeeded with \
+                            link local service bug_server")
+            else:
+                self.logger.info(
+                    "skip service %s, go to next service" %
+                    service)
+            self.logger.info('unconfigure link local service %s' % service)
+            try:
+                socket.inet_aton(service_info[service][2])
+                metadata_args_delete = "--admin_user %s\
+                    --admin_password %s --linklocal_service_name %s\
+                    --linklocal_service_ip %s\
+                    --linklocal_service_port %s\
+                    --ipfabric_service_ip %s\
+                    --ipfabric_service_port %s\
+                    --oper delete" % (ks_admin_user,
+                                   ks_admin_password,
+                                   service,
+                                   service_info[service][0],
+                                   service_info[service][1],
+                                   service_info[service][2],
+                                   service_info[service][1])
+            except socket.error:
+                metadata_args_delete = "--admin_user %s\
+                    --admin_password %s --linklocal_service_name %s\
+                    --linklocal_service_ip %s\
+                    --linklocal_service_port %s\
+                    --ipfabric_dns_service_name %s\
+                    --ipfabric_service_port %s\
+                    --oper delete" % (ks_admin_user,
+                                   ks_admin_password,
+                                   service,
+                                   service_info[service][0],
+                                   service_info[service][1],
+                                   service_info[service][2],
+                                   service_info[service][1])
+            with settings(host_string='%s@%s' % (cfgm_user, cfgm_ip),
+                          password=cfgm_pwd, warn_only=True,
+                          abort_on_prompts=False):
+                status = run(
+                    "python /opt/contrail/utils/provision_linklocal.py %s" %
+                    (metadata_args_delete))
+                self.logger.debug("%s" % status)
+        return True
+    # end test_dns_resolution_for_link_local_service
