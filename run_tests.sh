@@ -131,6 +131,7 @@ function run_tests_serial {
       return $?
   fi
   ${wrapper} testr run --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $serial_result_xml 
+  python parse_result.py $serial_result_xml 
   generate_html 
 }
 
@@ -162,8 +163,12 @@ function generate_html {
   if [ -f $result_xml ]; then
       ant
       ${wrapper} python tools/update_testsuite_properties.py $REPORT_DETAILS_FILE $result_xml
-      ${wrapper} python tools/upload_to_webserver.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE $REPORT_FILE 
+      #${wrapper} python tools/upload_to_webserver.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE $REPORT_FILE 
   fi
+}
+
+function upload_to_web_server {
+  ${wrapper} python tools/upload_to_webserver.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE $REPORT_FILE 
 }
 
 if [ $never_venv -eq 0 ]
@@ -203,7 +208,6 @@ if [[ ! -z $path ]];then
         do
             run_tests $p
             run_tests_serial $p
-            send_mail $TEST_CONFIG_FILE $REPORT_FILE
         done
 fi
 
@@ -214,15 +218,14 @@ fi
 if [[ ! -z $testrargs ]];then
     run_tests
     run_tests_serial
-    send_mail $TEST_CONFIG_FILE $REPORT_FILE
 fi
 
 if [[ -z $path ]] && [[ -z $testrargs ]];then
     run_tests
     run_tests_serial
-    send_mail $TEST_CONFIG_FILE $REPORT_FILE
 fi
-
+upload_to_web_server
+send_mail $TEST_CONFIG_FILE $REPORT_FILE
 retval=$?
 
 exit $retval
