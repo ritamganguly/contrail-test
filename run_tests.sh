@@ -8,6 +8,7 @@ function usage {
   echo "  -n, --no-site-packages   Isolate the virtualenv from the global Python environment"
   echo "  -f, --force              Force a clean re-build of the virtual environment. Useful when dependencies have been added."
   echo "  -u, --update             Update the virtual environment with any newer package versions"
+  echo "  -U, --upload             Upload test logs"
   echo "  -s, --sanity             Only run sanity tests"
   echo "  -t, --serial             Run testr serially"
   echo "  -C, --config             Config file location"
@@ -43,7 +44,7 @@ serial_result_xml="result1.xml"
 send_mail=0
 
 
-if ! options=$(getopt -o VNnfusthdC:lLmr:F:T: -l virtual-env,no-virtual-env,no-site-packages,force,update,sanity,serial,help,debug,config:logging,logging-config,send-mail,result-xml:features:tags: -- "$@")
+if ! options=$(getopt -o VNnfuUsthdC:lLmr:F:T: -l virtual-env,no-virtual-env,no-site-packages,force,update,upload,sanity,serial,help,debug,config:logging,logging-config,send-mail,result-xml:features:tags: -- "$@")
 then
     # parse error
     usage
@@ -60,6 +61,7 @@ while [ $# -gt 0 ]; do
     -n|--no-site-packages) no_site_packages=1;;
     -f|--force) force=1;;
     -u|--update) update=1;;
+    -U|--upload) upload=1;;
     -d|--debug) debug=1;;
     -C|--config) config_file=$2; shift;;
     -s|--sanity) tags+="sanity";;
@@ -78,6 +80,8 @@ done
 #if [ -n $tags ];then
 #    testrargs+=$tags
 #fi
+
+export SCRIPT_TS=$(date +"%F_%T")
 
 if [ -n "$config_file" ]; then
     config_file=`readlink -f "$config_file"`
@@ -132,7 +136,6 @@ function run_tests_serial {
   fi
   ${wrapper} testr run --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $serial_result_xml 
   python parse_result.py $serial_result_xml 
-  generate_html 
 }
 
 function run_tests {
@@ -156,19 +159,19 @@ function run_tests {
       sleep 2
   fi
   python parse_result.py $result_xml 
-  generate_html 
 }
 
 function generate_html {
   if [ -f $result_xml ]; then
-      ant
       ${wrapper} python tools/update_testsuite_properties.py $REPORT_DETAILS_FILE $result_xml
-      #${wrapper} python tools/upload_to_webserver.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE $REPORT_FILE 
+      ant
   fi
 }
 
 function upload_to_web_server {
-  ${wrapper} python tools/upload_to_webserver.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE $REPORT_FILE 
+  if [ $upload -eq 1 ] ; then
+      ${wrapper} python tools/upload_to_webserver.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE $REPORT_FILE
+  fi 
 }
 
 if [ $never_venv -eq 0 ]
@@ -224,7 +227,10 @@ if [[ -z $path ]] && [[ -z $testrargs ]];then
     run_tests
     run_tests_serial
 fi
+sleep 2
+generate_html 
 upload_to_web_server
+sleep 2
 send_mail $TEST_CONFIG_FILE $REPORT_FILE
 retval=$?
 
