@@ -11,6 +11,7 @@ from tcutils.util import *
 from tcutils.wrappers import preposttest_wrapper
 from neutron.neutron_util import combos
 from neutron.base import BaseNeutronTest
+import test
 
 
 class TestCRUD(BaseNeutronTest):
@@ -46,6 +47,7 @@ class TestCRUD(BaseNeutronTest):
     def tearDownClass(cls):
         super(TestCRUD, cls).tearDownClass()
 
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_network_subnet_port_crud(self):
         count = 0
@@ -480,6 +482,7 @@ class TestCRUD(BaseNeutronTest):
         # end for attribute_list
     # end update_port_tests
 
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_router_crud(self):
         count = 0

@@ -30,6 +30,7 @@ class TestRouters(BaseNeutronTest):
     def tearDownClass(cls):
         super(TestRouters, cls).tearDownClass()
 
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_basic_router_behavior(self):
         '''Validate a router is able to route packets between two VNs
@@ -70,6 +71,11 @@ class TestRouters(BaseNeutronTest):
             vn2_gateway in router_port_ips,\
             'One or more router port IPs are not gateway IPs'\
             'Router ports : %s' % (router_ports)
+        assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
+        self.delete_vn_from_router(router_dict['id'], vn1_fixture)
+        assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip,
+                                                  expectation=False)
+        self.add_vn_to_router(router_dict['id'], vn1_fixture)
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
     # end test_basic_router_behavior
 
@@ -129,6 +135,7 @@ class TestRouters(BaseNeutronTest):
             'admin_state_up'], 'Failed to update router admin_state_up'
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
 
+    @preposttest_wrapper
     def test_router_with_existing_ports(self):
         '''Validate routing works by using two existing ports
         Create a router
@@ -156,10 +163,8 @@ class TestRouters(BaseNeutronTest):
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip,
                                                    expectation=False)
 
-        port1_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id)
-        port2_obj = self.quantum_fixture.create_port(
-            net_id=vn2_fixture.vn_id)
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id)
+        port2_obj = self.create_port(net_id=vn2_fixture.vn_id)
         router_dict = self.create_router(router_name)
         self.add_router_interface(router_dict['id'], port_id=port1_obj['id'])
         self.add_router_interface(router_dict['id'], port_id=port2_obj['id'])

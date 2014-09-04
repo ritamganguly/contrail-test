@@ -45,7 +45,7 @@ class TestPorts(BaseNeutronTest):
         vn1_vm1_name = get_random_name('vn1-vm1')
         vn1_vm2_name = get_random_name('vn1-vm2')
         vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
-        port_obj = self.quantum_fixture.create_port(net_id=vn1_fixture.vn_id)
+        port_obj = self.create_port(net_id=vn1_fixture.vn_id)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
                                      image_name='cirros-0.3.0-x86_64-uec',
                                      port_ids=[port_obj['id']])
@@ -78,7 +78,7 @@ class TestPorts(BaseNeutronTest):
             self.logger.info('Unable to ping to a detached port.. OK')
 
         # Now attach the interface again
-        port_obj = self.quantum_fixture.create_port(net_id=vn1_fixture.vn_id)
+        port_obj = self.create_port(net_id=vn1_fixture.vn_id)
         vm1_fixture.interface_attach(port_id=port_obj['id'])
         time.sleep(5)
         vm1_fixture.vm_obj.get()
@@ -92,7 +92,7 @@ class TestPorts(BaseNeutronTest):
                               (vm1_fixture.vm_ip))
             result = result and False
 
-        return result
+        assert result, "Test Failed, pls look into the logs"
     # end test_ports_attach_detach
 
     @preposttest_wrapper
@@ -111,12 +111,10 @@ class TestPorts(BaseNeutronTest):
         vn1_fixture = self.create_vn(vn1_name, [vn1_subnet_1, vn1_subnet_2])
         vn1_subnet1_id = vn1_fixture.vn_subnet_objs[0]['id']
         vn1_subnet2_id = vn1_fixture.vn_subnet_objs[1]['id']
-        port1_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id,
-            subnet_id=vn1_subnet1_id)
-        port2_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id,
-            subnet_id=vn1_subnet2_id)
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id,
+                                     subnet_id=vn1_subnet1_id)
+        port2_obj = self.create_port(net_id=vn1_fixture.vn_id,
+                                     subnet_id=vn1_subnet2_id)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
                                      image_name='cirros-0.3.0-x86_64-uec',
                                      port_ids=[port1_obj['id']])
@@ -142,6 +140,7 @@ class TestPorts(BaseNeutronTest):
                                                 vm2_fixture.vm_ip)
     # end test_ports_specific_subnet
 
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_ports_specific_subnet_ip(self):
         '''Create ports with specific Subnet and IP
@@ -160,14 +159,12 @@ class TestPorts(BaseNeutronTest):
         vn1_subnet2_id = vn1_fixture.vn_subnet_objs[1]['id']
         vn1_subnet1_ip = get_an_ip(vn1_fixture.vn_subnet_objs[0]['cidr'], 5)
         vn1_subnet2_ip = get_an_ip(vn1_fixture.vn_subnet_objs[1]['cidr'], 5)
-        port1_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id,
-            subnet_id=vn1_subnet1_id,
-            ip_address=vn1_subnet1_ip)
-        port2_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id,
-            subnet_id=vn1_subnet2_id,
-            ip_address=vn1_subnet2_ip)
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id,
+                                     subnet_id=vn1_subnet1_id,
+                                     ip_address=vn1_subnet1_ip)
+        port2_obj = self.create_port(net_id=vn1_fixture.vn_id,
+                                     subnet_id=vn1_subnet2_id,
+                                     ip_address=vn1_subnet2_ip)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
                                      image_name='cirros-0.3.0-x86_64-uec',
                                      port_ids=[port1_obj['id']])
@@ -202,12 +199,10 @@ class TestPorts(BaseNeutronTest):
         vm1_mac = '00:00:00:00:00:01'
         vm2_mac = '00:00:00:00:00:02'
 
-        port1_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id,
-            mac_address=vm1_mac)
-        port2_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id,
-            mac_address=vm2_mac)
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id,
+                                     mac_address=vm1_mac)
+        port2_obj = self.create_port(net_id=vn1_fixture.vn_id,
+                                     mac_address=vm2_mac)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
                                      image_name='cirros-0.3.0-x86_64-uec',
                                      port_ids=[port1_obj['id']])
@@ -242,11 +237,9 @@ class TestPorts(BaseNeutronTest):
         vn1_vm2_name = get_random_name('vn1-vm2')
         vn1_fixture = self.create_vn(vn1_name, [vn1_subnet_1])
 
-        port1_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id,
-            no_security_group=True)
-        port2_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id)
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id,
+                                     no_security_group=True)
+        port2_obj = self.create_port(net_id=vn1_fixture.vn_id)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
                                      image_name='cirros-0.3.0-x86_64-uec',
                                      port_ids=[port1_obj['id']])
@@ -279,11 +272,9 @@ class TestPorts(BaseNeutronTest):
 
         sg1 = self.create_security_group(get_random_name('sg1'))
 
-        port1_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id,
-            security_groups=[sg1['id']])
-        port2_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id)
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id,
+                                     security_groups=[sg1['id']])
+        port2_obj = self.create_port(net_id=vn1_fixture.vn_id)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
                                      image_name='cirros-0.3.0-x86_64-uec',
                                      port_ids=[port1_obj['id']])
@@ -319,11 +310,9 @@ class TestPorts(BaseNeutronTest):
 
         dns_ip = get_random_ip(get_random_cidr())
         extra_dhcp_opts = [{'opt_name': '6', 'opt_value': dns_ip}]
-        port1_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id,
-            extra_dhcp_opts=extra_dhcp_opts)
-        port2_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id)
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id,
+                                     extra_dhcp_opts=extra_dhcp_opts)
+        port2_obj = self.create_port(net_id=vn1_fixture.vn_id)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
                                      port_ids=[port1_obj['id']])
         vm2_fixture = self.create_vm(vn1_fixture, vn1_vm2_name,
@@ -370,11 +359,9 @@ class TestPorts(BaseNeutronTest):
         vn1_vm1_name = get_random_name('vn1-vm1')
         vn1_fixture = self.create_vn(vn1_name, [vn1_subnet_1])
 
-        port1_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id)
-        self.quantum_fixture.delete_port(port1_obj['id'])
-        port2_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id)
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id)
+        self.delete_port(port1_obj['id'])
+        port2_obj = self.create_port(net_id=vn1_fixture.vn_id)
         port1_ip = port1_obj['fixed_ips'][0]['ip_address']
         port2_ip = port2_obj['fixed_ips'][0]['ip_address']
         assert port1_ip == port2_ip,\
@@ -391,8 +378,7 @@ class TestPorts(BaseNeutronTest):
         vn1_name = get_random_name('vn1')
         vn1_subnet = get_random_cidr()
         vn1_fixture = self.create_vn(vn1_name, [vn1_subnet])
-        port1_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id)
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id)
         port_dict = {'name': "test_port"}
         port_rsp = self.quantum_fixture.update_port(port1_obj['id'], port_dict)
         assert port_rsp['port'][
@@ -408,7 +394,7 @@ class TestPorts(BaseNeutronTest):
         vn1_vm1_name = get_random_name('vn1-vm1')
         vn1_vm2_name = get_random_name('vn1-vm2')
         vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
-        port_obj = self.quantum_fixture.create_port(net_id=vn1_fixture.vn_id)
+        port_obj = self.create_port(net_id=vn1_fixture.vn_id)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
                                      image_name='cirros-0.3.0-x86_64-uec',
                                      port_ids=[port_obj['id']])
@@ -448,10 +434,8 @@ class TestPorts(BaseNeutronTest):
 
         sg1 = self.create_security_group(get_random_name('sg1'))
 
-        port1_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id)
-        port2_obj = self.quantum_fixture.create_port(
-            net_id=vn1_fixture.vn_id)
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id)
+        port2_obj = self.create_port(net_id=vn1_fixture.vn_id)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
                                      image_name='cirros-0.3.0-x86_64-uec',
                                      port_ids=[port1_obj['id']])
@@ -474,3 +458,38 @@ class TestPorts(BaseNeutronTest):
             'Ping from VM %s to %s, should have failed' % (vm2_fixture.vm_ip,
                                                            vm1_fixture.vm_ip)
     # end test_ports_update_sg
+
+    @preposttest_wrapper
+    def test_ports_device_owner_and_id(self):
+        '''For a port, verify device owner and id are correct
+
+        Create a port in a VN
+        Device id and owner should be null
+        Attach it to a VM
+        Device id and owner should be updated to reflect the VM
+        '''
+        vn1_name = get_random_name('vn1')
+        vn1_subnet_1 = get_random_cidr()
+        vn1_vm1_name = get_random_name('vn1-vm1')
+        vn1_fixture = self.create_vn(vn1_name, [vn1_subnet_1])
+
+        port1_obj = self.create_port(net_id=vn1_fixture.vn_id)
+        assert port1_obj['device_id'] == '', \
+          "Port %s has device id not set to null on creation" % (port1_obj)
+        assert port1_obj['device_owner'] ==  '', \
+          "Port %s has device-owner not set to null on creation" % (port1_obj)
+
+        vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
+                                     image_name='cirros-0.3.0-x86_64-uec',
+                                     port_ids=[port1_obj['id']])
+        assert vm1_fixture.wait_till_vm_is_up(), 'VM does not seem to be up'
+
+        port1_obj = self.quantum_fixture.get_port(port1_obj['id'])
+        assert port1_obj['device_id'] == vm1_fixture.vm_id, \
+            "Port %s has device id not set to %s on VM Attach" % (
+            port1_obj, vm1_fixture.vm_id)
+        assert 'compute:' in port1_obj['device_owner'] , \
+            "Port %s has device-owner not set to compute:* on VM Attach" % (
+                port1_obj)
+
+    # end test_ports_device_owner_and_id

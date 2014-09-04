@@ -12,7 +12,6 @@ except ImportError:
     from neutronclient.client import HTTPClient
     from neutronclient.common.exceptions import NeutronClientException as CommonNetworkClientException
 
-
 class NetworkClientException(CommonNetworkClientException):
 
     def __init__(self, **kwargs):
@@ -133,6 +132,14 @@ class QuantumFixture(fixtures.Fixture):
         self.logger.debug('Response for create_port : ' + repr(port_rsp))
         return port_rsp['port']
     # end create_port
+
+    def get_port(self, port_id):
+        try:
+            port_obj = self.obj.show_port(port_id)
+            return port_obj['port'] 
+        except CommonNetworkClientException as e:
+            self.logger.debug('Get port on %s failed' % (port_id))
+    # end get_port
 
     def create_security_group(self, name):
         sg_dict = {'name': name, 'description': 'SG-' + name}
@@ -405,8 +412,12 @@ class QuantumFixture(fixtures.Fixture):
             body['port_id'] = port_id
         self.logger.info('Deleting interface with subnet_id %s, port_id %s'
                          ' from router %s' % (subnet_id, port_id, router_id))
-        result = self.obj.remove_interface_router(router_id, body)
-        return result
+        try:
+            result = self.obj.remove_interface_router(router_id, body)
+            return result
+        except NetworkClientException as e:
+            self.logger.exception(e)
+            raise NetworkClientException(message=str(e))
     # end delete_router_interface
 
     def update_router(self, router_id, router_dict):
