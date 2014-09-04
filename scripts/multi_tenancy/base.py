@@ -1,4 +1,5 @@
 import test
+import os
 from connections import ContrailConnections
 from vm_test import VMFixture
 from vn_test import VNFixture

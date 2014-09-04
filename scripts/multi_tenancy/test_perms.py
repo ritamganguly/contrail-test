@@ -25,6 +25,7 @@ from keystone_tests import *
 from tcutils.wrappers import preposttest_wrapper
 from base import BaseMultitenancyTest
 import tcutils.util as util
+import test
 
 class TestMultitenancy(BaseMultitenancyTest):
 
@@ -37,6 +38,7 @@ class TestMultitenancy(BaseMultitenancyTest):
         pass
     # end runTest
 
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_all(
         self, ip='127.0.0.1', port=8082, domain_name='default-domain',
@@ -54,6 +56,9 @@ class TestMultitenancy(BaseMultitenancyTest):
           10.Set IPAM perms such that owner/group has read/write permissions.try to update/read ipam with other user;should pass;else test fails
          Maintainer: sandipd@juniper.net
         '''
+        if self.inputs.multi_tenancy != 'True':
+            raise self.skipTest(
+                "Skiping Test. Multi-tenancy not enabled")
         result = True
         testfail = 0
         testpass = 0
@@ -353,6 +358,9 @@ class TestMultitenancy(BaseMultitenancyTest):
     @preposttest_wrapper
     def test_permissions_on_projects(self):
 
+        if self.inputs.multi_tenancy != 'True':
+            raise self.skipTest(
+                "Skiping Test. Multi-tenancy not enabled")
         proj_name = util.get_random_name('projF')
         domain_name = 'default-domain'
         ip = self.inputs.cfgm_ip
@@ -634,6 +642,9 @@ class TestMultitenancy(BaseMultitenancyTest):
     @preposttest_wrapper
     def test_permissions_on_policy_objects(self):
 
+        if self.inputs.multi_tenancy != 'True':
+            raise self.skipTest(
+                "Skiping Test. Multi-tenancy not enabled")
         proj_name = util.get_random_name('projF')
         domain_name = 'default-domain'
         ip = self.inputs.cfgm_ip
@@ -853,6 +864,9 @@ class TestMultitenancy(BaseMultitenancyTest):
 
     @preposttest_wrapper
     def test_permissions_on_vn_objects(self):
+        if self.inputs.multi_tenancy != 'True':
+            raise self.skipTest(
+                "Skiping Test. Multi-tenancy not enabled")
 
         proj_name = util.get_random_name('projF')
         domain_name = 'default-domain'
