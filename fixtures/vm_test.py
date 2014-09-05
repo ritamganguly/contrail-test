@@ -367,10 +367,13 @@ class VMFixture(fixtures.Fixture):
                 tap_intf = {}
                 tmp_vmi_id = vmi_id = cs_vmi_obj[vmi_vn_fq_name][
                     'virtual-machine-interface']['uuid']
-                tap_intf[vn_fq_name] = inspect_h.get_vna_tap_interface_by_vmi(
+                tap_intf = inspect_h.get_vna_tap_interface_by_vmi(
                     vmi_id=tmp_vmi_id)[0]
-                fip_addr_vm = tap_intf[vn_fq_name]['fip_list'][0]['ip_addr']
-            return fip_addr_vm
+                fip_list = tap_intf['fip_list']
+                for fip in fip_list:
+                    if vn_fq_name in fip['vrf_name']:
+                        fip_addr_vm = fip['ip_addr']
+                        return fip_addr_vm
         except IndexError, e:
             self.logger.error('No FIP Address listed')
             return None

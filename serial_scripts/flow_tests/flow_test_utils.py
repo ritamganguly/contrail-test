@@ -48,7 +48,7 @@ class VerifySvcMirror(ConfigSvcChain):
         return [True, None]
 
 
-def get_flow_data(config_topo, src_vm_name, dst_vm_name, proto):
+def get_flow_data(config_topo, src_vm_name, dst_vm_name, proto, src_proj, dst_proj):
     '''Flows can be of following types:
     i. intra-VN, intra-Node
     ii. intra-VN, inter-Node
@@ -73,26 +73,35 @@ def get_flow_data(config_topo, src_vm_name, dst_vm_name, proto):
             (K(nh):19, Action:D(FlowLim), S(nh):19,  Statistics:0/0)
     '''
     proto_map = {'icmp': 1, 1: 1, 'udp': 17, 17: 17, 'tcp': 6, 6: 6}
-    src_vm_fixture = config_topo['vm'][src_vm_name]
-    dst_vm_fixture = config_topo['vm'][dst_vm_name]
+    src_vm_fixture = config_topo[src_proj]['vm'][src_vm_name]
+    dst_vm_fixture = config_topo[dst_proj]['vm'][dst_vm_name]
     src_vm_vn_name = src_vm_fixture.vn_names[0]
     dst_vm_vn_name = dst_vm_fixture.vn_names[0]
-    src_vm_vn_fixt = config_topo['vn'][src_vm_vn_name]
-    dst_vm_vn_fixt = config_topo['vn'][dst_vm_vn_name]
+    src_vm_vn_fixt = config_topo[src_proj]['vn'][src_vm_vn_name]
+    dst_vm_vn_fixt = config_topo[dst_proj]['vn'][dst_vm_vn_name]
     src_vm_node_ip = src_vm_fixture.vm_ip
     dst_vm_node_ip = dst_vm_fixture.vm_ip
     src_vrf = src_vm_fixture.get_vrf_id(
         src_vm_vn_fixt.vn_fq_name,
         src_vm_vn_fixt.vrf_name)
-    dst_vrf = src_vm_fixture.get_vrf_id(
-        dst_vm_vn_fixt.vn_fq_name,
-        dst_vm_vn_fixt.vrf_name)
+    if src_vm_fixture.vm_node_ip == dst_vm_fixture.vm_node_ip:
+        dst_vrf = src_vm_fixture.get_vrf_id(
+            dst_vm_vn_fixt.vn_fq_name,
+            dst_vm_vn_fixt.vrf_name)
+    else:
+        dst_vrf = dst_vm_fixture.get_vrf_id(
+            dst_vm_vn_fixt.vn_fq_name,
+            dst_vm_vn_fixt.vrf_name)
     fip_flow = False
     src_vm_in_dst_vn_fip = src_vm_fixture.chk_vmi_for_fip(
         dst_vm_vn_fixt.vn_fq_name)
     if src_vm_in_dst_vn_fip is not None:
         fip_flow = True
     if fip_flow:
+        # For FIP case, always get dst_vrf from src node
+        dst_vrf = src_vm_fixture.get_vrf_id(
+            dst_vm_vn_fixt.vn_fq_name,
+            dst_vm_vn_fixt.vrf_name)
         # inter-VN, connected by fip scenario, vrf trnslation happens only in this case
         f_flow = {'src_ip': src_vm_node_ip, 'dst_ip': dst_vm_node_ip,
                   'proto': proto_map[proto], 'vrf': src_vrf}
@@ -134,5 +143,20 @@ def get_max_flow_removal_time(generated_flows, flow_cache_timeout):
     num_entries_inspected_per_stats_pass = (max_stats_pass_interval*generated_flows )/(1000*flow_cache_timeout)
     num_passes_needed_for_total_flows = generated_flows/num_entries_inspected_per_stats_pass
     time_to_complete_all_passes = num_passes_needed_for_total_flows*max_stats_pass_interval
-    return time_to_complete_all_passes
+    flow_removal_time_in_secs = time_to_complete_all_passes/1000
+    return flow_removal_time_in_secs
 # end get_max_flow_removal_time
+
+def update_vm_mdata_ip(compute_node, self):
+    '''Once vrouter service is restarted in compute_node, update VM metadata IPs'''
+    if 'project_list' in dir(self.topo):
+        self.projectList = self.topo.project_list
+    else:
+        self.projectList = [self.inputs.project_name]
+    for project in self.projectList:
+        vm_fixtures = self.config_topo[project]['vm'] 
+        for name,vm_fixt in vm_fixtures.items():
+            if vm_fixt.vm_node_data_ip == compute_node:
+                vm_fixt.wait_till_vm_is_up()
+        # end for vm fixture
+     # end for project           
