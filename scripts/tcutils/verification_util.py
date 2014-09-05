@@ -23,8 +23,10 @@ class JsonDrv (object):
 
     def _auth(self):
         if self._args:
-            url = os.getenv('OS_AUTH_URL') + 'tokens' or \
-                     "http://%s:%s%s" % (self._args.openstack_ip,
+            if os.getenv('OS_AUTH_URL'):
+                url = os.getenv('OS_AUTH_URL') + 'tokens'
+            else:
+                url = "http://%s:%s%s" % (self._args.openstack_ip,
                                          self._authn_port, 
                                          self._DEFAULT_AUTHN_URL)
             insecure = bool(os.getenv('OS_INSECURE',True))
