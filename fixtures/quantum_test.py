@@ -12,7 +12,6 @@ except ImportError:
     from neutronclient.client import HTTPClient
     from neutronclient.common.exceptions import NeutronClientException as CommonNetworkClientException
 
-
 class NetworkClientException(CommonNetworkClientException):
 
     def __init__(self, **kwargs):
@@ -54,18 +53,20 @@ class QuantumFixture(fixtures.Fixture):
     def setUp(self):
         super(QuantumFixture, self).setUp()
         project_id = get_plain_uuid(self.project_id)
+        insecure = bool(os.getenv('OS_INSECURE',True))
         try:
             httpclient = HTTPClient(username=self.username,
                                     tenant_id=project_id,
                                     password=self.password,
-                                    auth_url=self.auth_url)
+                                    auth_url=self.auth_url,
+                                    insecure=insecure)
             httpclient.authenticate()
         except CommonNetworkClientException as e:
             self.logger.exception('Exception while connection to Quantum')
             raise e
         OS_URL = httpclient.endpoint_url
         OS_TOKEN = httpclient.auth_token
-        self.obj = client.Client('2.0', endpoint_url=OS_URL, token=OS_TOKEN)
+        self.obj = client.Client('2.0', endpoint_url=OS_URL, token=OS_TOKEN, insecure=insecure)
         self.project_id = httpclient.auth_tenant_id
     # end setUp
 
@@ -133,6 +134,14 @@ class QuantumFixture(fixtures.Fixture):
         self.logger.debug('Response for create_port : ' + repr(port_rsp))
         return port_rsp['port']
     # end create_port
+
+    def get_port(self, port_id):
+        try:
+            port_obj = self.obj.show_port(port_id)
+            return port_obj['port'] 
+        except CommonNetworkClientException as e:
+            self.logger.debug('Get port on %s failed' % (port_id))
+    # end get_port
 
     def create_security_group(self, name):
         sg_dict = {'name': name, 'description': 'SG-' + name}
@@ -405,8 +414,12 @@ class QuantumFixture(fixtures.Fixture):
             body['port_id'] = port_id
         self.logger.info('Deleting interface with subnet_id %s, port_id %s'
                          ' from router %s' % (subnet_id, port_id, router_id))
-        result = self.obj.remove_interface_router(router_id, body)
-        return result
+        try:
+            result = self.obj.remove_interface_router(router_id, body)
+            return result
+        except NetworkClientException as e:
+            self.logger.exception(e)
+            raise NetworkClientException(message=str(e))
     # end delete_router_interface
 
     def update_router(self, router_id, router_dict):

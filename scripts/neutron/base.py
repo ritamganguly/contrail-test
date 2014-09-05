@@ -67,25 +67,46 @@ class BaseNeutronTest(test.BaseTestCase):
     def delete_router(self, router_id=None):
         val = self.quantum_fixture.delete_router(router_id)
 
+    def create_port(self, net_id, subnet_id=None, ip_address=None,
+                    mac_address=None, no_security_group=False,
+                    security_groups=[], extra_dhcp_opts=None):
+        port_rsp = self.quantum_fixture.create_port(net_id, subnet_id,
+                        ip_address, mac_address, no_security_group,
+                        security_groups, extra_dhcp_opts)
+        self.addCleanup(self.delete_port, port_rsp['id'], quiet=True)
+        return port_rsp
+
+    def delete_port(self, port_id, quiet=False):
+        self._remove_from_cleanup(self.quantum_fixture.delete_port, (port_id))
+        if quiet and not self.quantum_fixture.get_port(port_id):
+            return
+        self.quantum_fixture.delete_port(port_id)
+
     def add_router_interface(self, router_id, subnet_id=None, port_id=None):
         if subnet_id:
             result = self.quantum_fixture.add_router_interface(
                 router_id, subnet_id)
-            self.addCleanup(self.quantum_fixture.delete_router_interface,
-                            router_id, subnet_id)
         elif port_id:
             result = self.quantum_fixture.add_router_interface(router_id,
                                                                port_id=port_id)
-            self.addCleanup(self.quantum_fixture.delete_router_interface,
-                            router_id, port_id=port_id)
+
+        self.addCleanup(self.delete_router_interface,
+                        router_id, subnet_id, port_id)
         return result
 
-    def delete_router_interface(self, router_id, subnet_id):
+    def delete_router_interface(self, router_id, subnet_id=None, port_id=None):
+        self._remove_from_cleanup(self.delete_router_interface,
+                                  (router_id, subnet_id, port_id))
         self.quantum_fixture.delete_router_interface(
-            router_id, subnet_id)
+            router_id, subnet_id, port_id)
 
     def add_vn_to_router(self, router_id, vn_fixture):
         self.add_router_interface(
+            router_id,
+            vn_fixture.vn_subnet_objs[0]['id'])
+
+    def delete_vn_from_router(self, router_id, vn_fixture):
+        self.delete_router_interface(
             router_id,
             vn_fixture.vn_subnet_objs[0]['id'])
 
@@ -111,5 +132,5 @@ class BaseNeutronTest(test.BaseTestCase):
 
     def _remove_from_cleanup(self, func_call, args):
         for cleanup in self._cleanups:
-            if func_call in cleanup and args in cleanup[1]:
+            if func_call in cleanup and args == cleanup[1]:
                 self._cleanups.remove(cleanup)
