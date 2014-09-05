@@ -42,11 +42,13 @@ class NovaFixture(fixtures.Fixture):
 
     def setUp(self):
         super(NovaFixture, self).setUp()
+        insecure = bool(os.getenv('OS_INSECURE',True)) 
         self.obj = mynovaclient.Client('2',
                                        username=self.username,
                                        project_id=self.project_name,
                                        api_key=self.password,
-                                       auth_url=self.auth_url)
+                                       auth_url=self.auth_url,
+                                       insecure=insecure)
 
         try:
             self._create_keypair(self.key)
