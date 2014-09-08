@@ -12,6 +12,7 @@ except ImportError:
     from neutronclient.client import HTTPClient
     from neutronclient.common.exceptions import NeutronClientException as CommonNetworkClientException
 
+
 class NetworkClientException(CommonNetworkClientException):
 
     def __init__(self, **kwargs):
@@ -46,14 +47,14 @@ class QuantumFixture(fixtures.Fixture):
         self.inputs = inputs
         self.obj = None
         self.auth_url = os.getenv('OS_AUTH_URL') or \
-                                    'http://' + openstack_ip + ':5000/v2.0'
+            'http://' + openstack_ip + ':5000/v2.0'
         self.logger = self.inputs.logger
     # end __init__
 
     def setUp(self):
         super(QuantumFixture, self).setUp()
         project_id = get_plain_uuid(self.project_id)
-        insecure = bool(os.getenv('OS_INSECURE',True))
+        insecure = bool(os.getenv('OS_INSECURE', True))
         try:
             httpclient = HTTPClient(username=self.username,
                                     tenant_id=project_id,
@@ -66,7 +67,11 @@ class QuantumFixture(fixtures.Fixture):
             raise e
         OS_URL = httpclient.endpoint_url
         OS_TOKEN = httpclient.auth_token
-        self.obj = client.Client('2.0', endpoint_url=OS_URL, token=OS_TOKEN, insecure=insecure)
+        self.obj = client.Client(
+            '2.0',
+            endpoint_url=OS_URL,
+            token=OS_TOKEN,
+            insecure=insecure)
         self.project_id = httpclient.auth_tenant_id
     # end setUp
 
@@ -77,7 +82,7 @@ class QuantumFixture(fixtures.Fixture):
         return self.obj
     # end get_handle
 
-    def create_network(self, vn_name, vn_subnets, ipam_fq_name):
+    def create_network(self, vn_name, vn_subnets=None, ipam_fq_name=None):
         """Create network given a name and a list of subnets.
         """
         try:
@@ -87,9 +92,10 @@ class QuantumFixture(fixtures.Fixture):
 
             vn_id = net_rsp['network']['id']
             net_id = net_rsp['network']['id']
-            for subnet in vn_subnets:
-                net_rsp = self.create_subnet(
-                    subnet, net_id, ipam_fq_name)
+            if vn_subnets:
+                for subnet in vn_subnets:
+                    net_rsp = self.create_subnet(
+                        subnet, net_id, ipam_fq_name)
             # end for
             return self.obj.show_network(network=net_id)
         except CommonNetworkClientException as e:
@@ -98,15 +104,24 @@ class QuantumFixture(fixtures.Fixture):
             return None
 
     def create_subnet(self, subnet, net_id, ipam_fq_name=None):
-        subnet_req = subnet
-        subnet_req['network_id'] = net_id
-        subnet_req['ip_version'] = 4
-        subnet_req['cidr'] = unicode(subnet_req['cidr'])
-        subnet_req['contrail:ipam_fq_name'] = ipam_fq_name
+        try:
+            subnet_req = subnet
+            subnet_req['network_id'] = net_id
+            subnet_req['ip_version'] = 4
+            subnet_req['cidr'] = unicode(subnet_req['cidr'])
+            subnet_req['contrail:ipam_fq_name'] = ipam_fq_name
 
-        subnet_rsp = self.obj.create_subnet({'subnet': subnet_req})
-        self.logger.debug('Response for create_subnet : ' + repr(subnet_rsp))
-        return subnet_rsp
+            subnet_rsp = self.obj.create_subnet({'subnet': subnet_req})
+            self.logger.debug(
+                'Response for create_subnet : ' +
+                repr(subnet_rsp))
+            return subnet_rsp
+        except CommonNetworkClientException as e:
+            self.logger.exception(
+                'Quantum Exception while creating subnet for vn with id %s' %
+                (net_id))
+            return None
+
     # end create_subnet
 
     def create_port(self, net_id, subnet_id=None, ip_address=None,
@@ -130,23 +145,37 @@ class QuantumFixture(fixtures.Fixture):
             port_req_dict['extra_dhcp_opts'] = extra_dhcp_opts
 
         port_req_dict['fixed_ips'] = [fixed_ip_req]
-        port_rsp = self.obj.create_port({'port': port_req_dict})
-        self.logger.debug('Response for create_port : ' + repr(port_rsp))
-        return port_rsp['port']
+        try:
+            port_rsp = self.obj.create_port({'port': port_req_dict})
+            self.logger.debug('Response for create_port : ' + repr(port_rsp))
+            return port_rsp['port']
+        except CommonNetworkClientException as e:
+            self.logger.exception(
+                'Quantum Exception while creating port in vn with id %s' %
+                (net_id))
+            return None
+
     # end create_port
 
     def get_port(self, port_id):
         try:
             port_obj = self.obj.show_port(port_id)
-            return port_obj['port'] 
+            return port_obj['port']
         except CommonNetworkClientException as e:
             self.logger.debug('Get port on %s failed' % (port_id))
     # end get_port
 
     def create_security_group(self, name):
-        sg_dict = {'name': name, 'description': 'SG-' + name}
-        sg_resp = self.obj.create_security_group({'security_group': sg_dict})
-        return sg_resp['security_group']
+        try:
+            sg_dict = {'name': name, 'description': 'SG-' + name}
+            sg_resp = self.obj.create_security_group(
+                {'security_group': sg_dict})
+            return sg_resp['security_group']
+        except CommonNetworkClientException as e:
+            self.logger.exception(
+                'Quantum Exception while creating security group %s' % (name))
+            return None
+
     # end create_security_group
 
     def delete_security_group(self, sg_id):
@@ -236,10 +265,17 @@ class QuantumFixture(fixtures.Fixture):
     # end list_networks
 
     def create_floatingip(self, fip_pool_vn_id, project_id):
-        fip_req = {'floatingip': {'floating_network_id': fip_pool_vn_id,
-                                  'tenant_id': project_id}}
-        fip_resp = self.obj.create_floatingip(fip_req)
-        return fip_resp
+        try:
+            fip_req = {'floatingip': {'floating_network_id': fip_pool_vn_id,
+                                      'tenant_id': project_id}}
+            fip_resp = self.obj.create_floatingip(fip_req)
+            return fip_resp
+        except CommonNetworkClientException as e:
+            self.logger.exception(
+                'Quantum Exception while creating floatingip for tenant %s with fip_pool_vn_id %s' %
+                (project_id, fip_pool_vn_id))
+            return None
+
     # end create_floatingip
 
     def delete_floatingip(self, fip_id):
@@ -248,7 +284,7 @@ class QuantumFixture(fixtures.Fixture):
     # end delete_floatingip
 
     def list_floatingips(self, tenant_id):
-        self.obj.list_floatingips(tenant_id=tenant_id)
+        return self.obj.list_floatingips(tenant_id=tenant_id)
     # end
 
     def get_floatingip(self, fip_id):
@@ -370,7 +406,12 @@ class QuantumFixture(fixtures.Fixture):
         router_body['router']['name'] = router_name
         if tenant_id:
             router_body['router']['tenant_id'] = tenant_id
-        return self.obj.create_router(router_body)['router']
+        try:
+            return self.obj.create_router(router_body)['router']
+        except CommonNetworkClientException as e:
+            self.logger.exception(
+                'Quantum Exception while creating Router %s' % (router_name))
+            return None
 
     def delete_router(self, router_id=None):
         return self.obj.delete_router(router_id)
@@ -479,5 +520,16 @@ class QuantumFixture(fixtures.Fixture):
             raise e
         return port_rsp
     # end update_port
+
+    def show_quota(self, tenant_id):
+        quota_rsp = None
+        try:
+            quota_rsp = self.obj.show_quota(tenant_id)
+        except CommonNetworkClientException as e:
+            self.logger.error(
+                "Quantum Exception while running show quota" + str(e))
+            raise e
+        return quota_rsp
+    # end show_quota
 
 # end QuantumFixture
