@@ -18,6 +18,20 @@ LOG_FORMAT = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
 _loggers = {}
 
+class NullHandler(logging.Handler):
+    """
+    For backward-compatibility with Python 2.6, a local class definition
+    is used instead of logging.NullHandler
+    """
+
+    def handle(self, record):
+        pass
+
+    def emit(self, record):
+        pass
+
+    def createLock(self):
+        self.lock = None
 
 def getLogger(log_file = 'abcd', name='unknown'):
     if name not in _loggers:
@@ -47,7 +61,8 @@ class ContrailLogger:
         self.console_h.setLevel(logging.INFO)
         self.console_h.setFormatter(LOG_FORMAT)
         self.logger.addHandler(self.console_h)
-        self.logger.addHandler(logging.NullHandler())
+        #self.logger.addHandler(logging.NullHandler())
+        self.logger.addHandler(NullHandler())
 
     def cleanUp(self):
         pass
