@@ -6,8 +6,8 @@ import sys
 
 def get_build_id():
     cmd = 'contrail-version|grep contrail | head -1 | awk \'{print $2}\''
-    build_id = subprocess.check_output(
-                    cmd, stderr=subprocess.STDOUT, shell=True)
+    build_id = subprocess.Popen(
+                    [cmd],stdout=subprocess.PIPE,shell=True).communicate()[0]
     return build_id.rstrip('\n')
 
 def send_mail(config_file, file_to_send):
