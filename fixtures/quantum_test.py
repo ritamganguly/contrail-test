@@ -104,13 +104,12 @@ class QuantumFixture(fixtures.Fixture):
             return None
 
     def create_subnet(self, subnet, net_id, ipam_fq_name=None):
+        subnet_req = subnet
+        subnet_req['network_id'] = net_id
+        subnet_req['ip_version'] = 4
+        subnet_req['cidr'] = unicode(subnet_req['cidr'])
+        subnet_req['contrail:ipam_fq_name'] = ipam_fq_name
         try:
-            subnet_req = subnet
-            subnet_req['network_id'] = net_id
-            subnet_req['ip_version'] = 4
-            subnet_req['cidr'] = unicode(subnet_req['cidr'])
-            subnet_req['contrail:ipam_fq_name'] = ipam_fq_name
-
             subnet_rsp = self.obj.create_subnet({'subnet': subnet_req})
             self.logger.debug(
                 'Response for create_subnet : ' +
@@ -166,8 +165,8 @@ class QuantumFixture(fixtures.Fixture):
     # end get_port
 
     def create_security_group(self, name):
+        sg_dict = {'name': name, 'description': 'SG-' + name}
         try:
-            sg_dict = {'name': name, 'description': 'SG-' + name}
             sg_resp = self.obj.create_security_group(
                 {'security_group': sg_dict})
             return sg_resp['security_group']
@@ -265,9 +264,9 @@ class QuantumFixture(fixtures.Fixture):
     # end list_networks
 
     def create_floatingip(self, fip_pool_vn_id, project_id):
-        try:
-            fip_req = {'floatingip': {'floating_network_id': fip_pool_vn_id,
+        fip_req = {'floatingip': {'floating_network_id': fip_pool_vn_id,
                                       'tenant_id': project_id}}
+        try:
             fip_resp = self.obj.create_floatingip(fip_req)
             return fip_resp
         except CommonNetworkClientException as e:
