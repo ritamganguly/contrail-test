@@ -135,7 +135,7 @@ function run_tests_serial {
       return $?
   fi
   ${wrapper} testr run --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $serial_result_xml 
-  python parse_result.py $serial_result_xml 
+  python tools/parse_result.py $serial_result_xml 
 }
 
 function run_tests {
@@ -158,7 +158,7 @@ function run_tests {
       ${wrapper} testr run --parallel --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml
       sleep 2
   fi
-  python parse_result.py $result_xml 
+  python tools/parse_result.py $result_xml 
 }
 
 function generate_html {
@@ -204,7 +204,38 @@ then
   fi
 fi
 
+function find_python_version {
+output=$(python --version)
+if [[ "$output"  =~ "2.6" ]];then
+            returncode=0
+            return $returncode 
+fi
+if [[ "$output" =~ "2.7" ]];then
+        returncode=1 
+        return $returncode 
+fi
+}
+
+function apply_testtools_patch_for_centos {
+
+find_python_version
+if [ $? -eq 0 ];then
+    patch_path=$PWD/tools
+    src_path=/usr/lib/python2.6/site-packages
+    patch -p0 -N --dry-run --silent $src_path/discover.py < $patch_path/unittest2-discover.patch 2>/dev/null
+    #If the patch has not been applied then the $? which is the exit status 
+    #for last command would have a success status code = 0
+    if [ $? -eq 0 ];
+    then
+        #apply the patch
+        echo 'Applied patch'
+        patch -p0 -N $src_path/discover.py < $patch_path/unittest2-discover.patch
+    fi
+fi
+}
+
 export PYTHONPATH=$PATH:$PWD/scripts:$PWD/fixtures
+apply_testtools_patch_for_centos
 
 if [[ ! -z $path ]];then
     for p in $path

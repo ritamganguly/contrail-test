@@ -549,7 +549,7 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         for each_profile in traffic_profiles:
             result = self.generate_udp_flows(
                 traffic_profiles[each_profile], str(BuildTag))
-            verify_system_parameters(self, out)
+            #verify_system_parameters(self, out)
             self.delete_agent_flows()
             if not result:
                 return False
@@ -653,17 +653,20 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
                 begin_flow_count = self.comp_node_fixt[
                     self.cmp_node].get_vrouter_matching_flow_count(
                     self.flow_data)
+                self.logger.debug('begin_flow_count: %s' %(begin_flow_count))
                 if begin_flow_count['all'] == 0:
                     break
                 flow_teardown_time = math.ceil(flow_test_utils.get_max_flow_removal_time(begin_flow_count['all'], self.flow_cache_timeout))
                 # flow_teardown_time is not the actual time to remove flows
                 # Based on flow_count at this time, teardown_time is calculated to the value
                 # which will vary with agent's poll, which is done at regular intervals..
+                self.logger.info('Sleeping for %s secs' %(flow_teardown_time))
                 sleep(flow_teardown_time)
                 # at the end of wait, actual_flows should be atleast < 50% of total flows before start of teardown
                 current_flow_count = self.comp_node_fixt[
                     self.cmp_node].get_vrouter_matching_flow_count(
                     self.flow_data)
+                self.logger.debug('current_flow_count: %s' %(current_flow_count))
                 if current_flow_count['all'] > (0.5*begin_flow_count['all']):
                     msg = ['Flow removal not happening as expected in node %s' %self.cmp_node]
                     msg.append('Flow count before wait: %s, after wait of %s secs, its: %s' %
@@ -843,6 +846,7 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
             self.logger.info(
                 "Wait for 2s for flow setup to start after service restart")
             sleep(2)
+            flow_test_utils.update_vm_mdata_ip(self.cmp_node, self)
             self.traffic_obj = self.useFixture(
                 traffic_tests.trafficTestFixture(self.connections))
             # def startTraffic (tx_vm_fixture= None, rx_vm_fixture= None,

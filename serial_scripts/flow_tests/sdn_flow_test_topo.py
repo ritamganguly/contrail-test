@@ -4,7 +4,6 @@
 class sdn_flow_test_topo_single_project ():
 
     def __init__(self, domain='default-domain', compute_node_list=None):
-        print "building dynamic topo"
         self.project_list = ['project1']
 
         # Define the vm to compute node mapping to pin a vm to a particular
@@ -126,7 +125,6 @@ class sdn_flow_test_topo_single_project ():
 class sdn_flow_test_topo_multi_project ():
 
     def __init__(self, domain='default-domain', compute_node_list=None):
-        print "building dynamic topo"
         self.project_list = ['project1', 'project2']
 
         # Define the vm to compute node mapping to pin a vm to a particular
@@ -157,10 +155,10 @@ class sdn_flow_test_topo_multi_project ():
         #
         # Define traffic profile.
         self.traffic_profile = {
-            'TrafficProfile1': {'src_vm': 'vmc1', 'dst_vm': 'vmc2', 'num_flows': 300000, 'num_pkts': 2000000},
-            'TrafficProfile2': {'src_vm': 'vmc4', 'dst_vm': 'vmc7', 'num_flows': 300000, 'num_pkts': 2000000},
-            'TrafficProfile3': {'src_vm': 'vmc3', 'dst_vm': 'vmc4', 'num_flows': 300000, 'num_pkts': 2000000},
-            'TrafficProfile3': {'src_vm': 'vmc3', 'dst_vm': 'vmc7', 'num_flows': 300000, 'num_pkts': 2000000}}
+            'TrafficProfile1': {'src_vm': 'vmc1', 'dst_vm': 'vmc2', 'num_flows': 50000, 'num_pkts': 2000000},
+            'TrafficProfile2': {'src_vm': 'vmc4', 'dst_vm': 'vmc7', 'num_flows': 50000, 'num_pkts': 2000000},
+            'TrafficProfile3': {'src_vm': 'vmc3', 'dst_vm': 'vmc4', 'num_flows': 50000, 'num_pkts': 2000000},
+            'TrafficProfile4': {'src_vm': 'vmc3', 'dst_vm': 'vmc7', 'num_flows': 50000, 'num_pkts': 2000000}}
         #
         # A master list of all the vm static routes defined.
         self.vm_static_route_master = {
@@ -259,25 +257,3 @@ class sdn_flow_test_topo_multi_project ():
     # end build_topo_project2
 
 # end sdn_flow_test_topo_multi_project
-
-if __name__ == '__main__':
-    print "Currently topology limited to one domain/project.."
-    print "Based on need, can be extended to cover config for multiple domain/projects"
-    print "Running unit test for this module ..."
-    my_topo = sdn_basic_policy_topo_with_3_project(domain='default-domain')
-    x = my_topo.__dict__
-    print "\nprinting keys of topology dict:"
-    for key, value in x.iteritems():
-        print key
-    print
-    # print "keys & values:"
-    # for key, value in x.iteritems(): print key, "-->", value
-    # Use topology_helper to extend/derive data from user-defined topology to help verifications.
-    # ex. get list of all vm's from topology; get list of vn's associated to a
-    # policy
-    import topo_helper
-    topo_h = topo_helper.topology_helper(my_topo)
-    #vmc_list= topo_h.get_vmc_list()
-    policy_vn = topo_h.get_policy_vn()
-    print "printing derived topo data - vn's associated to a policy: \n", policy_vn
-#
