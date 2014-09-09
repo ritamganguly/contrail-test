@@ -3,9 +3,12 @@ from policy_test import PolicyFixture
 from vm_test import VMFixture
 from base import BaseSerialPolicyTest
 from tcutils.wrappers import preposttest_wrapper
+from sdn_topo_setup import sdnTopoSetupFixture
 from system_verification import assertEqual
+import system_verification 
 from traffic_tests import trafficTestFixture
-from time import sleep
+import time
+import sdn_policy_traffic_test_topo
 
 
 class TestSerialPolicy(BaseSerialPolicyTest):
@@ -205,7 +208,7 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         self.inputs.stop_service('contrail-control', [active_controller])
         self.addCleanup(self.inputs.start_service,
                         'contrail-control', [active_controller])
-        sleep(5)
+        time.sleep(5)
 
         # Check the control node shifted to other control node
         new_active_controller = None
@@ -248,10 +251,10 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         policy_fq_name1 = [policy3_fixture.policy_fq_name]
         policy_fq_name2 = [policy4_fixture.policy_fq_name]
         vn1_fixture.bind_policies(policy_fq_name1, vn1_fixture.vn_id)
-        sleep(5)
+        time.sleep(5)
         # bind the new policy to VN2
         vn2_fixture.bind_policies(policy_fq_name2, vn2_fixture.vn_id)
-        sleep(5)
+        time.sleep(5)
 
         # policy deny applied traffic should fail
         self.logger.info(
@@ -283,11 +286,11 @@ class TestSerialPolicy(BaseSerialPolicyTest):
                          (active_controller))
         self.inputs.start_service('contrail-control', [active_controller])
 
-        sleep(10)
+        time.sleep(10)
         # Check the BGP peering status from the currently active control node
         cn_bgp_entry = self.cn_inspect[
             new_active_controller].get_cn_bgp_neigh_entry()
-        sleep(5)
+        time.sleep(5)
         for entry in cn_bgp_entry:
             if entry['state'] != 'Established':
                 result = result and False
@@ -302,7 +305,7 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         self.inputs.stop_service('contrail-control', [new_active_controller])
         self.addCleanup(self.inputs.start_service,
                         'contrail-control', [new_active_controller])
-        sleep(5)
+        time.sleep(5)
 
         # Check the control node shifted back to previous cont
         orig_active_controller = None
@@ -361,4 +364,228 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         return True
     # end test_controlnode_switchover_policy_between_vns_traffic
 
+    @preposttest_wrapper
+    def test_policy_single_vn_with_multi_proto_traffic(self):
+        """ Call policy_test_with_multi_proto_traffic with single VN scenario.
+        """
+        topology_class_name = sdn_policy_traffic_test_topo.sdn_1vn_2vm_config
+        self.logger.info(
+            "Scenario for the test used is: %s" %
+            (topology_class_name))
+        # set project name
+        try:
+            # provided by wrapper module if run in parallel test env
+            topo = topology_class_name(
+                project=self.project.project_name,
+                username=self.project.username,
+                password=self.project.password)
+        except NameError:
+            topo = topology_class_name()
+        return self.policy_test_with_multi_proto_traffic(topo)
+
+    @preposttest_wrapper
+    def test_policy_multi_vn_with_multi_proto_traffic(self):
+        """ Call policy_test_with_multi_proto_traffic with multi VN scenario.
+        """
+        topology_class_name = sdn_policy_traffic_test_topo.sdn_2vn_2vm_config
+        self.logger.info(
+            "Scenario for the test used is: %s" %
+            (topology_class_name))
+        # set project name
+        try:
+            # provided by wrapper module if run in parallel test env
+            topo = topology_class_name(
+                project=self.project.project_name,
+                username=self.project.username,
+                password=self.project.password)
+        except NameError:
+            topo = topology_class_name()
+        return self.policy_test_with_multi_proto_traffic(topo)
+
+    def policy_test_with_multi_proto_traffic(self, topo):
+        """ Pick 2 VM's for testing, have rules affecting icmp & udp protocols..
+        Generate traffic streams matching policy rules - udp & icmp for now..
+        assert if traffic failure is seen as no disruptive trigger is applied here..
+        """
+        result = True
+        msg = []
+        #
+        # Test setup: Configure policy, VN, & VM
+        setup_obj = self.useFixture(
+            sdnTopoSetupFixture(self.connections, topo))
+        out = setup_obj.topo_setup()
+        #out= setup_obj.topo_setup(vm_verify='yes', skip_cleanup='yes')
+        self.logger.info("Setup completed with result %s" % (out['result']))
+        self.assertEqual(out['result'], True, out['msg'])
+        if out['result'] == True:
+            topo, config_topo = out['data']
+        # Setup/Verify Traffic ---
+        # 1. Define Traffic Params
+        test_vm1 = topo.vmc_list[0]  # 'vmc0'
+        test_vm2 = topo.vmc_list[1]  # 'vmc1'
+        test_vm1_fixture = config_topo['vm'][test_vm1]
+        test_vm2_fixture = config_topo['vm'][test_vm2]
+        test_vn = topo.vn_of_vm[test_vm1]  # 'vnet0'
+        test_vn1 = topo.vn_of_vm[test_vm2]
+        traffic_obj = {}
+        startStatus = {}
+        stopStatus = {}
+        traffic_proto_l = ['icmp', 'udp', 'tcp']
+        total_streams = {}
+        total_streams['icmp'] = 1
+        total_streams['udp'] = 1
+        total_streams['tcp'] = 1
+        dpi = 9100
+        # 2. set expectation to verify..
+        matching_rule_action = {}
+        # Assumption made here: one policy assigned to test_vn
+        policy = topo.vn_policy[test_vn][0]
+        policy_info = "policy in effect is : " + str(topo.rules[policy])
+        num_rules = len(topo.rules[policy])
+        for i in range(num_rules):
+            proto = topo.rules[policy][i]['protocol']
+            matching_rule_action[proto] = topo.rules[
+                policy][i]['simple_action']
+        if num_rules == 0:
+            for proto in traffic_proto_l:
+                matching_rule_action[proto] = 'deny'
+        self.logger.info("matching_rule_action: %s" % matching_rule_action)
+        # 3. Start Traffic
+        expectedResult = {}
+        start_time = self.analytics_obj.getstarttime(
+            self.inputs.compute_ips[0])
+        for proto in traffic_proto_l:
+            expectedResult[proto] = True if matching_rule_action[
+                proto] == 'pass' else False
+            traffic_obj[proto] = {}
+            startStatus[proto] = {}
+            traffic_obj[proto] = self.useFixture(
+                trafficTestFixture(self.connections))
+            # def startTraffic (self, name, num_streams= 1, start_port= 9100, tx_vm_fixture= None, rx_vm_fixture= None, stream_proto= 'udp', \
+            # packet_size= 100, start_sport= 8000,
+            # total_single_instance_streams= 20):
+            startStatus[proto] = traffic_obj[proto].startTraffic(
+                num_streams=total_streams[proto], start_port=dpi,
+                tx_vm_fixture=test_vm1_fixture, rx_vm_fixture=test_vm2_fixture, stream_proto=proto)
+            msg1 = "Status of start traffic : %s, %s, %s" % (
+                proto, test_vm1_fixture.vm_ip, startStatus[proto]['status'])
+            if startStatus[proto]['status'] == False:
+                self.logger.error(msg1)
+                msg.extend(
+                    [msg1, 'More info on failure: ', startStatus[proto]['msg']])
+            else:
+                self.logger.info(msg1)
+            self.assertEqual(startStatus[proto]['status'], True, msg)
+        self.logger.info("-" * 80)
+        # 4. Poll live traffic
+        # poll traffic and get status - traffic_stats['msg'],
+        # traffic_stats['status']
+        self.logger.info("Poll live traffic and get status..")
+        for proto in traffic_proto_l:
+            traffic_stats = traffic_obj[proto].getLiveTrafficStats()
+            err_msg = [policy_info] + traffic_stats['msg']
+            self.logger.info(" --> , flow proto: %s, expected: %s, got: %s" %
+                             (proto, expectedResult[proto], traffic_stats['status']))
+            self.assertEqual(traffic_stats['status'],
+                             expectedResult[proto], err_msg)
+        self.logger.info("-" * 80)
+        # 4.a Opserver verification
+        self.logger.info("Verfiy Policy info in Opserver")
+        self.logger.info("-" * 80)
+        exp_flow_count = total_streams['icmp'] + \
+            total_streams['tcp'] + total_streams['udp']
+        self.logger.info("-" * 80)
+
+        src_vn = 'default-domain' + ':' + \
+            self.inputs.project_name + ':' + test_vn
+        dst_vn = 'default-domain' + ':' + \
+            self.inputs.project_name + ':' + test_vn1
+        query = {}
+        query['udp'] = '(' + 'sourcevn=' + src_vn + ') AND (destvn=' + dst_vn + ') AND (protocol =17) AND (sourceip=' + \
+            test_vm1_fixture.vm_ip + \
+            ') AND (destip=' + test_vm2_fixture.vm_ip + ')'
+        query['tcp'] = '(' + 'sourcevn=' + src_vn + ') AND (destvn=' + dst_vn + ') AND (protocol =6) AND (sourceip=' + \
+            test_vm1_fixture.vm_ip + \
+            ') AND (destip=' + test_vm2_fixture.vm_ip + ')'
+        query['icmp'] = '(' + 'sourcevn=' + src_vn + ') AND (destvn=' + dst_vn + ') AND (protocol =1) AND (sourceip=' + \
+            test_vm1_fixture.vm_ip + \
+            ') AND (destip=' + test_vm2_fixture.vm_ip + ')'
+        flow_record_data = {}
+        flow_series_data = {}
+        expected_flow_count = {}
+        for proto in traffic_proto_l:
+            flow_record_data[proto] = self.ops_inspect.post_query('FlowRecordTable', start_time=start_time, end_time='now', select_fields=[
+                                                                  'sourcevn', 'sourceip', 'destvn', 'destip', 'setup_time', 'teardown_time', 'agg-packets', 'agg-bytes', 'protocol'], where_clause=query[proto])
+            flow_series_data[proto] = self.ops_inspect.post_query('FlowSeriesTable', start_time=start_time, end_time='now', select_fields=[
+                                                                  'sourcevn', 'sourceip', 'destvn', 'destip', 'sum(packets)', 'flow_count', 'sum(bytes)', 'sum(bytes)'], where_clause=query[proto])
+            msg1 = proto + \
+                " Flow count info is not matching with opserver flow series record"
+            # initialize expected_flow_count to num streams generated for the
+            # proto
+            expected_flow_count[proto] = total_streams[proto]
+            self.logger.info(flow_series_data[proto])
+            self.assertEqual(
+                flow_series_data[proto][0]['flow_count'], expected_flow_count[proto], msg1)
+        # 5. Stop Traffic
+        self.logger.info("Proceed to stop traffic..")
+        self.logger.info("-" * 80)
+        traffic_stats = {}
+        for proto in traffic_proto_l:
+            stopStatus[proto] = traffic_obj[proto].stopTraffic()
+            status = True if stopStatus[proto] == [] else False
+            if status != expectedResult[proto]:
+                msg.append(stopStatus[proto])
+                result = False
+            self.logger.info("Status of stop traffic for proto %s is %s" %
+                             (proto, stopStatus[proto]))
+            # Get the traffic Stats for each protocol sent
+            traffic_stats[proto] = traffic_obj[proto].returnStats()
+            time.sleep(5)
+            # Get the Opserver Flow series data
+            flow_series_data[proto] = self.ops_inspect.post_query('FlowSeriesTable', start_time=start_time, end_time='now', select_fields=[
+                                                                  'sourcevn', 'sourceip', 'destvn', 'destip', 'sum(packets)', 'flow_count', 'sum(bytes)', 'sum(bytes)'], where_clause=query[proto])
+        self.assertEqual(result, True, msg)
+        # 6. Match traffic stats against Analytics flow series data
+        self.logger.info("-" * 80)
+        self.logger.info(
+            "***Match traffic stats against Analytics flow series data***")
+        self.logger.info("-" * 80)
+        msg = {}
+        for proto in traffic_proto_l:
+            self.logger.info(
+                " verify %s traffic status against Analytics flow series data" % (proto))
+            msg[proto] = proto + \
+                " Traffic Stats is not matching with opServer flow series data"
+            self.logger.info(
+                "***Actual Traffic sent by agent %s \n\n stats shown by Analytics flow series%s" %
+                (traffic_stats[proto], flow_series_data[proto]))
+            self.assertGreaterEqual(flow_series_data[proto][0]['sum(packets)'], traffic_stats[
+                                    proto]['total_pkt_sent'], msg[proto])
+
+        # 6.a Let flows age out and verify analytics still shows the data
+        self.logger.info("-" * 80)
+        self.logger.info(
+            "***Let flows age out and verify analytics still shows the data in the history***")
+        self.logger.info("-" * 80)
+        time.sleep(180)
+        for proto in traffic_proto_l:
+            self.logger.info(
+                " verify %s traffic status against Analytics flow series data after flow age out" % (proto))
+            flow_series_data[proto] = self.ops_inspect.post_query('FlowSeriesTable', start_time='now', end_time='now', select_fields=[
+                                                                  'sourcevn', 'sourceip', 'destvn', 'destip', 'sum(packets)', 'flow_count', 'sum(bytes)', 'sum(bytes)'], where_clause=query[proto])
+            msg = proto + \
+                " Flow count info is not matching with opserver flow series record after flow age out in kernel"
+            # live flows shoud be '0' since all flows are age out in kernel
+            # self.assertEqual(flow_series_data[proto][0]['flow_count'],0,msg)
+            self.assertEqual(len(flow_series_data[proto]), 0, msg)
+            flow_series_data[proto] = self.ops_inspect.post_query('FlowSeriesTable', start_time=start_time, end_time='now', select_fields=[
+                                                                  'sourcevn', 'sourceip', 'destvn', 'destip', 'sum(packets)', 'flow_count', 'sum(bytes)', 'sum(bytes)'], where_clause=query[proto])
+            msg = proto + \
+                " Traffic Stats is not matching with opServer flow series data after flow age out in kernel"
+            # Historical data should be present in the Analytics, even if flows
+            # age out in kernel
+            self.assertGreaterEqual(
+                flow_series_data[proto][0]['sum(packets)'], traffic_stats[proto]['total_pkt_sent'], msg)
+        return result
+    # end test_policy_with_multi_proto_traffic
 # end of class TestSerialPolicy
