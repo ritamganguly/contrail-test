@@ -135,7 +135,7 @@ function run_tests_serial {
       return $?
   fi
   ${wrapper} testr run --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $serial_result_xml 
-  python parse_result.py $serial_result_xml 
+  python tools/parse_result.py $serial_result_xml 
 }
 
 function run_tests {
@@ -158,7 +158,7 @@ function run_tests {
       ${wrapper} testr run --parallel --subunit $testrargs | ${wrapper} subunit2junitxml -f -o $result_xml
       sleep 2
   fi
-  python parse_result.py $result_xml 
+  python tools/parse_result.py $result_xml 
 }
 
 function generate_html {
