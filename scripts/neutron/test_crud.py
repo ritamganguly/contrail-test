@@ -9,8 +9,8 @@ from keystoneclient import exceptions as ks_exceptions
 
 from tcutils.util import *
 from tcutils.wrappers import preposttest_wrapper
-from neutron.neutron_util import combos
-from neutron.base import BaseNeutronTest
+from neutron_util import combos
+from base import BaseNeutronTest
 import test
 
 

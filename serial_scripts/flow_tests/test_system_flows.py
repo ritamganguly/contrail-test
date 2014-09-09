@@ -261,9 +261,10 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         # so NAT flow is calculated at 70% of the average flow setup rate
         # defined.
         RelVer = build_version.split('-')[1]
-        from ReleaseToFlowSetupRateMapping import *
+        import ReleaseToFlowSetupRateMapping
+        #from ReleaseToFlowSetupRateMapping import *
         try:
-            DefinedSetupRate = expected_flow_setup_rate['policy'][RelVer]
+            DefinedSetupRate = ReleaseToFlowSetupRateMapping.expected_flow_setup_rate['policy'][RelVer]
         except KeyError:
             # A default value of 7K flows per second is set.
             DefinedSetupRate = default_setup_rate
@@ -271,7 +272,7 @@ class SDNFlowTests(BaseFlowTest, flow_test_utils.VerifySvcMirror):
         #
         # Set Expected NAT Flow Rate
         if PolNatSI == 'NAT Flow':
-            DefinedSetupRate = expected_flow_setup_rate['nat'][RelVer]
+            DefinedSetupRate = ReleaseToFlowSetupRateMapping.expected_flow_setup_rate['nat'][RelVer]
         #
         # The flow setup rate is calculated based on setup time required for first 100K flows. So TotalFlows is set to 100K and 5
         # samples (NoOfIterations) are taken within the time required to setup 100K flows. The time interval (sleep_interval) is

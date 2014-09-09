@@ -4,7 +4,7 @@ from floating_ip import FloatingIPFixture
 from connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 
-from neutron.base import BaseNeutronTest
+from base import BaseNeutronTest
 import test
 from tcutils.util import *
 

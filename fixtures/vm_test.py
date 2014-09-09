@@ -1812,8 +1812,6 @@ class VMFixture(fixtures.Fixture):
                     self.local_ip= self.local_ips[vn_fq_name]
                 elif not self.local_ip:
                     self.local_ip = self.local_ips[vn_fq_name]
-        return True
-    # end _gather_details 
  
                 if self.ping_vm_from_host(vn_fq_name) or self.ping_vm_from_host(vn_fq_name):
                     self.local_ip = self.local_ips[vn_fq_name]
