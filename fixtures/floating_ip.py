@@ -6,7 +6,7 @@ import time
 from contrail_fixtures import *
 import ast
 import sys
-from util import retry
+from tcutils.util import retry
 from analytics_tests import *
 from webui_test import *
 
@@ -121,6 +121,7 @@ class FloatingIPFixture(fixtures.Fixture):
         return True
     # end get_fip_pool_if_present
 
+    @retry(delay=2, tries=15)
     def verify_fip_pool_in_api_server(self):
         result = True
         self.pub_vn_obj = self.vnc_lib_h.virtual_network_read(id=self.vn_id)
@@ -141,7 +142,8 @@ class FloatingIPFixture(fixtures.Fixture):
                 (self.pool_name))
         return result
     # end verify_fip_pool_in_api_server
-
+    
+    @retry(delay=2, tries=15)
     def verify_fip_pool_in_control_node(self):
         result = True
         self.pub_vn_obj = self.vnc_lib_h.virtual_network_read(id=self.vn_id)
@@ -370,7 +372,7 @@ class FloatingIPFixture(fixtures.Fixture):
         '''
         self.disassoc_floatingip(fip_id)
         self.delete_floatingip(fip_id)
-        time.sleep(20)
+        time.sleep(10)
     # end disassoc_and_delete_fip
 
     def create_floatingips(self, fip_pool_vn_id, count=1):

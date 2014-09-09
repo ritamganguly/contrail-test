@@ -3,7 +3,7 @@ from netaddr import IPNetwork
 import fixtures
 from ipam_test import *
 from project_test import *
-from util import *
+from tcutils.util import *
 from vnc_api.vnc_api import *
 from netaddr import *
 from time import sleep
@@ -87,7 +87,14 @@ class VNFixture(fixtures.Fixture):
         self.not_in_agent_verification_flag = True
         self.not_in_api_verification_flag = True
         self.not_in_cn_verification_flag = True
+        self._parse_subnets()
     # end __init__
+
+    def _parse_subnets(self):
+        # If the list is just having cidrs
+        if type(self.vn_subnets[0]) is str:
+            self.vn_subnets = [{'cidr': x} for x in self.vn_subnets]
+    # end _parse_subnets
 
     @retry(delay=10, tries=10)
     def _create_vn_quantum(self):
@@ -96,7 +103,7 @@ class VNFixture(fixtures.Fixture):
                                                                   self.project_id)
             if not self.obj:
                 self.obj = self.quantum_fixture.create_network(
-                    self.vn_name, self.vn_subnets, self.ipam_fq_name, self.shared, self.router_external)
+                self.vn_name, self.vn_subnets, self.ipam_fq_name, self.shared, self.router_external)
                 self.logger.debug('Created VN %s' %(self.vn_name))
             else:
                 self.already_present = True
@@ -170,7 +177,7 @@ class VNFixture(fixtures.Fixture):
             ipam_sn_lst = []
             for net in self.vn_subnets:
                 ipam_sn = None
-                network, prefix = net.split('/')
+                network, prefix = net['cidr'].split('/')
                 ipam_sn = IpamSubnetType(
                     subnet=SubnetType(network, int(prefix)))
                 ipam_sn_lst.append(ipam_sn)
@@ -231,6 +238,10 @@ class VNFixture(fixtures.Fixture):
         if self.vxlan_id is not None:
             self.add_vxlan_id(self.project_obj.project_fq_name,
                               self.vn_name, self.vxlan_id)
+
+        # Populate the VN Subnet details
+        self.vn_subnet_objs = self.quantum_fixture.get_subnets_of_vn(
+            self.vn_id)
     # end setUp
 
     def create_subnet(self, vn_subnet, ipam_fq_name):
@@ -361,13 +372,14 @@ class VNFixture(fixtures.Fixture):
             'virtual-network']['network_ipam_refs'][0]['attr']['ipam_subnets']
         for vn_subnet in self.vn_subnets:
             subnet_found = False
+            vn_subnet_cidr = str(IPNetwork(vn_subnet['cidr']).ip)
             for subnet in subnets:
-                if subnet['subnet']['ip_prefix'] == str(IPNetwork(vn_subnet).ip):
+                if subnet['subnet']['ip_prefix'] == vn_subnet_cidr:
                     subnet_found = True
             if not subnet_found:
                 self.logger.warn(
                     "VN Subnet IP %s not found in API-Server for VN %s" %
-                    (IPNetwork(vn_subnet).ip, self.vn_name))
+                    (vn_subnet_cidr, self.vn_name))
                 self.api_verification_flag = self.api_verification_flag and False
                 return False
         # end for
@@ -457,7 +469,7 @@ class VNFixture(fixtures.Fixture):
         if pol_name_list:
             for pol in pol_name_list:
                 pol_object = self.api_s_inspect.get_cs_policy(
-                    policy=pol, refresh=True)
+                    domain='default-domain', project=self.project_name, policy=pol, refresh=True)
                 pol_rules = pol_object[
                     'network-policy']['network_policy_entries']['policy_rule']
                 self.logger.debug(
@@ -681,7 +693,7 @@ class VNFixture(fixtures.Fixture):
         return result
     # end verify_vn_not_in_control_nodes
 
-    @retry(delay=5, tries=3)
+    @retry(delay=5, tries=30)
     def verify_vn_not_in_agent(self):
         ''' Verify that VN is removed in all agent nodes.
         '''
@@ -804,8 +816,13 @@ class VNFixture(fixtures.Fixture):
             self.logger.error("%s not configured for VN %s" %
                               (rtgt_val, rt_inst_fq_name[:-1]))
             result = False
-
-        net_obj.get_route_target_list().get_route_target().remove(rtgt_val)
+#        net_obj.get_route_target_list().get_route_target().remove(rtgt_val)
+        route_targets = net_obj.get_route_target_list()
+        route_targets.delete_route_target(rtgt_val)
+        if route_targets.get_route_target():
+            net_obj.set_route_target_list(route_targets)
+        else:
+            net_obj.set_route_target_list(None)
         vnc_lib.virtual_network_update(net_obj)
         return result
     # end del_route_target
@@ -814,21 +831,34 @@ class VNFixture(fixtures.Fixture):
         ''' For expected rt_import data, we need to inspect policy attached to both the VNs under test..
         Both VNs need to have rule in policy with action as pass to other VN..
         This data needs to come from calling test code as policy_peer_vns'''
+        self.logger.info("Verifying RT for vn %s, RI name is %s" %
+                         (self.vn_fq_name, self.ri_name))
         self.policy_peer_vns = policy_peer_vns
         compare = False
-        cn = self.inputs.bgp_ips[0]
-        cn_ref = self.cn_inspect[cn]
-        vn_ri = cn_ref.get_cn_routing_instance(ri_name=self.ri_name)
-        act_rt_import = vn_ri['import_target']
-        act_rt_export = vn_ri['export_target']
-        exp_rt = self.get_rt_info()
-        compare_rt_export = policy_test_utils.compare_list(
-            exp_rt['rt_export'], act_rt_export)
-        compare_rt_import = policy_test_utils.compare_list(
-            exp_rt['rt_import'], act_rt_import)
-
-        if (compare_rt_export and compare_rt_import):
-            compare = True
+        for i in range(len(self.inputs.bgp_ips)):
+            cn = self.inputs.bgp_ips[i]
+            self.logger.info("Checking VN RT in control node %s" % cn)
+            cn_ref = self.cn_inspect[cn]
+            vn_ri = cn_ref.get_cn_routing_instance(ri_name=self.ri_name)
+            act_rt_import = vn_ri['import_target']
+            act_rt_export = vn_ri['export_target']
+            self.logger.info("act_rt_import is %s, act_rt_export is %s" %
+                             (act_rt_import, act_rt_export))
+            exp_rt = self.get_rt_info()
+            self.logger.info("exp_rt_import is %s, exp_rt_export is %s" %
+                             (exp_rt['rt_import'], exp_rt['rt_export']))
+            compare_rt_export = policy_test_utils.compare_list(
+                self, exp_rt['rt_export'], act_rt_export)
+            compare_rt_import = policy_test_utils.compare_list(
+                self, exp_rt['rt_import'], act_rt_import)
+            self.logger.info(
+                "compare_rt_export is %s, compare_rt_import is %s" % (compare_rt_export, compare_rt_import))
+            if (compare_rt_export and compare_rt_import):
+                compare = True
+            else:
+                self.logger.info(
+                    "verify_vn_route_target failed in control node %s" % cn)
+                return False
         return compare
     # end verify_route_target
 
@@ -870,7 +900,10 @@ class VNFixture(fixtures.Fixture):
         # Get the Quantum details
         quantum_obj = self.quantum_fixture.get_vn_obj_if_present(self.vn_name,
                                                                  self.project_id)
-        cidr = unicode(subnet)
+        #cidr = unicode(subnet)
+        if type(subnet) is str:
+            cidr = {'cidr': subnet}
+
         #ipam_fq_name = quantum_obj['network']['contrail:subnet_ipam'][0]['ipam_fq_name']
         ipam_fq_name = None
         net_id = quantum_obj['network']['id']
@@ -962,7 +995,7 @@ class VNFixture(fixtures.Fixture):
                                          (i, self.vn_name))
                         self.logger.info("%s. Retry deleting the VN %s " %
                                          (i, self.vn_name))
-                        sleep(10)
+                        sleep(5)
                     else:
                         break
             if self.verify_is_run:
@@ -1065,6 +1098,11 @@ class VNFixture(fixtures.Fixture):
         self.update_vn_object()
         return net_rsp
     # end unbind_policy
+
+    def update_subnet(self, subnet_id, subnet_dict):
+        self.quantum_fixture.update_subnet(subnet_id, subnet_dict)
+        self.vn_subnet_objs = self.quantum_fixture.get_subnets_of_vn(
+                                                                 self.vn_id)
 # end VNFixture
 
 
@@ -1174,3 +1212,5 @@ class MultipleVNFixture(fixtures.Fixture):
 
     def get_all_fixture_obj(self):
         return map(lambda (name, fixture): (name, fixture.obj), self._vn_fixtures)
+
+        

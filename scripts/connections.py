@@ -1,28 +1,29 @@
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
-from vnc_introspect_utils import *
-from cn_introspect_utils import *
-from vna_introspect_utils import *
-from opserver_introspect_utils import *
+from tcutils.config.vnc_introspect_utils import *
+from tcutils.control.cn_introspect_utils import *
+from tcutils.agent.vna_introspect_utils import *
+from tcutils.collector.opserver_introspect_utils import *
 from fixtures import Fixture
 from analytics_tests import *
 from vnc_api.vnc_api import *
 from vdns.dns_introspect_utils import DnsAgentInspect
-from ds_introspect_utils import *
-from discovery_tests import *
+from tcutils.config.ds_introspect_utils import *
+from tcutils.config.discovery_tests import *
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from pyvirtualdisplay import Display
 from keystoneclient.v2_0 import client as ks_client
-from util import get_dashed_uuid
+from tcutils.util import get_dashed_uuid
 import os
 
 
 class ContrailConnections():
-
-    def __init__(self, inputs,
+    browser = None
+    browser_openstack = None
+    def __init__(self, inputs,logger,
                  project_name=None,
                  username=None,
                  password=None):
@@ -30,14 +31,14 @@ class ContrailConnections():
         project_name = project_name or self.inputs.project_name
         username = username or self.inputs.stack_user
         password = password or self.inputs.stack_password
-        self.keystone_ip = inputs.keystone_ip
+        self.keystone_ip = self.inputs.keystone_ip
 
         self.ks_client = ks_client.Client(
             username=username,
             password=password,
             tenant_name=project_name,
-            auth_url='http://%s:5000/v2.0/' % (
-                self.keystone_ip)
+            auth_url = os.getenv('OS_AUTH_URL') or \
+                                 'http://' + self.keystone_ip + ':5000/v2.0'
         )
         self.project_id = get_dashed_uuid(self.ks_client.tenant_id)
 
@@ -46,17 +47,19 @@ class ContrailConnections():
             self.webui_ip = self.inputs.webui_ip
             self.os_name = self.os_type[self.webui_ip]
             self.start_virtual_display()
-            if self.inputs.webui_verification_flag == 'firefox':
-                self.browser = webdriver.Firefox()
-                self.browser_openstack = webdriver.Firefox()
-            elif self.inputs.webui_verification_flag == 'chrome':
-                self.browser = webdriver.Chrome()
-                self.browser_openstack = webdriver.Chrome()
             self.delay = 30
             self.frequency = 1
-            self.login_webui(project_name, username, password)
-            self.login_openstack(project_name, username, password)
-
+            if not ContrailConnections.browser:
+                if self.inputs.webui_verification_flag == 'firefox':
+                    ContrailConnections.browser = webdriver.Firefox()
+                    ContrailConnections.browser_openstack = webdriver.Firefox()
+                elif self.inputs.webui_verification_flag == 'chrome':
+                    ContrailConnections.browser = webdriver.Chrome()
+                    ContrailConnections.browser_openstack = webdriver.Chrome()
+                else:
+                    self.inputs.logger.error("Invalid browser type")
+                self.login_webui(project_name, username, password)
+                self.login_openstack(project_name, username, password)
         self.quantum_fixture = QuantumFixture(
             username=username, inputs=self.inputs,
             project_id=self.project_id,

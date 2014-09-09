@@ -15,7 +15,7 @@ from tests_with_setup import *
 from encap_tests import *
 from mx_test import *
 from test_perms import *
-from util import get_os_env
+from tcutils.util import get_os_env
 from NewPolicyTests import *
 from policyTrafficTests import *
 from sdn_policy_traffic_test_topo import *

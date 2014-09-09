@@ -1,12 +1,12 @@
 import fixtures
 import re
 from project_test import *
-from util import *
+from tcutils.util import *
 import json
 from vnc_api.vnc_api import *
 from contrail_fixtures import *
 import copy
-from vna_introspect_utils import *
+from tcutils.agent.vna_introspect_utils import *
 import policy_test_utils
 import inspect
 from webui_test import *
@@ -16,7 +16,7 @@ from webui_test import *
 
 class PolicyFixture(fixtures.Fixture):
 
-    def __init__(self, policy_name, rules_list, inputs, connections):
+    def __init__(self, policy_name, rules_list, inputs, connections, api=None):
         self.inputs = inputs
         self.rules_list = rules_list
         self.project_fq_name = self.inputs.project_fq_name
@@ -32,6 +32,7 @@ class PolicyFixture(fixtures.Fixture):
         self.already_present = False
         self.verify_is_run = False
         self.project_name = self.inputs.project_name
+        self.api_flag = api
         if self.inputs.webui_verification_flag:
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
@@ -40,21 +41,24 @@ class PolicyFixture(fixtures.Fixture):
 
     def setUp(self):
         super(PolicyFixture, self).setUp()
-        self.policy_obj = self.quantum_fixture.get_policy_if_present(
-            self.project_name, self.policy_name)
-        if not self.policy_obj:
-            if self.inputs.webui_config_flag:
-                self.webui.create_policy_in_webui(self)
+        if self.api_flag is None:
+            self.policy_obj = self.quantum_fixture.get_policy_if_present(
+                self.project_name, self.policy_name)
+            if not self.policy_obj:
+                if self.inputs.webui_config_flag:
+                    self.webui.create_policy_in_webui(self)
+                else:
+                    self._create_policy(self.policy_name, self.rules_list)
             else:
-                self._create_policy(self.policy_name, self.rules_list)
-        else:
-            self.already_present = True
-            self.logger.info(
-                'Policy %s already present, not creating any policy' %
-                (self.policy_name))
+                self.already_present = True
+                self.logger.info(
+                    'Policy %s already present, not creating any policy' %
+                    (self.policy_name))
 
-        self.policy_fq_name = self.quantum_fixture.get_policy_fq_name(
-            self.policy_obj)
+            self.policy_fq_name = self.quantum_fixture.get_policy_fq_name(
+                self.policy_obj)
+        else:
+            self._create_policy_api(self.policy_name, self.rules_list)
     # end setUp
 
     def verify_on_setup(self):
@@ -190,6 +194,121 @@ class PolicyFixture(fixtures.Fixture):
         self.policy_obj = policy_rsp
         return policy_rsp
     # end  _create_policy
+
+    def _create_policy_api(self, policy_name, rules_list):
+        ''' Create a policy from the supplied rules
+        Sample rules_list:
+        src_ports and dst_ports : can be 'any'/tuple/list as shown below
+        protocol  :  'any' or a string representing a protocol number : ICMP(1), TCP(6), UDP(17)
+        simple_action : pass/deny
+        source_network/dest_network : VN name
+        rules= [
+            {
+               'direction'     : '<>', 'simple_action' : 'pass',
+               'protocol'      : 'any',
+               'source_network': vn1_name,
+               'src_ports'     : 'any',
+               'src_ports'     : (10,100),
+               'dest_network'  : vn1_name,
+               'dst_ports'     : [100,10],
+             },
+            {
+               'direction'     : '<>',
+               'simple_action' : 'pass', 'protocol'      : 'icmp',
+               'source_network': vn1_name, 'src_ports'     : (10,100),
+               'dest_network'  : vn1_name, 'dst_ports'     : [100,10],
+             }
+                ]
+        '''
+        np_rules = []
+        for rule_dict in rules_list:
+            new_rule = {
+                'direction': '<>',
+                'simple_action': 'pass',
+                'protocol': 'any',
+                'source_network': None,
+                'src_ports': [PortType(-1, -1)],
+                'application': None,
+                'dest_network': None,
+                'dst_ports': [PortType(-1, -1)],
+                'action_list': None
+            }
+            for key in rule_dict:
+                new_rule[key] = rule_dict[key]
+            # end for
+            # Format Source ports
+            if 'src_ports' in rule_dict:
+                if isinstance(
+                        rule_dict['src_ports'],
+                        tuple) or isinstance(
+                        rule_dict['src_ports'],
+                        list):
+                    new_rule['src_ports'] = [
+                        PortType(
+                            rule_dict['src_ports'][0],
+                            rule_dict['src_ports'][1])]
+                elif rule_dict['src_ports'] == 'any':
+                    new_rule['src_ports'] = [PortType(-1, -1)]
+                else:
+                    self.logger.error(
+                        "Error in Source ports arguments, should be (Start port, end port) or any ")
+                    return None
+            # Format Dest ports
+            if 'dst_ports' in rule_dict:
+                if 'dst_ports' in rule_dict and isinstance(
+                        rule_dict['dst_ports'],
+                        tuple) or isinstance(
+                        rule_dict['dst_ports'],
+                        list):
+                    new_rule['dst_ports'] = [
+                        PortType(
+                            rule_dict['dst_ports'][0],
+                            rule_dict['dst_ports'][1])]
+                elif rule_dict['dst_ports'] == 'any':
+                    new_rule['dst_ports'] = [PortType(-1, -1)]
+                else:
+                    self.logger.error(
+                        "Error in Destination ports arguments, should be (Start port, end port) or any ")
+                    return None
+
+            source_vn = ':'.join(self.project_fq_name) + \
+                ':' + new_rule['source_network']
+            dest_vn = ':'.join(self.project_fq_name) + \
+                ':' + new_rule['dest_network']
+            # handle 'any' network case
+            if rule_dict['source_network'] == 'any':
+                source_vn = 'any'
+            if rule_dict['dest_network'] == 'any':
+                dest_vn = 'any'
+            # end code to handle 'any' network
+            new_rule['source_network'] = [
+                AddressType(virtual_network=source_vn)]
+            new_rule['dest_network'] = [
+                AddressType(virtual_network=dest_vn)]
+            np_rules.append(
+                PolicyRuleType(direction=new_rule['direction'],
+                               simple_action=new_rule[
+                    'simple_action'],
+                    protocol=new_rule[
+                    'protocol'],
+                    src_addresses=new_rule[
+                    'source_network'],
+                    src_ports=new_rule['src_ports'],
+                    application=new_rule['application'],
+                    dst_addresses=new_rule[
+                    'dest_network'],
+                    dst_ports=new_rule['dst_ports'],
+                    action_list=new_rule['action_list']))
+
+        # end for
+        self.logger.debug("Policy np_rules : %s" % (np_rules))
+        pol_entries = PolicyEntriesType(np_rules)
+        proj = self.vnc_lib.project_read(self.project_fq_name)
+        self.policy_obj = NetworkPolicy(
+            policy_name, network_policy_entries=pol_entries, parent_obj=proj)
+        policy_rsp = self.policy_obj
+        return policy_rsp
+    # end  _create_policy_api
 
     def cleanUp(self):
         super(PolicyFixture, self).cleanUp()
@@ -551,7 +670,7 @@ class PolicyFixture(fixtures.Fixture):
             vnCn = (vn for vn in vn_of_cn[compNode] if vn_of_cn[compNode])
             for vn in vnCn:
                 print "checking for vn %s in compute %s" % (vn, compNode)
-                vn_fq_name = inspect_h.get_vna_vn(vn_name=vn)['name']
+                vn_fq_name = inspect_h.get_vna_vn('default-domain', self.project_name, vn)['name']
                 vna_acl = inspect_h.get_vna_acl_by_vn(vn_fq_name)
                 if vna_acl:
                     # system_rules
@@ -589,7 +708,7 @@ class PolicyFixture(fixtures.Fixture):
                 if skip_vn_not_of_cn == 1:
                     break
                 # VN & its rules should not be present in this Compute
-                vn_exists = inspect_h.get_vna_vn(vn_name=vn)
+                vn_exists = inspect_h.get_vna_vn('default-domain', self.project_name, vn)
                 if vn_exists:
                     vn_fq_name = vn_exists['name']
                     vna_acl = inspect_h.get_vna_acl_by_vn(vn_fq_name)
@@ -664,7 +783,14 @@ class PolicyFixture(fixtures.Fixture):
         proj = self.vnc_lib.project_read(self.project_fq_name)
         pol_dict = self.vnc_lib.network_policys_list(
             parent_id=proj, parent_fq_name=proj.fq_name)
-
+        # pol_dict has policys from all projects, o/p is not filtered
+        # This needs to be debugged as vnc_lib.network_policys_list should return policys of requested project only...
+        policy_by_proj = []
+        for p in pol_dict['network-policys']:
+            proj_of_policy = p['fq_name'][1]
+            if (proj_of_policy == proj.fq_name[1]):
+                policy_by_proj.append(p)
+        pol_dict = {'network-policys':policy_by_proj}
         pol_list = pol_dict.get('network-policys')
         for policy in pol_list:
             if (policy['fq_name'][2] == self.policy_name):
@@ -681,8 +807,9 @@ class PolicyFixture(fixtures.Fixture):
     @retry(delay=3, tries=5)
     def verify_policy_in_control_nodes(self):
         """ Checks for policy details in Control-nodes.
-        Validate control-node data against API-server data and return False if any mismatch is found.
+        Validate control-node data against quantum and return False if any mismatch is found.
         """
+        # Refresh quantum policy object - self.policy_obj  
         self.refresh_quantum_policy_obj()
         me = inspect.getframeinfo(inspect.currentframe())[2]
         result = True
@@ -718,8 +845,11 @@ class PolicyFixture(fixtures.Fixture):
                 cn_rules = policy_test_utils.xlate_cn_rules(cn_rules)
             else:
                 cn_rules = []
-            out = policy_test_utils.compare_args('policy_rules', cn_rules, self.policy_obj['policy'][
-                                                 'entries']['policy_rule'], exp_name='cn_rules', act_name='quantum_rules')
+            self.logger.info("policy info in control node: %s" % cn_rules)
+            qntm_policy_info = self.policy_obj['policy']['entries']['policy_rule']
+            self.logger.info("policy info in quantum: %s" % qntm_policy_info)
+            out = policy_test_utils.compare_args('policy_rules', cn_rules, qntm_policy_info, 
+                                                 exp_name='cn_rules', act_name='quantum_rules')
             if out:
                 msg = "Rules view in control-node %s is not matching, detailed msg follows %s" % (
                     cn, out)

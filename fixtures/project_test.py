@@ -1,3 +1,4 @@
+import os
 import fixtures
 from keystoneclient.v2_0 import client as ksclient
 from vnc_api.vnc_api import *
@@ -8,10 +9,10 @@ from quantum_test import *
 from vnc_api_test import *
 from contrail_fixtures import *
 from connections import ContrailConnections
-from util import retry
+from tcutils.util import retry
 from time import sleep
 from keystoneclient import exceptions as ks_exceptions
-from util import get_dashed_uuid
+from tcutils.util import get_dashed_uuid
 
 
 class ProjectFixture(fixtures.Fixture):
@@ -32,12 +33,15 @@ class ProjectFixture(fixtures.Fixture):
         self.tenant_dict = {}
         self.user_dict = {}
         self._create_user_set = {}
-        self.auth_url = 'http://%s:5000/v2.0' % (self.inputs.openstack_ip)
+        self.auth_url = os.getenv('OS_AUTH_URL') or \
+                            'http://' + self.inputs.openstack_ip + ':5000/v2.0'
+        insecure = bool(os.getenv('OS_INSECURE',True))
         self.kc = ksclient.Client(
             username=self.inputs.stack_user,
             password=self.inputs.stack_password,
             tenant_name=self.inputs.project_name,
-            auth_url=self.auth_url)
+            auth_url=self.auth_url,
+            insecure=insecure)
         self.project_connections = None
         self.api_server_inspects = self.connections.api_server_inspects
         self.verify_is_run = False
@@ -62,10 +66,12 @@ class ProjectFixture(fixtures.Fixture):
         if self.project_name == 'admin':
             self.logger.info('Project admin already exist, no need to create')
             return self
+
         project_list_in_api_before_test = self.vnc_lib_h.projects_list()
         print "project list before test: %s" % project_list_in_api_before_test
 
         # create project using keystone
+        self.logger.info('Proceed with creation of new project.')
         self.ks_project_id = self.kc.tenants.create(self.project_name).id
         self.logger.info('Created Project:%s, ID : %s ' % (self.project_name,
                                                            self.ks_project_id))
@@ -76,7 +82,13 @@ class ProjectFixture(fixtures.Fixture):
 
     def _delete_project_keystone(self):
         self.logger.info('Deleting Project %s' % self.project_fq_name)
-        self.kc.tenants.delete(self.tenant_dict[self.project_name])
+        try:
+            self.kc.tenants.delete(self.tenant_dict[self.project_name])
+        except ks_exceptions.ClientException, e:
+            # TODO Remove this workaround 
+            if 'Unable to add token to revocation list' in str(e):
+                self.logger.warn('Exception %s while deleting project' % (
+                    str(e)))
     # end _delete_project
 
     def _reauthenticate_keystone(self):
@@ -116,6 +128,10 @@ class ProjectFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
+            if not self.check_no_project_references():
+                self.logger.warn('One or more references still present' 
+                    ', will not delete the project %s' % (self.project_name))
+                return
             self._reauthenticate_keystone()
             self._delete_project_keystone()
             if self.verify_is_run:
@@ -126,10 +142,43 @@ class ProjectFixture(fixtures.Fixture):
 
     # end cleanUp
 
+    @retry(delay=2, tries=10)
+    def check_no_project_references(self):
+        vnc_project_obj = self.vnc_lib_h.project_read(id=self.project_id)
+        vns = vnc_project_obj.get_virtual_networks()
+        if vns:
+            self.logger.warn('Project %s still has VNs %s before deletion' %(
+                self.project_name, vns))
+            return False
+        vmis = vnc_project_obj.get_virtual_machine_interfaces()
+        if vmis:
+            self.logger.warn('Project %s still has VMIs %s before deletion' %(
+                self.project_name, vmis))
+            return False
+        sgs = vnc_project_obj.get_security_groups()
+        if len(sgs) > 1:
+            self.logger.warn('Project %s still has SGs %s before deletion' %(
+                self.project_name, sgs))
+            return False
+        return True
+    # end check_no_project_references
+
     def get_from_api_server(self):
         self.project_obj = self.vnc_lib_h.project_read(
             fq_name=self.project_fq_name)
         return self.project_obj
+
+    @retry(delay=2, tries=10)
+    def check_for_VN_in_api(self):
+        self.project_obj = self.vnc_lib_h.project_read(
+	    fq_name=self.project_fq_name)
+        has_vns = self.project_obj.get_virtual_networks()
+        if has_vns:
+            self.logger.info("Following VNs exist in project: %s" %has_vns)
+            return False
+        else:
+            self.logger.info("Don't see any VNs in the project %s" %self.project_fq_name)
+            return True
 
     def get_project_connections(self, username=None, password=None):
         if not username:
@@ -139,6 +188,7 @@ class ProjectFixture(fixtures.Fixture):
         if not self.project_connections:
             self.project_connections = ContrailConnections(
                 inputs=self.inputs,
+                logger=self.logger,
                 project_name=self.project_name,
                 username=username,
                 password=password)
@@ -185,6 +235,8 @@ class ProjectFixture(fixtures.Fixture):
             cs_project_obj = api_s_inspect.get_cs_project(
                 self.domain_name,
                 self.project_name)
+            self.logger.info("Check for project %s after deletion, got cs_project_obj %s" %
+                (self.project_name, cs_project_obj))
             if cs_project_obj:
                 self.logger.warn('Project %s is still found in API Server %s'
                                  'with ID %s ' % (self.project_name, api_s_inspect._ip,
