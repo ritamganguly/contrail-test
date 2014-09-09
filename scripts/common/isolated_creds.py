@@ -52,23 +52,24 @@ class IsolatedCreds(fixtures.Fixture):
             user = user
 	else:
 	    user = self.user
+        insecure = bool(os.getenv('OS_INSECURE',True))
         try:
             self.auth_url = os.getenv('OS_AUTH_URL') or \
                                  'http://' + self.inputs.openstack_ip + ':5000/v2.0'
             self.key_stone_clients= KeystoneCommands(username= self.inputs.stack_user, password= self.inputs.stack_password,
-                                                   tenant= self.inputs.project_name, auth_url= auth_url )
+                                                   tenant= self.inputs.project_name, auth_url= auth_url, insecure=insecure)
 
         except Exception as e:
             self.logger.warn("Failed - Keystone client instance")
         self.key_stone_clients.delete_user(user)
 
     def create_and_attach_user_to_tenant(self):
-
+        insecure = bool(os.getenv('OS_INSECURE',True))
         try:
             auth_url = os.getenv('OS_AUTH_URL') or \
                                  'http://' + self.inputs.openstack_ip + ':5000/v2.0'
             self.key_stone_clients= KeystoneCommands(username= self.inputs.stack_user, password= self.inputs.stack_password,
-                                                   tenant= self.inputs.project_name, auth_url= auth_url )
+                                                   tenant= self.inputs.project_name, auth_url= auth_url, insecure=insecure)
             try:
                 self.key_stone_clients.create_user(self.user,self.password,email='',tenant_name= 'admin',enabled=True)
             except:
