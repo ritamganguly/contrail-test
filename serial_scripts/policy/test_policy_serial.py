@@ -5,9 +5,14 @@ from base import BaseSerialPolicyTest
 from tcutils.wrappers import preposttest_wrapper
 from sdn_topo_setup import sdnTopoSetupFixture
 from system_verification import assertEqual
-import system_verification 
+import system_verification
+import policy_test_utils
+from topo_helper import topology_helper
 from traffic_tests import trafficTestFixture
 import time
+import json
+import re
+import copy
 import sdn_policy_traffic_test_topo
 
 
@@ -17,6 +22,302 @@ class TestSerialPolicy(BaseSerialPolicyTest):
     @classmethod
     def setUpClass(cls):
         super(TestSerialPolicy, cls).setUpClass()
+
+    def check_policy_route_available(self, vnet_list, vn_fixture):
+        '''For a given VN pair, vnet_listi, check if policy routes are available..
+        VN's are expected in FQDN format.. Return True of route exists.. else False'''
+
+        vn_policys_peer_vns = {}
+        vns = []
+        fqns = {}
+        pvns = {}
+        for v in vnet_list:
+            m = re.search(r"(\S+):(\S+):(\S+)", v)
+            vns.append(m.group(3))
+            fqns[m.group(3)] = v
+
+        actual_peer_vns_by_policy = policy_test_utils.get_policy_peer_vns(
+            self, vns, vn_fixture)
+        print "actual_peer_vns_by_policy: ", actual_peer_vns_by_policy
+        # actual_peer_vns_by_policy format:
+        # {'vnet0':[u'default-domain:admin:vnet1',
+        # u'default-domain:admin:vnet2'], ..}]
+
+        pvns[0] = actual_peer_vns_by_policy[vns[0]]
+        # find if vn1 in the given pair is in vn0's peer list
+        if fqns[vns[1]] not in pvns[0]:
+            self.logger.info(
+                "vn %s not in peer list of %s, actual_peer_vns_by_policy %s" %
+                (vns[1], vns[0], pvns[0]))
+            result = False
+        else:
+            # Find if vn0 is in vn1's peer list
+            pvns[1] = actual_peer_vns_by_policy[vns[1]]
+            if fqns[vns[0]] not in pvns[1]:
+                self.logger.info(
+                    "vn %s not in peer list of %s, actual_peer_vns_by_policy %s" %
+                    (vns[0], vns[1], pvns[1]))
+                result = False
+            else:
+                result = True
+
+        return result
+
+    def check_exception_flows_in_kernel(self, compNode):
+        '''Look for HOLD and Null flows.. return False if found, else True.
+        '''
+        self.logger.info(
+            "Inspecting kernel for exception flows - Null flows with src/dest address 0.0.0.0 & HOLD flows with action as HOLD")
+        status = True
+        msg = []
+        inspect_h = self.agent_inspect[compNode]
+        try:
+            kflows = inspect_h.get_vna_kflowresp()
+        except Exception, e:
+            err = "Compute: %s, hit error in kernel introspect, check topology for expected result" % (
+                compNode)
+            self.logger.warn(err)
+            et, ei, tb = sys.exc_info()
+            formatted_traceback = ''.join(traceback.format_tb(tb))
+            fail_trace = '\n{0}\n{1}:\n{2}'.format(
+                formatted_traceback, et.__name__, ei.message)
+            self.logger.warn(
+                "Exception happened while collecting kernel flow, failure trace as follows:")
+            self.logger.warn(fail_trace)
+        if kflows == None:
+            msg.append(
+                "Not getting kernel flow info from agent %s..Check detailed error printed by introspect" % compNode)
+            self.logger.error(msg)
+            return {'status': False, 'msg': msg}
+        self.logger.info("Info on total kernel flows in compute %s: %s" %
+                         (compNode, len(kflows)))
+        #self.logger.info ("all kernel flows in compute %s: %s" %(compNode, kflows))
+        hold_flow_l = []
+        null_flow_l = []
+        for flow in kflows:
+            if flow['action'] == 'HOLD':
+                hold_flow_l.append(flow)
+            # null flow has following signature - flow['sip'] == '0.0.0.0' and flow['dip'] == '0.0.0.0' and
+            # flow['sport'] == '0' and flow['dport'] == '0' and flow['proto'] == '0' and flow['vrf_id'] == '0']
+            # we will just do partial check and see if other variants show
+            # up...
+            elif flow['sip'] == '0.0.0.0':
+                null_flow_l.append(flow)
+        self.logger.info(
+            "Info on kernel flows in HOLD state in compute %s: %s" %
+            (compNode, hold_flow_l))
+        self.logger.info("Info on kernel Null flows in compute %s: %s" %
+                         (compNode, null_flow_l))
+        # end checking all test flows
+        if hold_flow_l:
+            status = False
+            msg.extend(
+                ["Hold flows found in compute: ", hold_flow_l])
+        if null_flow_l:
+            status = False
+            msg.extend(
+                ["Null flows found in compute: ", null_flow_l])
+        return {'status': status, 'msg': msg}
+
+    def validate_flow_in_vna(self, test_flow_list, test_vn, vn_fixture):
+        ''' Given 5-tuple, validate flow info in agent. 5-tuple as follows: src-addr, dst-addr, src-port, dst-port,
+        protocol and action for the flow. For bi-dir flows, each direction needs to be checked.
+        '''
+        msg = []
+        self.logger.info("Validate agent flows against test flows")
+        self.logger.info("flow list recd. for checking: %s" % test_flow_list)
+        compNode = test_flow_list[0]['agent_inspect_ip']
+        inspect_h = self.agent_inspect[compNode]
+        flows_found = []
+        flows_not_found = []
+        for f in test_flow_list:
+            flow = f['flow_entries']
+            self.logger.info(
+                "--->VNA-Flow check: Looking for following test flow: %s" %
+                (json.dumps(flow, sort_keys=True)))
+            vnet_list = [flow['source_vn'], flow['dst_vn']]
+            policy_route_state = self.check_policy_route_available(
+                vnet_list, vn_fixture)
+            try:
+                mflow = inspect_h.get_vna_fetchflowrecord(
+                    nh=flow['nh_id'],
+                    sip=flow['src'],
+                    dip=flow['dst'],
+                    sport=flow['src_port'],
+                    dport=flow['dst_port'],
+                    protocol=flow['protocol'])
+            except:
+                msg.append(
+                    "Agent: %s, VN: %s, hit error in vna flow inspect, check topology for expected result" %
+                    (compNode, test_vn))
+                self.logger.warn(msg)
+                return {'status': False, 'msg': msg}
+
+            # maintain 2 variables of match - few_flows_found [to track none or
+            # few found] & all_flows_found
+            few_flows_found = False
+            all_flows_found = True
+            if mflow is None:
+                if policy_route_state:
+                    msg.append("test_flow not seen in agent %s, flow: %s" %
+                               (compNode, json.dumps(flow, sort_keys=True)))
+                    all_flows_found = all_flows_found and False
+                    flows_not_found.append(json.dumps(flow, sort_keys=True))
+                    continue   # Move on to next flow
+                else:
+                    self.logger.info(
+                        "Flow not found, which is expected when routes not available")
+                    continue
+
+            # proceed with flow inspection..
+            agent_flow = {}
+            for i in mflow:
+                agent_flow.update(i)
+            self.logger.info("Matching flow from agent: %s" %
+                             (json.dumps(agent_flow, sort_keys=True)))
+
+            # For a matching flow, check following key values
+            keys_to_verify = ['dst_vn', 'action']
+
+            # For matching flow, check dest_vn and action to see if they are
+            # intact
+            for k in keys_to_verify:
+                err_msg = None
+                match = True
+                if k == 'action':
+                    if flow[k][0] == 'pass':
+                        if agent_flow[k] == 'pass' or agent_flow[k] == '32':
+                            match = match and True
+                        else:
+                            err_msg = (
+                                "For the matching flow, data for key %s not matching, test has %s, agent flow has %s" %
+                                (k, flow[k], agent_flow[k]))
+                            match = match and False
+                            break
+                    if flow[k][0] == 'deny':
+                        if agent_flow[k][0] == 'drop' or agent_flow[k] == '4':
+                            match = match and True
+                        else:
+                            err_msg = (
+                                "For the matching flow, data for key %s not matching, test has %s, agent flow has %s" %
+                                (k, expected, agent_flow[k]))
+                            match = match and False
+                            break
+                elif k == 'dst_vn':
+                    expected_vn = "__UNKNOWN__" if policy_route_state == False else flow[
+                        k]
+                    if expected_vn == agent_flow[k]:
+                        match = match and True
+                    else:
+                        err_msg = (
+                            "For the matching flow, data for key %s not matching, test has %s, agent flow has %s" %
+                            (k, flow[k], agent_flow[k]))
+                        match = match and False
+                        break
+            # end for, done matching test flow with all agent flows
+
+            if match:
+                self.logger.info(
+                    "--->VNA-Flow check: Matching flow has all fields intact: %s" %
+                    agent_flow['uuid'])
+                few_flows_found = few_flows_found or True
+                flows_found.append(json.dumps(flow, sort_keys=True))
+            if not match:
+                flows_not_found.append(json.dumps(flow, sort_keys=True))
+                all_flows_found = all_flows_found and False
+                msg1 = "VNA-Flow check: Agent %s: Failing test flow: %s" % (
+                    compNode, flow)
+                try:
+                    err_msg
+                except:
+                    msg.append(msg1)
+                else:
+                    msg.extend([msg1, err_msg])
+        # end checking all test flows
+
+        status = True if all_flows_found else False
+        rdata = {
+            'status': status, 'msg': msg, 'few_flows_found': few_flows_found,
+            'flows_found': flows_found, 'flows_not_found': flows_not_found}
+        self.logger.info("return data from agent flow introspect: %s" % rdata)
+
+        return rdata
+
+    def build_test_flow(
+            self,
+            policy,
+            test_vm1,
+            test_vm2,
+            topo,
+            config_topo,
+            traffic_proto_l,
+            total_streams,
+            dpi=9100):
+        ''' Getting the setup details and traffic params to generate the test flow for validation in agent and
+            update the test flow list to validate flow in agent and also
+            update the matching flow list to verifying  the traffic.
+        '''
+        test_flow_list = []
+        test_vm1_fixture = config_topo['vm'][test_vm1]
+        test_vm2_fixture = config_topo['vm'][test_vm2]
+        test_vn_vm1 = topo.vn_of_vm[
+            test_vm1]
+        test_vn_vm1_fix = config_topo['vn'][test_vn_vm1]
+        test_vn_vm2 = topo.vn_of_vm[
+            test_vm2]
+        test_vn_vm2_fix = config_topo['vn'][test_vn_vm2]
+        for proto in traffic_proto_l:
+            for i in range(total_streams[proto]):
+                test_flow = {}
+                test_flow['agent_inspect_ip'] = test_vm1_fixture.vm_node_ip
+                test_flow['flow_entries'] = {}
+                f = test_flow['flow_entries']
+                f['src'] = test_vm1_fixture.vm_ip
+                f['dst'] = test_vm2_fixture.vm_ip
+                f['source_vn'] = test_vn_vm1_fix.vn_fq_name
+                f['dst_vn'] = test_vn_vm2_fix.vn_fq_name
+                vm1_vn_fq_name = test_vm1_fixture.vn_fq_name
+                nh = test_vm1_fixture.tap_intf[vm1_vn_fq_name]['flow_key_idx']
+                f['nh_id'] = nh
+                if proto == 'icmp':
+                    f['protocol'] = '1'
+                    f['src_port'] = '0'
+                    f['dst_port'] = '0'
+                if proto == 'udp' or proto == 'tcp':
+                    if proto == 'udp':
+                        f['protocol'] = '17'
+                    if proto == 'tcp':
+                        f['protocol'] = '6'
+                    f['dst_port'] = str(dpi + i)
+                    f['src_port'] = '8000'
+            test_flow_list.append(test_flow)
+        # set expectations..
+        matching_rule_action = {}
+        num_rules = len(topo.rules[policy])
+        for i in range(num_rules):
+            proto = topo.rules[policy][i]['protocol']
+            matching_rule_action[proto] = topo.rules[
+                policy][i]['simple_action']
+        if num_rules == 0:
+            for proto in traffic_proto_l:
+                matching_rule_action[proto] = 'deny'
+        for test_flow in test_flow_list:
+            f = test_flow['flow_entries']
+            if f['protocol'] == '17':
+                f['action'] = str(matching_rule_action['udp'])
+                f['action_l'] = [f['action']]
+            if f['protocol'] == '6':
+                f['action'] = str(matching_rule_action['tcp'])
+                f['action_l'] = [f['action']]
+            if f['protocol'] == '1':
+                f['action'] = str(matching_rule_action['icmp'])
+                f['action_l'] = [f['action']]
+            # action granularity is at proto only for this test
+        self.logger.info(
+            "return data from build test-flow,test_flow_list :%s and matching_rule_action:%s" %
+            (test_flow_list, matching_rule_action))
+        return (test_flow_list, matching_rule_action)
+    # End  building test_flow_list
 
     @preposttest_wrapper
     def test_controlnode_switchover_policy_between_vns_traffic(self):
@@ -417,7 +718,7 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         #out= setup_obj.topo_setup(vm_verify='yes', skip_cleanup='yes')
         self.logger.info("Setup completed with result %s" % (out['result']))
         self.assertEqual(out['result'], True, out['msg'])
-        if out['result'] == True:
+        if out['result']:
             topo, config_topo = out['data']
         # Setup/Verify Traffic ---
         # 1. Define Traffic Params
@@ -465,8 +766,11 @@ class TestSerialPolicy(BaseSerialPolicyTest):
             # packet_size= 100, start_sport= 8000,
             # total_single_instance_streams= 20):
             startStatus[proto] = traffic_obj[proto].startTraffic(
-                num_streams=total_streams[proto], start_port=dpi,
-                tx_vm_fixture=test_vm1_fixture, rx_vm_fixture=test_vm2_fixture, stream_proto=proto)
+                num_streams=total_streams[proto],
+                start_port=dpi,
+                tx_vm_fixture=test_vm1_fixture,
+                rx_vm_fixture=test_vm2_fixture,
+                stream_proto=proto)
             msg1 = "Status of start traffic : %s, %s, %s" % (
                 proto, test_vm1_fixture.vm_ip, startStatus[proto]['status'])
             if startStatus[proto]['status'] == False:
@@ -484,8 +788,9 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         for proto in traffic_proto_l:
             traffic_stats = traffic_obj[proto].getLiveTrafficStats()
             err_msg = [policy_info] + traffic_stats['msg']
-            self.logger.info(" --> , flow proto: %s, expected: %s, got: %s" %
-                             (proto, expectedResult[proto], traffic_stats['status']))
+            self.logger.info(
+                " --> , flow proto: %s, expected: %s, got: %s" %
+                (proto, expectedResult[proto], traffic_stats['status']))
             self.assertEqual(traffic_stats['status'],
                              expectedResult[proto], err_msg)
         self.logger.info("-" * 80)
@@ -514,10 +819,35 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         flow_series_data = {}
         expected_flow_count = {}
         for proto in traffic_proto_l:
-            flow_record_data[proto] = self.ops_inspect.post_query('FlowRecordTable', start_time=start_time, end_time='now', select_fields=[
-                                                                  'sourcevn', 'sourceip', 'destvn', 'destip', 'setup_time', 'teardown_time', 'agg-packets', 'agg-bytes', 'protocol'], where_clause=query[proto])
-            flow_series_data[proto] = self.ops_inspect.post_query('FlowSeriesTable', start_time=start_time, end_time='now', select_fields=[
-                                                                  'sourcevn', 'sourceip', 'destvn', 'destip', 'sum(packets)', 'flow_count', 'sum(bytes)', 'sum(bytes)'], where_clause=query[proto])
+            flow_record_data[proto] = self.ops_inspect.post_query(
+                'FlowRecordTable',
+                start_time=start_time,
+                end_time='now',
+                select_fields=[
+                    'sourcevn',
+                    'sourceip',
+                    'destvn',
+                    'destip',
+                    'setup_time',
+                    'teardown_time',
+                    'agg-packets',
+                    'agg-bytes',
+                    'protocol'],
+                where_clause=query[proto])
+            flow_series_data[proto] = self.ops_inspect.post_query(
+                'FlowSeriesTable',
+                start_time=start_time,
+                end_time='now',
+                select_fields=[
+                    'sourcevn',
+                    'sourceip',
+                    'destvn',
+                    'destip',
+                    'sum(packets)',
+                    'flow_count',
+                    'sum(bytes)',
+                    'sum(bytes)'],
+                where_clause=query[proto])
             msg1 = proto + \
                 " Flow count info is not matching with opserver flow series record"
             # initialize expected_flow_count to num streams generated for the
@@ -525,7 +855,9 @@ class TestSerialPolicy(BaseSerialPolicyTest):
             expected_flow_count[proto] = total_streams[proto]
             self.logger.info(flow_series_data[proto])
             self.assertEqual(
-                flow_series_data[proto][0]['flow_count'], expected_flow_count[proto], msg1)
+                flow_series_data[proto][0]['flow_count'],
+                expected_flow_count[proto],
+                msg1)
         # 5. Stop Traffic
         self.logger.info("Proceed to stop traffic..")
         self.logger.info("-" * 80)
@@ -542,8 +874,20 @@ class TestSerialPolicy(BaseSerialPolicyTest):
             traffic_stats[proto] = traffic_obj[proto].returnStats()
             time.sleep(5)
             # Get the Opserver Flow series data
-            flow_series_data[proto] = self.ops_inspect.post_query('FlowSeriesTable', start_time=start_time, end_time='now', select_fields=[
-                                                                  'sourcevn', 'sourceip', 'destvn', 'destip', 'sum(packets)', 'flow_count', 'sum(bytes)', 'sum(bytes)'], where_clause=query[proto])
+            flow_series_data[proto] = self.ops_inspect.post_query(
+                'FlowSeriesTable',
+                start_time=start_time,
+                end_time='now',
+                select_fields=[
+                    'sourcevn',
+                    'sourceip',
+                    'destvn',
+                    'destip',
+                    'sum(packets)',
+                    'flow_count',
+                    'sum(bytes)',
+                    'sum(bytes)'],
+                where_clause=query[proto])
         self.assertEqual(result, True, msg)
         # 6. Match traffic stats against Analytics flow series data
         self.logger.info("-" * 80)
@@ -553,14 +897,17 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         msg = {}
         for proto in traffic_proto_l:
             self.logger.info(
-                " verify %s traffic status against Analytics flow series data" % (proto))
+                " verify %s traffic status against Analytics flow series data" %
+                (proto))
             msg[proto] = proto + \
                 " Traffic Stats is not matching with opServer flow series data"
             self.logger.info(
                 "***Actual Traffic sent by agent %s \n\n stats shown by Analytics flow series%s" %
                 (traffic_stats[proto], flow_series_data[proto]))
-            self.assertGreaterEqual(flow_series_data[proto][0]['sum(packets)'], traffic_stats[
-                                    proto]['total_pkt_sent'], msg[proto])
+            self.assertGreaterEqual(
+                flow_series_data[proto][0]['sum(packets)'],
+                traffic_stats[proto]['total_pkt_sent'],
+                msg[proto])
 
         # 6.a Let flows age out and verify analytics still shows the data
         self.logger.info("-" * 80)
@@ -570,22 +917,492 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         time.sleep(180)
         for proto in traffic_proto_l:
             self.logger.info(
-                " verify %s traffic status against Analytics flow series data after flow age out" % (proto))
-            flow_series_data[proto] = self.ops_inspect.post_query('FlowSeriesTable', start_time='now', end_time='now', select_fields=[
-                                                                  'sourcevn', 'sourceip', 'destvn', 'destip', 'sum(packets)', 'flow_count', 'sum(bytes)', 'sum(bytes)'], where_clause=query[proto])
+                " verify %s traffic status against Analytics flow series data after flow age out" %
+                (proto))
+            flow_series_data[proto] = self.ops_inspect.post_query(
+                'FlowSeriesTable',
+                start_time='now',
+                end_time='now',
+                select_fields=[
+                    'sourcevn',
+                    'sourceip',
+                    'destvn',
+                    'destip',
+                    'sum(packets)',
+                    'flow_count',
+                    'sum(bytes)',
+                    'sum(bytes)'],
+                where_clause=query[proto])
             msg = proto + \
                 " Flow count info is not matching with opserver flow series record after flow age out in kernel"
             # live flows shoud be '0' since all flows are age out in kernel
             # self.assertEqual(flow_series_data[proto][0]['flow_count'],0,msg)
             self.assertEqual(len(flow_series_data[proto]), 0, msg)
-            flow_series_data[proto] = self.ops_inspect.post_query('FlowSeriesTable', start_time=start_time, end_time='now', select_fields=[
-                                                                  'sourcevn', 'sourceip', 'destvn', 'destip', 'sum(packets)', 'flow_count', 'sum(bytes)', 'sum(bytes)'], where_clause=query[proto])
+            flow_series_data[proto] = self.ops_inspect.post_query(
+                'FlowSeriesTable',
+                start_time=start_time,
+                end_time='now',
+                select_fields=[
+                    'sourcevn',
+                    'sourceip',
+                    'destvn',
+                    'destip',
+                    'sum(packets)',
+                    'flow_count',
+                    'sum(bytes)',
+                    'sum(bytes)'],
+                where_clause=query[proto])
             msg = proto + \
                 " Traffic Stats is not matching with opServer flow series data after flow age out in kernel"
             # Historical data should be present in the Analytics, even if flows
             # age out in kernel
             self.assertGreaterEqual(
-                flow_series_data[proto][0]['sum(packets)'], traffic_stats[proto]['total_pkt_sent'], msg)
+                flow_series_data[proto][0]['sum(packets)'],
+                traffic_stats[proto]['total_pkt_sent'],
+                msg)
         return result
     # end test_policy_with_multi_proto_traffic
+
+    @preposttest_wrapper
+    def test_policy_single_vn_modify_rules_of_live_flows(self):
+        """ Call policy_test_modify_rules_of_live_flows with single VN scenario..
+        """
+        topology_class_name = sdn_policy_traffic_test_topo.sdn_1vn_2vm_config
+        self.logger.info(
+            "Scenario for the test used is: %s" %
+            (topology_class_name))
+        # set project name
+        try:
+            # provided by wrapper module if run in parallel test env
+            topo = topology_class_name(
+                project=self.project.project_name,
+                username=self.project.username,
+                password=self.project.password)
+        except NameError:
+            topo = topology_class_name()
+        return self.policy_test_modify_rules_of_live_flows(topo)
+
+    @preposttest_wrapper
+    def test_policy_multi_vn_modify_rules_of_live_flows(self):
+        """ Call policy_test_modify_rules_of_live_flows with multi VN scenario..
+        """
+        topology_class_name = sdn_policy_traffic_test_topo.sdn_2vn_2vm_config
+        self.logger.info(
+            "Scenario for the test used is: %s" %
+            (topology_class_name))
+        # set project name
+        try:
+            # provided by wrapper module if run in parallel test env
+            topo = topology_class_name(
+                project=self.project.project_name,
+                username=self.project.username,
+                password=self.project.password)
+        except NameError:
+            topo = topology_class_name()
+        return self.policy_test_modify_rules_of_live_flows(topo)
+
+    @preposttest_wrapper
+    def test_policy_replace_single_vn_modify_rules_of_live_flows(self):
+        """ Call policy_test_modify_rules_of_live_flows with single VN scenario..
+        """
+        topo = sdn_policy_traffic_test_topo.sdn_1vn_2vm_config()
+        return self.policy_test_modify_rules_of_live_flows(
+            topo,
+            update_mode='replace')
+
+    def policy_test_modify_rules_of_live_flows(
+            self,
+            topo,
+            update_mode='modify'):
+        """ 1. Pick 2 VM's for testing, have rules affecting icmp & udp protocols..
+        2. Generate traffic streams matching policy rules - udp & icmp ..
+        3. verify expected traffic behavior.
+        4. modify rules and check for expected behavior for live flows..
+        5. Modifying rules does following.. one set of update affects single live flow and checks expected behavior.
+        another set adds dummy rule and verifies expected behavior.
+        """
+        result = True
+        msg = []
+        err_msg = []
+        #
+        # Test setup: Configure policy, VN, & VM
+        self.logger.info("TEST STEP -1: configure topology")
+        setup_obj = self.useFixture(
+            sdnTopoSetupFixture(self.connections, topo))
+        out = setup_obj.topo_setup()
+        #out= setup_obj.topo_setup(vm_verify='yes', skip_cleanup='yes')
+        self.logger.info("Setup completed with result %s" % (out['result']))
+        # ---> Verify & return here on failure
+        self.assertEqual(out['result'], True, out['msg'])
+        if out['result']:
+            topo, config_topo = out['data']
+        # Verify Traffic ---
+        # Start Traffic
+        self.logger.info("TEST STEP -2: start traffic")
+        # Get data for 2 VM's to run traffic..
+        test_vm1 = topo.vmc_list[
+            0]
+        test_vm1_fixture = config_topo['vm'][test_vm1]
+        test_vm2 = topo.vmc_list[
+            1]
+        test_vm2_fixture = config_topo['vm'][test_vm2]
+        test_vn = topo.vn_of_vm[
+            test_vm1]
+        test_vn_fix = config_topo['vn'][test_vn]
+        test_vn_id = test_vn_fix.vn_id
+        test_vn_vm1 = topo.vn_of_vm[
+            test_vm1]
+        test_vn_vm1_fix = config_topo['vn'][test_vn_vm1]
+        test_vn_vm2 = topo.vn_of_vm[
+            test_vm2]
+        test_vn_vm2_fix = config_topo['vn'][test_vn_vm2]
+        traffic_obj = {}
+        startStatus = {}
+        stopStatus = {}
+        traffic_proto_l = ['icmp', 'udp', 'tcp']
+        total_streams = {}
+        total_streams['icmp'] = 1
+        total_streams[
+            'udp'] = 1
+        total_streams['tcp'] = 1
+        dpi = 9100   # starting dest_port incase of udp
+        for proto in traffic_proto_l:
+            traffic_obj[proto] = {}
+            startStatus[proto] = {}
+            traffic_obj[proto] = self.useFixture(
+                trafficTestFixture(self.connections))
+            # def startTraffic (self, name, num_streams= 1, start_port= 9100, tx_vm_fixture= None, rx_vm_fixture= None, stream_proto= 'udp', \
+            # packet_size= 100, start_sport= 8000, total_single_instance_streams= 20):
+            # vm1 as src and vm2 as dst
+            startStatus[proto] = traffic_obj[proto].startTraffic(
+                num_streams=total_streams[proto],
+                start_port=dpi,
+                tx_vm_fixture=test_vm1_fixture,
+                rx_vm_fixture=test_vm2_fixture,
+                stream_proto=proto)
+            msg1 = "Status of start traffic : %s, %s, %s" % (
+                proto, test_vm1_fixture.vm_ip, startStatus[proto]['status'])
+            if startStatus[proto]['status'] == False:
+                self.logger.error(msg1)
+                msg.extend(
+                    [msg1, 'More info on failure: ', startStatus[proto]['msg']])
+            else:
+                self.logger.info(msg1)
+            # ---> Verify & return here on failure
+            self.assertEqual(startStatus[proto]['status'], True, msg)
+        self.logger.info("-" * 80)
+        # Poll live traffic
+        self.logger.info("TEST STEP -3: verify traffic after setup")
+        self.logger.info("Poll live traffic and get status..")
+        # Assumption made here: one policy assigned to test_vn
+        policy = topo.vn_policy[test_vn][0]
+        num_rules = len(topo.rules[policy])
+        policy_info = "policy in effect is : %s" % (topo.rules[policy])
+        # set expectations & build test_flow_list to verify
+        self.logger.info(
+            "TEST STEP -3a: build test_flow_list and validate in VN Agent")
+        test_flow_list, matching_rule_action = self.build_test_flow(
+            policy, test_vm1, test_vm2, topo, config_topo, traffic_proto_l, total_streams, dpi)
+        self.logger.info(
+            "TEST STEP -3b: Validate Agent/Kernel for flows and Poll traffic ..")
+        # with live traffic, validate flows programmed in agents.
+        # time.sleep (30) # wait for short flows to settle down
+        #out= self.validate_flow_in_kernel(test_flow_list, test_vn)
+        # if out['status'] != True:
+        #    err_msg.extend (["Kernel flow validation failed after startTraffic, details - ", out['msg']])
+        #    self.logger.error (err_msg)
+        #self.assertEqual(out['status'], True, err_msg)
+        # waiting for short flows to settle down after setup/starting traffic..
+        time.sleep(30)
+        out = self.validate_flow_in_vna(
+            test_flow_list, test_vn, config_topo['vn'])
+        if out['status'] != True:
+            err_msg.extend(
+                ["Flows not programmed as expected in computes after startTraffic - ", out['msg']])
+            self.logger.error(err_msg)
+        self.assertEqual(out['status'], True, err_msg)
+        expectedResult = {}
+        for proto in traffic_proto_l:
+            expectedResult[proto] = True if matching_rule_action[
+                proto] == 'pass' else False
+        # poll traffic and get status - traffic_stats['msg'],
+        # traffic_stats['status']
+        for proto in traffic_proto_l:
+            traffic_stats = traffic_obj[proto].getLiveTrafficStats()
+            err_msg = [policy_info] + traffic_stats['msg']
+            self.logger.info(" --> expected: %s, got: %s" %
+                             (expectedResult[proto], traffic_stats['status']))
+            # ---> Verify & return here on failure
+        self.assertEqual(traffic_stats['status'],
+                         expectedResult[proto], err_msg)
+        self.logger.info("-" * 80)
+        self.logger.info("TEST STEP -4: modify policy")
+        starting_policy_name = policy
+        starting_policy_fixture = config_topo['policy'][policy]
+        starting_policy_id = starting_policy_fixture.policy_obj['policy']['id']
+        #import pdb; pdb.set_trace()
+        for policy in topo.policy_test_order:
+            if update_mode == 'replace':
+                # set new policy for test_vn to policy
+                test_policy_fq_names = []
+                name = config_topo['policy'][
+                    policy].policy_obj['policy']['fq_name']
+                test_policy_fq_names.append(name)
+                test_vn_fix.bind_policies(test_policy_fq_names, test_vn_id)
+            elif update_mode == 'modify':
+                new_policy_entries = config_topo['policy'][
+                    policy].policy_obj['policy']['entries']
+                data = {'policy': {'entries': new_policy_entries}}
+                starting_policy_fixture.update_policy(starting_policy_id, data)
+                new_rules = topo.rules[policy]
+                # policy= current_policy_name     #policy name is still old one
+                # update new rules in reference topology
+                topo.rules[starting_policy_name] = copy.copy(new_rules)
+            # wait for tables update before checking after making changes to
+            # system
+            time.sleep(5)
+            state = "policy for " + test_vn + " updated to rules of policy" + \
+                policy + "by mode" + update_mode
+            self.logger.info("new policy list of vn %s is %s" %
+                             (test_vn, policy))
+            # update expected topology with this new info for verification
+            updated_topo = policy_test_utils.update_topo(topo, test_vn, policy)
+            self.logger.info("Starting Verifications after %s" % (state))
+            policy_info = "policy in effect is : %s" % (topo.rules[policy])
+            self.logger.info(policy_info)
+            # Topology guide: each policy has explicit single rule matching udp & icmp protocols
+            # For each protocol, set expected result based on action - pass or deny
+            # if action = 'pass', expectedResult= True, else Fail;
+            test_flow_list, matching_rule_action = self.build_test_flow(
+                policy, test_vm1, test_vm2, topo, config_topo, traffic_proto_l, total_streams, dpi)
+            self.logger.info(
+                "test_flow_list after setting action as follows: %s" %
+                test_flow_list)
+            # time.sleep(30)  # Wait for new flows to establish and temp flows to settle down..
+            #out= self.validate_flow_in_kernel(test_flow_list, test_vn)
+            # if out['status'] != True:
+            #    err_msg.extend (["Kernel flow validation failed after policy update, details - ", out['msg']])
+            #    self.logger.error (err_msg)
+            #self.assertEqual(out['status'], True, err_msg)
+            out = self.validate_flow_in_vna(
+                test_flow_list, test_vn, config_topo['vn'])
+            expected_status = True
+            if out['status'] != expected_status:
+                err_msg.extend(
+                    ["Flows not programmed as expected in computes after policy update - ", out['msg']])
+                self.logger.error(err_msg)
+            self.assertEqual(out['status'], expected_status, err_msg)
+            self.logger.info("-" * 80)
+            expectedResult = {}
+            for proto in traffic_proto_l:
+                expectedResult[proto] = True if matching_rule_action[
+                    proto] == 'pass' else False
+            # poll traffic and get status - traffic_stats['msg'],
+            # traffic_stats['status']
+            self.logger.info("TEST STEP -4b: Poll traffic and validate")
+            for proto in traffic_proto_l:
+                traffic_stats = traffic_obj[proto].getLiveTrafficStats()
+                m = (
+                    " --> flow for proto %s, traffic result expected: %s, got: %s" %
+                    (proto, expectedResult[proto], traffic_stats['status']))
+                self.logger.info(m)
+                err_msg = [m] + [policy_info] + traffic_stats['msg']
+                self.assertEqual(
+                    traffic_stats['status'], expectedResult[proto], err_msg)
+        # end for loop
+        self.logger.info("-" * 80)
+        # Stop Traffic
+        self.logger.info("TEST STEP -5: stop traffic")
+        for proto in traffic_proto_l:
+            stopStatus[proto] = {}
+            stopStatus[proto] = traffic_obj[proto].stopTraffic()
+        # 6. Verify flow aging(expect flows to exist for 180s after stopping
+        # traffic)
+        self.logger.info(
+            "TEST STEP -6: Check for flow existence after stopping traffic")
+        wait_time = 150
+        time.sleep(wait_time)
+        self.logger.info(
+            "Checking for flows after %s secs after stopping traffic" %
+            wait_time)
+        expected_status = False
+        #out= self.validate_flow_in_kernel(test_flow_list, test_vn)
+        # if out['status'] != expected_status:
+        #    err_msg.extend (["In flow aging check: Kernel flow validation failed - ", "expected_status: ", expected_status, "actual status: ", out['status'], "error info: ", out['msg']])
+        #    self.logger.error (err_msg)
+        recheck = 3
+        while recheck > 0:
+            err_msg = []
+            out = self.validate_flow_in_vna(
+                test_flow_list, test_vn, config_topo['vn'])
+            if out['few_flows_found'] != expected_status:
+                err_msg.extend(
+                    [
+                        "In flow aging check, time_elapsed_since_stop_traffic: ",
+                        wait_time,
+                        "Flows have not aged out as expected in computes, retry if allowed.. error info: ",
+                        out['flows_found']])
+                self.logger.warn(err_msg)
+                time.sleep(30)
+                recheck = recheck - 1
+                wait_time += 30
+            else:
+                self.logger.info("no flows found as expected..")
+                recheck = 0
+        self.assertEqual(out['status'], expected_status, err_msg)
+        self.logger.info("-" * 80)
+        return result
+    # end test_policy_modify_rules_of_live_flows
+
+    @preposttest_wrapper
+    def test_policy_with_scaled_udp_flows(self):
+        """ Test focus on scaling flows.. With 2VN's and nVM's based on num computes, launch UDP streams from all VM's.
+        """
+        computes = len(self.inputs.compute_ips)
+        vms_per_compute = 2
+        num_streams = 800
+        topology_class_name = sdn_policy_traffic_test_topo.sdn_2vn_xvm_config
+        self.logger.info(
+            "Scenario for the test used is: %s" %
+            (topology_class_name))
+        # set project name
+        try:
+            # provided by wrapper module if run in parallel test env
+            topo_params = "project=self.project.project_name, username=self.project.username, password=self.project.password"
+        except NameError:
+            topo_params = ""
+        topo_params = topo_params + "num_compute=computes, num_vm_per_compute=vms_per_compute"
+        topo = topology_class_name(topo_params)
+        planned_per_compute_num_streams = vms_per_compute * num_streams
+        total_streams_generated = planned_per_compute_num_streams * computes
+        self.logger.info("Total streams to be generated per compute: %s" %
+                         planned_per_compute_num_streams)
+        self.logger.info("Total streams to be generated : %s" %
+                         total_streams_generated)
+        return self.policy_test_with_scaled_udp_flows(topo, num_udp_streams=num_streams, pps=100, wait_time_after_start_traffic=10)
+
+    def policy_test_with_scaled_udp_flows(self, topo, num_udp_streams=100, pps=100, wait_time_after_start_traffic=300, vms_on_single_compute=False, setup_only=False):
+        """Pick 2n VM's for testing, have rules affecting udp protocol..
+        pick 2 VN's, source and destination. each VM in src will send to a unique VM in dest.
+        Generate traffic streams matching policy rules - udp for now..
+        Check for system stability with flow scaling and traffic behavior as expected.
+        """
+        result = True
+        msg = []
+        #
+        # Test setup: Configure policy, VN, & VM
+        setup_obj = self.useFixture(
+            sdnTopoSetupFixture(self.connections, topo))
+        if vms_on_single_compute:
+            out = setup_obj.topo_setup(vms_on_single_compute=True)
+        else:
+            out = setup_obj.topo_setup()
+        #out= setup_obj.topo_setup(vm_verify='yes', skip_cleanup='yes')
+        self.logger.info("Setup completed with result %s" % (out['result']))
+        self.assertEqual(out['result'], True, out['msg'])
+        if out['result'] == True:
+            topo, config_topo = out['data']
+        # Setup/Verify Traffic ---
+        # 1. Define Traffic Params
+        # This will be source_vn for traffic test
+        test_vn = topo.vnet_list[0]
+        dest_vn = topo.vnet_list[1]
+        topo_helper_obj = topology_helper(topo)
+        vms_in_vn = topo_helper_obj.get_vm_of_vn()
+        src_vms = vms_in_vn[test_vn]
+        dest_vms = vms_in_vn[dest_vn]
+        self.logger.info("----" * 20)
+        self.logger.info("num_udp_streams: %s, pps: %s, src_vms: %s" %
+                         (num_udp_streams, pps, len(src_vms)))
+        self.logger.info("----" * 20)
+        # using default protocol udp, traffic_proto_l= ['udp']
+        total_single_instance_streams = num_udp_streams
+        # 2. set expectation to verify..
+        matching_rule_action = {}
+        # Assumption made here: one policy assigned to test_vn
+        policy = topo.vn_policy[test_vn][0]
+        policy_info = "policy in effect is : " + str(topo.rules[policy])
+        num_rules = len(topo.rules[policy])
+        # Assumption made here: one rule for each dest_vn
+        for i in range(num_rules):
+            dvn = topo.rules[policy][i]['dest_network']
+            matching_rule_action[dvn] = topo.rules[policy][i]['simple_action']
+        if num_rules == 0:
+            matching_rule_action[dvn] = 'deny'
+        self.logger.info("matching_rule_action: %s" % matching_rule_action)
+        # 3. Start Traffic
+        traffic_obj = {}
+        startStatus = {}
+        stopStatus = {}
+        expectedResult = {}
+        for i in range(len(src_vms)):
+            test_vm1 = src_vms[i]
+            test_vm2 = dest_vms[i]
+            test_vm1_fixture = config_topo['vm'][test_vm1]
+            test_vm2_fixture = config_topo['vm'][test_vm2]
+            expectedResult[i] = True if matching_rule_action[
+                dest_vn] == 'pass' else False
+            startStatus[i] = {}
+            traffic_obj[i] = self.useFixture(
+                trafficTestFixture(self.connections))
+            # def startTraffic (self, name=name, num_streams= 1, start_port= 9100, tx_vm_fixture, rx_vm_fixture, \
+            # stream_proto, packet_size= 100, start_sport= 8000,
+            # total_single_instance_streams= 20)
+            startStatus[i] = traffic_obj[i].startTraffic(
+                tx_vm_fixture=test_vm1_fixture,
+                rx_vm_fixture=test_vm2_fixture, total_single_instance_streams=total_single_instance_streams,
+                cfg_profile='ContinuousSportRange', pps=pps)
+            msg1 = "Status of start traffic : %s, %s, %s" % (
+                i, test_vm1_fixture.vm_ip, startStatus[i]['status'])
+            if startStatus[i]['status'] == False:
+                self.logger.error(msg1)
+                msg.extend(
+                    [msg1, 'More info on failure: ', startStatus[i]['msg']])
+            else:
+                self.logger.info(msg1)
+            self.assertEqual(startStatus[i]['status'], True, msg)
+        self.logger.info("-" * 80)
+        if setup_only:
+            self.logger.info("Test called with setup only..")
+            return True
+        else:
+            # Should be more than 3 mins, aging time, for flows to peak and
+            # stabilise
+            time.sleep(wait_time_after_start_traffic)
+        # 4. Stop Traffic & validate received packets..
+        self.logger.info("Proceed to stop traffic..")
+        self.logger.info("-" * 80)
+        for i in range(len(src_vms)):
+            stopStatus[i] = traffic_obj[i].stopTraffic(loose='yes')
+            status = True if stopStatus[i] == [] else False
+            if status != expectedResult[i]:
+                msg.append(stopStatus[i])
+            self.logger.info("Status of stop traffic for instance %s is %s" %
+                             (i, stopStatus[i]))
+        if msg != []:
+            result = False
+        self.assertEqual(result, True, msg)
+        self.logger.info("-" * 80)
+        # 5. verify kernel flows after stopping traffic.. we dont expect any
+        # stuck HOLD flows.
+        for compNode in self.inputs.compute_ips:
+            retry = 0
+            while retry < 5:
+                kflows = self.agent_inspect[compNode].get_vna_kflowresp()
+                wait_time = 60 if len(kflows) > 1000 else 30
+                if len(kflows) == 0:
+                    break
+                else:
+                    self.logger.info(
+                        "Waiting for Kernel flows to drain in Compute %s, attempt %s, num_flows %s" %
+                        (compNode, retry, len(kflows)))
+                    time.sleep(wait_time)
+                    retry += 1
+        for compNode in self.inputs.compute_ips:
+            out = self.check_exception_flows_in_kernel(compNode)
+            self.logger.info("out is: %s" % out)
+            self.assertEqual(out['status'], True, out['msg'])
+        # end checking flows
+        return result
+    # end policy_test_with_scaled_udp_flows
 # end of class TestSerialPolicy
