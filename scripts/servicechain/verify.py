@@ -4,11 +4,11 @@ from time import sleep
 
 import fixtures
 
-from util import retry
-sys.path.append(os.path.realpath('tcutils/pkgs/Traffic'))
-from traffic.core.stream import Stream
-from traffic.core.helpers import Host, Sender, Receiver
-from traffic.core.profile import StandardProfile, ContinuousProfile
+from tcutils.util import retry
+#sys.path.append(os.path.realpath('tcutils/pkgs/Traffic'))
+from tcutils.pkgs.Traffic.traffic.core.stream import Stream
+from tcutils.pkgs.Traffic.traffic.core.helpers import Host, Sender, Receiver
+from tcutils.pkgs.Traffic.traffic.core.profile import StandardProfile, ContinuousProfile
 
 
 class VerifySvcChain(fixtures.TestWithFixtures):
@@ -62,9 +62,11 @@ class VerifySvcChain(fixtures.TestWithFixtures):
 
         # Set VM credentials
         send_node = Host(sender_vm.vm_node_ip,
-                         self.inputs.username, self.inputs.password)
+                      self.inputs.host_data[sender_vm.vm_node_ip]['username'],
+                      self.inputs.host_data[sender_vm.vm_node_ip]['password'])
         recv_node = Host(receiver_vm.vm_node_ip,
-                         self.inputs.username, self.inputs.password)
+                      self.inputs.host_data[recv_node.vm_node_ip]['username'],
+                      self.inputs.host_data[recv_node.vm_node_ip]['password'])
         send_host = Host(sender_vm.local_ip,
                          sender_vm.vm_username, sender_vm.vm_password)
         recv_host = Host(receiver_vm.local_ip,

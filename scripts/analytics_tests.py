@@ -8,7 +8,7 @@
 from netaddr import IPNetwork
 
 import fixtures
-from util import *
+from tcutils.util import *
 from netaddr import *
 import logging as LOG
 import re
@@ -32,15 +32,15 @@ months_number_to_name = {
 
 uve_dict = {
     'xmpp-peer/': ['state_info', 'peer_stats_info', 'event_info', 'send_state', 'identifier'],
-    'config-node/': ['module_cpu_info', 'module_id', 'cpu_info', 'build_info', 'config_node_ip', 'process_state_list'],
-    'control-node/': ['uptime', 'build_info', 'cpu_info', 'ifmap_info', 'process_state_list'],
-    'analytics-node/': ['cpu_info', 'ModuleCpuState', 'module_cpu_info', 'process_state_list', 'redis-query', 'contrail-qe',
-                        'contrail-collector', 'contrail-analytics-nodemgr', 'redis-uve', 'contrail-opserver', 'build_info',
+    'config-node/': ['module_cpu_info', 'module_id', 'cpu_info', 'build_info', 'config_node_ip', 'process_info'],
+    'control-node/': ['uptime', 'build_info', 'cpu_info', 'ifmap_info', 'process_info'],
+    'analytics-node/': ['cpu_info', 'ModuleCpuState', 'module_cpu_info', 'process_info', 'contrail-collector', 'contrail-query-engine',
+                        'contrail-analytics-nodemgr', 'contrail-analytics-api', 'build_info',
                         'generator_infos'],
     'generator/': ['client_info', 'ModuleServerState', 'session_stats', 'generator_info'],
     'bgp-peer/': ['state_info', 'peer_stats_info', 'families', 'peer_type', 'local_asn',
                   'configured_families', 'event_info', 'peer_address', 'peer_asn', 'send_state'],
-    'vrouter/': ['exception_packets', 'cpu_info', 'uptime', 'total_flows', 'drop_stats', 'xmpp_stats_list', 'vhost_stats', 'process_state_list',
+    'vrouter/': ['exception_packets', 'cpu_info', 'uptime', 'total_flows', 'drop_stats', 'xmpp_stats_list', 'vhost_stats', 'process_info',
                  'control_ip', 'dns_servers', 'build_info', 'vhost_cfg', 'tunnel_type', 'xmpp_peer_list', 'self_ip_list'],
     'dns-node/': ['start_time', 'build_info', 'self_ip_list']}
 
@@ -1239,14 +1239,15 @@ class AnalyticsVerification(fixtures.Fixture):
             # expect_lst=['UveVirtualMachineConfig','UveVirtualMachineAgent']
             expect_lst = ['UveVirtualMachineAgent']
             diff_key = set(expect_lst) ^ set(key_list)
-            if diff_key:
-                self.logger.error("%s uve not shown in vm uve %s" %
-                                  (diff_key, uuid))
-                result = result and False
-            else:
-                self.logger.info("%s uve correctly shown in vm uve %s" %
-                                 (expect_lst, uuid))
-                result = result and True
+            for uve in expect_lst:
+                if uve not in key_list:
+                    self.logger.error("%s uve not shown in vm uve %s" %
+                                  (uve, uuid))
+                    result = result and False
+                else:
+                    self.logger.info("%s uve correctly shown in vm uve %s" %
+                                 (uve, uuid))
+                    result = result and True
         return result
 
     @retry(delay=4, tries=10)
@@ -1917,7 +1918,7 @@ class AnalyticsVerification(fixtures.Fixture):
         try:
             obj = self.ops_inspect[opserver].get_ops_collector(
                 collector=collector)
-            res = obj.get_attr('Module', 'process_state_list',
+            res = obj.get_attr('Node', 'process_info',
                                match=('process_name', process))
         except Exception as e:
             self.logger.exception('Got exception as %s' % (e))
@@ -1975,7 +1976,7 @@ class AnalyticsVerification(fixtures.Fixture):
 
         try:
             obj = self.ops_inspect[opserver].get_ops_config(config=cfgm_name)
-            res = obj.get_attr('Module', 'process_state_list',
+            res = obj.get_attr('Node', 'process_info',
                                match=('process_name', process))
         except Exception as e:
             self.logger.exception('Got exception as %s' % (e))
@@ -2117,7 +2118,7 @@ class AnalyticsVerification(fixtures.Fixture):
         if not start_time:
             self.logger.warn("start_time must be passed...")
             return
-        ret = self.get_all_uves(uve='tables')
+        ret = self.get_all_tables(uve='tables')
         tables = self.get_table_schema(ret)
         for elem in tables:
             for k, v in elem.items():
@@ -2193,7 +2194,7 @@ class AnalyticsVerification(fixtures.Fixture):
         if not start_time:
             self.logger.warn("start_time must be passed...")
             return
-        ret = self.get_all_uves(uve='tables')
+        ret = self.get_all_tables(uve='tables')
         tables = self.get_table_schema(ret)
 
         if table_name:
@@ -2342,7 +2343,7 @@ class AnalyticsVerification(fixtures.Fixture):
         if not start_time:
             self.logger.warn("start_time must be passed...")
             return
-        ret = self.get_all_uves(uve='tables')
+        ret = self.get_all_tables(uve='tables')
         tables = self.get_table_schema(ret)
 
         if table_name:
@@ -2450,7 +2451,7 @@ class AnalyticsVerification(fixtures.Fixture):
         if not start_time:
             self.logger.warn("start_time must be passed...")
             return
-        ret = self.get_all_uves(uve='tables')
+        ret = self.get_all_tables(uve='tables')
         tables = self.get_table_schema(ret)
         try:
             for el1 in tables:
@@ -2615,6 +2616,23 @@ class AnalyticsVerification(fixtures.Fixture):
             else:
                 links = self.ops_inspect[self.inputs.collector_ips[0]
                                          ].get_hrefs_to_all_UVEs_of_a_given_UVE_type(uveType=uve)
+            if links:
+                ret = self.search_links(links)
+        except Exception as e:
+            self.uve_verification_flags.append('False')
+            print e
+        finally:
+            return ret
+
+    def get_all_tables(self, uve='tables'):
+        ret = {}
+        try:
+            if not uve:
+                links = self.ops_inspect[self.inputs.collector_ips[0]
+                                         ].get_hrefs_to_all_tables(uveType=uve)
+            else:
+                links = self.ops_inspect[self.inputs.collector_ips[0]
+                                         ].get_hrefs_to_all_tables(uveType=uve)
             if links:
                 ret = self.search_links(links)
         except Exception as e:

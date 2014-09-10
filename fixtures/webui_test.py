@@ -9,7 +9,7 @@ import random
 import fixtures
 from ipam_test import *
 from project_test import *
-from util import *
+from tcutils.util import *
 from vnc_api.vnc_api import *
 from netaddr import *
 from time import sleep
@@ -82,7 +82,7 @@ class WebuiTest:
                                 ipam.click()
                                 break
                         self.browser.find_element_by_xpath(
-                            "//input[@placeholder = 'IP Block'] ").send_keys(subnet)
+                            "//input[@placeholder = 'IP Block'] ").send_keys(subnet['cidr'])
                 else:
                     self.browser.find_element_by_id('btnCommonAddIpam').click()
                     self.browser.find_element_by_id(
@@ -95,7 +95,7 @@ class WebuiTest:
                             ipam.click()
                             break
                     self.browser.find_element_by_xpath(
-                        "//input[@placeholder = 'IP Block'] ").send_keys(fixture.vn_subnets)
+                        "//input[@placeholder = 'IP Block'] ").send_keys(fixture.vn_subnets['cidr'])
                 self.browser.find_element_by_id('btnCreateVNOK').click()
                 time.sleep(3)
                 if not self.webui_common.check_error_msg("create VN"):
@@ -3405,6 +3405,7 @@ class WebuiTest:
             fixture.vm_id = vm_id
             if not self.webui_common.click_configure_networks():
                 result = result and False
+            self.webui_common.select_project(fixture.project_name)
             rows = self.webui_common.get_rows()
             self.logger.info("Creating and associating fip %s using webui" %
                              (fip_pool_vn_id))

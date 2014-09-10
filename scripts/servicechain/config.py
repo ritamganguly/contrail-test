@@ -12,7 +12,7 @@ from svc_instance_fixture import SvcInstanceFixture
 from svc_template_fixture import SvcTemplateFixture
 from connections import ContrailConnections
 from policy.config import AttachPolicyFixture
-from util import retry
+from tcutils.util import retry
 
 
 class ConfigSvcChain(fixtures.TestWithFixtures):
@@ -29,7 +29,7 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
 
     def config_st_si(self, st_name, si_name_prefix, si_count,
                      svc_scaling=False, max_inst=1, domain='default-domain', project='admin', left_vn=None,
-                     right_vn=None, svc_type='firewall', svc_mode='transparent', flavor='m1.medium', static_route=['None', 'None', 'None'], ordered_interfaces=True):
+                     right_vn=None, svc_type='firewall', svc_mode='transparent', flavor='contrail_flavor_2cpu', static_route=['None', 'None', 'None'], ordered_interfaces=True):
         if (svc_scaling == True and svc_mode != 'transparent'):
             if_list = [['management', False, False],
                        ['left', True, False], ['right', False, False]]
@@ -77,14 +77,13 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
 
         return (st_fixture, si_fixtures)
 
-    def chain_si(self, si_count, si_prefix):
+    def chain_si(self, si_count, si_prefix, project_name):
         action_list = []
         for i in range(0, si_count):
             si_name = si_prefix + str(i + 1)
             # chain services by appending to action list
-            si_fq_name = 'default-domain' + ':' + 'admin' + ':' + si_name
+            si_fq_name = 'default-domain' + ':' + project_name + ':' + si_name
             action_list.append(si_fq_name)
-        time.sleep(20)
         return action_list
 
     def config_policy(self, policy_name, rules):
@@ -160,7 +159,7 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
     def is_svm_active(self, vm_name):
         vm_status = self.get_svm_obj(vm_name).status
         if vm_status == 'ACTIVE':
-            self.logger.info('SVM state is active')
+            self.logger.debug('SVM state is active')
             return True
         else:
             self.logger.warn('SVM %s is not yet active. Current state: %s' %
@@ -196,7 +195,7 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
         tap_intf_list = []
         for entry in inspect_h.get_vna_tap_interface_by_vm(vm_id=svm_obj.id):
             if entry['vrf_name'] == vn.vrf_name:
-                self.logger.info(
+                self.logger.debug(
                     'The tap interface corresponding to %s on %s is %s' %
                     (vn.vn_name, svm_name, entry['name']))
                 return entry['name']

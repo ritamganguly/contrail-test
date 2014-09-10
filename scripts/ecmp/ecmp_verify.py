@@ -2,7 +2,6 @@ import os
 import fixtures
 import testtools
 import unittest
-import traffic_tests
 import time
 from connections import ContrailConnections
 from contrail_test_init import ContrailTestInit
@@ -80,7 +79,7 @@ class ECMPVerify():
                     vrf_id=vn_vrf_id9, ip=left_ip[svm_id], prefix='32')['path_list'][0]['nh']['mc_list']
 
                 for nh in multi_next_hops:
-                    label = nh['label']
+                    #label = nh['label']
                     if nh['type'] == 'Tunnel':
                         destn_agent = nh['dip']
                         new_destn_agent = self.inputs.host_data[

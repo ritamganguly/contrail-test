@@ -16,7 +16,7 @@ from connections import ContrailConnections
 from floating_ip import *
 from policy_test import *
 from contrail_fixtures import *
-from vna_introspect_utils import *
+from tcutils.agent.vna_introspect_utils import *
 from topo_helper import *
 from vnc_api import vnc_api
 from vnc_api.gen.resource_test import *
@@ -26,10 +26,7 @@ from webui_test import *
 class sdnTopoSetupFixture(fixtures.Fixture):
 
     def __init__(self, connections, topo):
-        if 'PARAMS_FILE' in os.environ:
-            self.ini_file = os.environ.get('PARAMS_FILE')
-        else:
-            self.ini_file = 'params.ini'
+        self.ini_file = os.environ.get('TEST_CONFIG_FILE')
         self.connections = connections
         self.inputs = self.connections.inputs
         self.quantum_fixture = self.connections.quantum_fixture
@@ -100,8 +97,6 @@ class sdnTopoSetupFixture(fixtures.Fixture):
             topo_steps.createVMNova(self, config_option, vms_on_single_compute)
         topo_steps.createPublicVN(self)
         topo_steps.verifySystemPolicy(self)
-        topo_steps.createStaticRouteBehindVM(self)
-        topo_steps.createAllocateAssociateVnFIPPools(self)
         # prepare return data
         config_topo = {
             'project': self.project_fixture, 'policy': self.policy_fixt, 'vn': self.vn_fixture, 'vm': self.vm_fixture,
@@ -112,7 +107,7 @@ class sdnTopoSetupFixture(fixtures.Fixture):
         return {'result': self.result, 'msg': self.err_msg, 'data': [self.topo, config_topo]}
     # end topo_setup
 
-    def sdn_topo_setup(self, config_option='openstack', skip_verify='no', flavor='contrail_flavor_small', vms_on_single_compute=False):
+    def sdn_topo_setup(self, config_option='openstack', skip_verify='yes', flavor='contrail_flavor_small', vms_on_single_compute=False):
         '''This is wrapper script which internally calls topo_setup to setup sdn topology based on topology.
         This wrapper is basically used to configure multiple projects and it support assigning of FIP to VM from public VN.
         '''
@@ -181,10 +176,16 @@ class sdnTopoSetupFixture(fixtures.Fixture):
             self, vm_cnt=total_vm_cnt)
         if fip_possible:
             topo_steps.allocateNassociateFIP(self, config_topo)
+
+        self.config_topo = config_topo
+        # Extra steps to assign FIP from VNs configured with FIP pool to VMs as defined in topology
+        topo_steps.createAllocateAssociateVnFIPPools(self)
+
         if len(self.projectList) == 1 and 'admin' in self.projectList:
             return {'result': result, 'msg': err_msg, 'data': [topo_objs[self.inputs.project_name], config_topo[self.inputs.project_name], [fip_possible, self.fip_ip_by_vm]]}
         else:
             return {'result': result, 'msg': err_msg, 'data': [topo_objs, config_topo, [fip_possible, self.fip_ip_by_vm]]}
+
     # end sdn_topo_setup
 
     def verify_sdn_topology(self, topo_objects, config_topo):

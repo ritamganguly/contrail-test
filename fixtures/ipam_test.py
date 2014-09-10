@@ -1,7 +1,7 @@
 import fixtures
 from vn_test import *
 from project_test import *
-from util import *
+from tcutils.util import *
 from vnc_api.vnc_api import *
 from netaddr import *
 from time import sleep
@@ -100,15 +100,12 @@ class IPAMFixture(fixtures.Fixture):
         if do_cleanup:
             self.project_fixture_obj.vnc_lib_h.network_ipam_delete(
                 self.fq_name)
+            if self.verify_is_run:
+                assert self.verify_ipam_not_in_api_server()
+                assert self.verify_ipam_not_in_control_nodes()
         else:
             self.logger.info('Skipping the deletion of IPAM %s' % self.fq_name)
-            self.verify_is_run = False
 
-        if self.verify_is_run:
-            assert self.verify_ipam_not_in_api_server()
-            assert self.verify_ipam_not_in_control_nodes()
-        else:
-            self.logger.info('Skipping the IPAM Cleanup  %s ' % (self.name))
         # end cleanUp
 
     @retry(delay=5, tries=3)
