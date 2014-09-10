@@ -233,7 +233,7 @@
         <h2>Properties</h2>
             <xsl:for-each select="/testsuites/testsuite/properties/property">
                 <xsl:sort select="@name"/>
-                <xsl:value-of select="@name"/>     : <xsl:text><xsl:value-of disable-output-escaping="yes" select="concat(@value,$newline)"/></xsl:text>
+                <xsl:value-of select="@name"/>     : <xsl:value-of disable-output-escaping="yes" select="concat(@value,$newline)"/>
             </xsl:for-each>
     </xsl:template>
     
