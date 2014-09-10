@@ -962,13 +962,15 @@ class FloatingipTestSanity1(base.FloatingIpBaseTest):
 
         # Verify Ingress Traffic
         self.logger.info('Verifying Ingress Flow Record')
+        vn_fq_name = vn1_vm1_traffic_fixture.vn_fq_name
         flow_rec1 = inspect_h1.get_vna_fetchflowrecord(
-            vrf=vn1_vm1_traffic_fixture.agent_vrf_objs['vrf_list'][0]['ucindex'],
+            nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'],
             sip=vn1_vm1_traffic_fixture.vm_ip,
             dip=fvn1_vm1_traffic_fixture.vm_ip,
             sport=udp_src,
             dport=dpi,
             protocol='17')
+
 
         if flow_rec1 is not None:
             self.logger.info('Verifying NAT in flow records')
@@ -995,21 +997,15 @@ class FloatingipTestSanity1(base.FloatingIpBaseTest):
         # Verify Egress Traffic
         # Check VMs are in same agent or not. Need to compute source vrf
         # accordingly
-        if vn1_vm1_traffic_fixture.vm_node_ip != fvn1_vm1_traffic_fixture.vm_node_ip:
-            source_vrf = vn1_vm1_traffic_fixture.agent_vrf_objs[
-                'vrf_list'][0]['ucindex']
-        else:
-            vrf_list = inspect_h1.get_vna_vrf_objs(
-                vn_name=fvn1_vm1_traffic_fixture.vn_name)
-            source_vrf = vrf_list['vrf_list'][0]['ucindex']
         self.logger.info('Verifying Egress Flow Records')
         flow_rec2 = inspect_h1.get_vna_fetchflowrecord(
-            vrf=source_vrf,
+            nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'],
             sip=fvn1_vm1_traffic_fixture.vm_ip,
             dip=fip_fixture1.fip[fip_id1],
             sport=dpi,
             dport=udp_src,
             protocol='17')
+
         if flow_rec2 is not None:
             self.logger.info('Verifying NAT in flow records')
             match = inspect_h1.match_item_in_flowrecord(
@@ -1232,13 +1228,15 @@ class FloatingipTestSanity1(base.FloatingIpBaseTest):
 
         # Verify Ingress Traffic
         self.logger.info('Verifying Ingress Flow Record')
+        vn_fq_name = vn1_vm1_traffic_fixture.vn_fq_name
         flow_rec1 = inspect_h1.get_vna_fetchflowrecord(
-            vrf=vn1_vm1_traffic_fixture.agent_vrf_objs['vrf_list'][0]['ucindex'],
+            nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'],
             sip=vn1_vm1_traffic_fixture.vm_ip,
             dip=fvn1_vm1_traffic_fixture.vm_ip,
             sport=udp_src,
             dport=dpi,
             protocol='17')
+
 
         if flow_rec1 is not None:
             match = inspect_h1.match_item_in_flowrecord(
@@ -1259,17 +1257,8 @@ class FloatingipTestSanity1(base.FloatingIpBaseTest):
         self.logger.info('Verifying Egress Flow Records')
         # Check VMs are in same agent or not. Need to compute source vrf
         # accordingly
-        if vn1_vm1_traffic_fixture.vm_node_ip != fvn1_vm1_traffic_fixture.vm_node_ip:
-            source_vrf = vn1_vm1_traffic_fixture.agent_vrf_objs[
-                'vrf_list'][0]['ucindex']
-        else:
-            vrf_list = inspect_h1.get_vna_vrf_objs(
-                vn_name=fvn1_vm1_traffic_fixture.vn_name,
-                project=self.inputs.project_name)
-            source_vrf = vrf_list['vrf_list'][0]['ucindex']
-
         flow_rec2 = inspect_h1.get_vna_fetchflowrecord(
-            vrf=source_vrf,
+            nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'],
             sip=fvn1_vm1_traffic_fixture.vm_ip,
             dip=fip_fixture1.fip[fip_id1],
             sport=dpi,
@@ -1286,12 +1275,13 @@ class FloatingipTestSanity1(base.FloatingIpBaseTest):
                 'Verification successful. Egress flow records removed')
 
         flow_rec3 = inspect_h1.get_vna_fetchflowrecord(
-            vrf=source_vrf,
+            nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'],
             sip=fvn1_vm1_traffic_fixture.vm_ip,
             dip=vn1_vm1_traffic_fixture.vm_ip,
             sport=dpi,
             dport=udp_src,
             protocol='17')
+        
         if flow_rec3 is not None:
             match = inspect_h1.match_item_in_flowrecord(
                 flow_rec3, 'short_flow', 'yes')
@@ -1301,7 +1291,7 @@ class FloatingipTestSanity1(base.FloatingIpBaseTest):
                     (flow_rec3))
                 result = result and False
             match = inspect_h1.match_item_in_flowrecord(
-                flow_rec3, 'dst_vn', '__UNKNOWN__')
+                flow_rec3, 'src_vn', '__UNKNOWN__')
             if match is False:
                 self.logger.error(
                     'Test Failed. After removal of FIP destination VN should be unkwown. Flow details %s' %

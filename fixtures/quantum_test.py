@@ -278,7 +278,7 @@ class QuantumFixture(fixtures.Fixture):
 
     def create_floatingip(self, fip_pool_vn_id, project_id):
         fip_req = {'floatingip': {'floating_network_id': fip_pool_vn_id,
-                                      'tenant_id': project_id}}
+                                  'tenant_id': project_id}}
         try:
             fip_resp = self.obj.create_floatingip(fip_req)
             return fip_resp
@@ -543,5 +543,18 @@ class QuantumFixture(fixtures.Fixture):
             raise e
         return quota_rsp
     # end show_quota
+
+    def update_quota(self, tenant_id, quota_dict):
+        quota_rsp = None
+        body = {}
+        body['quota'] = quota_dict
+        try:
+            quota_rsp = self.obj.update_quota(tenant_id, body)
+        except CommonNetworkClientException as e:
+            self.logger.error(
+                "Quantum Exception while running  quota update " + str(e))
+            raise e
+        return quota_rsp
+    # end update_quota
 
 # end QuantumFixture
