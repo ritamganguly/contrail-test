@@ -23,6 +23,7 @@ class BaseSerialPolicyTest(test.BaseTestCase):
         cls.agent_inspect= cls.connections.agent_inspect
         cls.cn_inspect= cls.connections.cn_inspect
         cls.api_s_inspect = cls.connections.api_server_inspect
+        cls.ops_inspect = cls.connections.ops_inspect
         cls.analytics_obj=cls.connections.analytics_obj
     # end setUpClass
 
