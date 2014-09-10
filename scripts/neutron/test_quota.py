@@ -136,6 +136,62 @@ class TestQuota(BaseNeutronTest):
 
         assert result, 'Quota tests failed'
 
+    @preposttest_wrapper
+    def test_update_quota_for_admin_tenant(self):
+        '''Update quota for admin tenent using neutron quota_update
+        '''
+        result = True
+        quota_dict = {
+            'subnet': 3,
+            'router': 5,
+            'network': 3,
+            'floatingip': 4,
+            'port': 5,
+            'security_group': 4,
+            'security_group_rule': 6}
+        quota_rsp = self.admin_connections.quantum_fixture.update_quota(
+            self.admin_connections.project_id,
+            quota_dict)
+        quota_show_dict = self.connections.quantum_fixture.show_quota(
+            self.admin_connections.project_id)
+
+        for neutron_obj in quota_rsp['quota']:
+            if quota_rsp['quota'][neutron_obj] != quota_show_dict[
+                    'quota'][neutron_obj]:
+                self.logger.error(
+                    "Quota update unsuccessful for %s for admin tenant " %
+                    (neutron_obj))
+                result = False
+        assert result, 'Failed to update quota for admin tenant'
+
+    @preposttest_wrapper
+    def test_update_quota_for_new_tenant(self):
+        '''Update quota for new custom tenent using neutron quota_update
+        '''
+        result = True
+        quota_dict = {
+            'subnet': 3,
+            'router': 5,
+            'network': 3,
+            'floatingip': 4,
+            'port': 5,
+            'security_group': 4,
+            'security_group_rule': 6}
+        quota_rsp = self.connections.quantum_fixture.update_quota(
+            self.connections.project_id,
+            quota_dict)
+        quota_show_dict = self.connections.quantum_fixture.show_quota(
+            self.connections.project_id)
+
+        for neutron_obj in quota_rsp['quota']:
+            if quota_rsp['quota'][neutron_obj] != quota_show_dict[
+                    'quota'][neutron_obj]:
+                self.logger.error(
+                    "Quota update unsuccessful for %s for admin tenant " %
+                    (neutron_obj))
+                result = False
+        assert result, 'Failed to update quota for admin tenant'
+
     def create_quota_test_resources(
             self,
             inputs,
