@@ -22,12 +22,12 @@ class TestSvcRegr(BaseSvc_FwTest, VerifySvcFirewall):
         pass
     #end runTest         
    
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity','quick_sanity'])
     @preposttest_wrapper
     def test_svc_in_network_datapath(self):
         return self.verify_svc_in_network_datapath()                                  
 
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity','quick_sanity'])
     @preposttest_wrapper
     def test_svc_monitor_datapath(self):
         return self.verify_svc_transparent_datapath()

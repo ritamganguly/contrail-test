@@ -326,7 +326,7 @@ class TestBasicVMVN0(BaseVnVmTest):
         return True
     # end test_host_route_add_delete
 
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity','ci_sanity','quick_sanity'])
     @preposttest_wrapper
     def test_ipam_add_delete(self):
         '''Test to validate IPAM creation, association of a VN and creating VMs in the VN. Ping b/w the VMs should be successful.
@@ -924,7 +924,7 @@ class TestBasicVMVN2(BaseVnVmTest):
         return True
     # end subnet ping
 
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity','ci_sanity','quick_sanity'])
     @preposttest_wrapper
     def test_ping_within_vn(self):
         ''' Validate Ping between two VMs within a VN.
@@ -1740,7 +1740,7 @@ class TestBasicVMVN4(BaseVnVmTest):
         return True
     # end test_vm_arp
 
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity','quick_sanity'])
     @preposttest_wrapper
     def test_vm_file_trf_scp_tests(self):
         '''
@@ -2302,7 +2302,7 @@ class TestBasicVMVN5(BaseVnVmTest):
         return True
     # end test_vm_vn_block_exhaustion
 
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity','ci_sanity', 'quick_sanity'])
     @preposttest_wrapper
     def test_vn_add_delete(self):
         '''Test to validate VN creation and deletion.

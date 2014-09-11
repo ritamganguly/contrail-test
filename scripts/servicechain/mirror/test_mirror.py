@@ -21,7 +21,7 @@ class TestSVCMirror(BaseMirrorTest, VerifySvcMirror):
         pass
     #end runTest 
 
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity','quick_sanity'])
     @preposttest_wrapper
     def test_svc_mirroring(self):
         """Validate the service chain mirroring"""

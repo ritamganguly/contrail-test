@@ -49,7 +49,7 @@ class TestBasicPolicyConfig(BasePolicyTest):
                 flavor=flavor,
                 node_name=node_name))
 
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity','ci_sanity','quick_sanity'])
     @preposttest_wrapper
     def test_policy(self):
         """ Configure policies based on topology and run policy related verifications.
@@ -94,7 +94,7 @@ class TestBasicPolicyConfig(BasePolicyTest):
         return True
     # end test_policy
 
-    @test.attr(type='sanity')
+    @test.attr(type=['sanity','ci_sanity','quick_sanity'])
     @preposttest_wrapper
     def test_policy_to_deny(self):
         ''' Test to validate that with policy having rule to disable icmp within the VN, ping between VMs should fail
