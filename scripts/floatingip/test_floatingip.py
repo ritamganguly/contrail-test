@@ -3518,7 +3518,7 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
             vn1_fixture.vn_fq_name]['virtual-machine-interface']['uuid']
 
         add_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' + vm3_vmi_id + \
-            ' --tenant_name ' + self.admin_inputs.project_name + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table' + \
+            ' --tenant_name ' + self.admin_inputs.project_name + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table1' + \
             ' --user ' + self.admin_inputs.stack_user + ' --password ' + self.admin_inputs.stack_password
         self.logger.info("Create static route 2.2.2.0/24 pointing to vm3 \n")
         username = self.inputs.host_data[self.inputs.cfgm_ips[0]]['username']
@@ -3574,7 +3574,7 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
         static_route_vm2 = vm2_fixture.vm_ips[1] + '/' + '32'
 
         add_static_route_cmd = 'python provision_static_route.py --prefix ' + static_route_vm2 + ' --virtual_machine_interface_id ' + \
-            vm2_vmi_id + ' --tenant_name ' + self.admin_inputs.project_name + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table' + \
+            vm2_vmi_id + ' --tenant_name ' + self.admin_inputs.project_name + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table2' + \
             ' --user ' + self.admin_inputs.stack_user + ' --password ' + self.admin_inputs.stack_password
         self.logger.info(
             "Create static route %s pointing to vm111 eth0 interface \n" %
@@ -3607,10 +3607,10 @@ class FloatingipTestSanity5(base.FloatingIpBaseTest):
             self.logger.info('Ping not going to vm333  as expected \n')
 
         del_static_route_cmd1 = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' + vm3_vmi_id + \
-            ' --tenant_name ' + self.admin_inputs.project_name + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table' + \
+            ' --tenant_name ' + self.admin_inputs.project_name + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table1' + \
             ' --user ' + self.admin_inputs.stack_user + ' --password ' + self.admin_inputs.stack_password
         del_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm2 + ' --virtual_machine_interface_id ' + \
-            vm2_vmi_id + ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table' + \
+            vm2_vmi_id + ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table2' + \
              ' --user ' + self.admin_inputs.stack_user + ' --password ' + self.admin_inputs.stack_password
 
         self.logger.info(
