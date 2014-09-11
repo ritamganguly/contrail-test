@@ -12,7 +12,7 @@ import testtools
 import re
 import test
 from tcutils.wrappers import preposttest_wrapper
-from serial_scripts.webui import base
+import base
 
 class WebuiTestSanity(base.WebuiBaseTest):
 
@@ -24,7 +24,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
         pass
     #end runTest
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_control_node_basic_details_in_webui_monitor_infra_control_nodes(self):
         '''Test to validate control node basic view details in webui monitor tab
@@ -34,7 +33,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_control_node_basic_details_in_webui_monitor_infra_control_nodes
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_control_node_advance_details_in_webui_monitor_infra_control_nodes(self):
         '''Test to validate  control node basic view  details in webui monitor tab
@@ -44,7 +42,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_control_node_advance_details_in_webui_monitor_infra_control_nodes
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_vrouter_basic_details_in_webui_monitor_infra_virtual_routers(self):
         '''Test to validate vrouter basic view details in webui monitor tab
@@ -54,7 +51,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_vrouter_basic_details_in_webui_monitor_infra_virtual_routers
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_vrouter_advance_details_in_webui_monitor_infra_virtual_routers(self):
         '''Test to validate  vrouter advance view details in webui monitor tab
@@ -64,7 +60,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_vrouter_node_advance_details_in_webui_monitor_infra_virtual_nodes
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_analytics_node_basic_details_in_webui_monitor_infra_analytics_nodes(self):
         '''Test to validate analytics node basic view details in webui monitor tab
@@ -74,7 +69,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_analytics_basic_details_in_webui_monitor_infra_analytics_nodes
     
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_analytics_node_advance_details_in_webui_monitor_infra_analytics_nodes(self):
         '''Test to validate analytics node advance view details in webui monitor tab
@@ -84,7 +78,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_analytics_node_advance_details_in_webui_monitor_infra_analytics_nodes
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_config_node_basic_details_in_webui_monitor_infra_config_nodes(self):
         '''Test to validate config node advance view details in webui monitor
@@ -94,7 +87,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_config_node_basic_details_in_webui_monitor_infra_config_nodes
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_config_node_advance_details_in_webui_monitor_infra_config_nodes(self):
         '''Test to validate config node advance view details in webui monitor tab
@@ -104,7 +96,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_config_node_advance_details_in_webui_monitor_infra_config_nodes
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_network_basic_details_in_webui_monitor_networking_networks(self):
         '''Test to validate network basic view details in webui monitor
@@ -114,7 +105,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_networks_basic_details_in_webui_monitor_networking_networks
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_network_advance_details_in_webui_monitor_networking_networks(self):
         '''Test to validate network advance view details in webui monitor tab
@@ -124,7 +114,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_networks_advance_details_in_webui_monitor_networking_networks
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_dashboard_details_in_webui_monitor_infra_dashborad(self):
         '''Test to validate dashboard details details in webui monitor tab
@@ -133,7 +122,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
         return True
     # end test_dashboard_details_in_webui_monitor_infra_dashborad
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_instance_basic_details_in_webui_monitor_networking_networks(self):
         '''Test to validate instace basic view details in webui monitor tab
@@ -143,7 +131,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_instance_basic_details_in_webui_monitor_networking_networks
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_instance_advance_details_in_webui_monitor_networking_networks(self):
         '''Test to validate instance advance view details in webui monitor tab
@@ -153,7 +140,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
     # end
     # test_verify_instance_advance_details_in_webui_monitor_networking_networks
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_floating_ips_in_webui_config_networking_manage_floating_ips(self):
         '''Test to validate networks in webui config tab
@@ -162,7 +148,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
         return True
     # end test_floating_ips_in_webui_config_networking_manage_floating_ips
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_networks_in_webui_config_networking_networks(self):
         '''Test to validate networks in webui config tab
@@ -171,7 +156,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
         return True
     # end test_verify_networks_in_webui_config_networking_networks
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_ipam_in_webui_config_networking_ip_address_management(self):
         '''Test to validate ipam in webui config networking ip address management
@@ -180,7 +164,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
         return True
     # end verify_ipam_api_basic_data_in_webui
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_policy_in_webui_config_networking_policies(self):
         '''Test to validate policies in webui config networking policies
@@ -189,7 +172,6 @@ class WebuiTestSanity(base.WebuiBaseTest):
         return True
     # end verify_policies_api_basic_data_in_webui
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_service_templates_in_webui_config_services_service_templates(self):
         '''Test to validate service templates in webui config services service templates

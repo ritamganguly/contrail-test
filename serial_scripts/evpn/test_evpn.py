@@ -20,7 +20,6 @@ class TestEvpnCasesMplsoGre(base.BaseEvpnTest, VerifyEvpnCases):
         pass
     #end runTest
  
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_encap_l2_ipv6_multicast_traffic(self):
         '''Test l2 multicast with gre encap
@@ -28,7 +27,6 @@ class TestEvpnCasesMplsoGre(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2_ipv6_multicast_traffic(encap='gre')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_encap_l2l3_ipv6_multicast_traffic(self):
         '''Test l2l3 multicast with gre encap
@@ -36,7 +34,6 @@ class TestEvpnCasesMplsoGre(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2l3_ipv6_multicast_traffic(encap='gre')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_encap_change_of_l2_vn_forwarding_mode(self):
         '''Test to verify change of vn forwarding mode from l2 to l2l3 with gre encap
@@ -44,7 +41,6 @@ class TestEvpnCasesMplsoGre(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_change_of_l2_vn_forwarding_mode(encap='gre')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_encap_change_of_l2l3_vn_forwarding_mode(self):
         '''Test to verify change of vn forwarding mode from l2l3 to l2 with gre  encap
@@ -52,7 +48,6 @@ class TestEvpnCasesMplsoGre(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_change_of_l2l3_vn_forwarding_mode(encap='gre')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_encap_to_verify_l2_vm_file_trf_by_scp(self):
         '''Test to verify scp of a file with gre encap with l2 forwarding mode
@@ -60,7 +55,6 @@ class TestEvpnCasesMplsoGre(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2_vm_file_trf_by_scp(encap='gre')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_encap_to_verify_l2_vm_file_trf_by_tftp(self):
         '''Test to verify tftp of a file with gre encap with l2 forwarding mode
@@ -68,21 +62,18 @@ class TestEvpnCasesMplsoGre(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2_vm_file_trf_by_tftp(encap='gre')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_encap_ipv6_ping_for_non_ip_communication(self):
         '''Test ping to to IPV6 link local address of VM to check non ip traffic communication using GRE (L2 Unicast)
         '''
         return self.verify_ipv6_ping_for_non_ip_communication(encap='gre')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_encap_ipv6_ping_for_configured_ipv6_address(self):
         '''Test ping to to configured IPV6 address  of VM with encap gre
         '''
         return self.verify_ping_to_configured_ipv6_address(encap='gre')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_l2_mode(self):
         '''Test L2 forwarding mode with GRE Encap
@@ -99,7 +90,6 @@ class TestEvpnCasesMplsoUdp(base.BaseEvpnTest, VerifyEvpnCases):
         pass
     #end runTest
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_encap_l2_ipv6_multicast_traffic(self):
         '''Test l2 multicast with udp encap
@@ -107,7 +97,6 @@ class TestEvpnCasesMplsoUdp(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2_ipv6_multicast_traffic(encap='udp')
       
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_encap_l2l3_ipv6_multicast_traffic(self):
         '''Test l2 multicast with udp encap
@@ -115,7 +104,6 @@ class TestEvpnCasesMplsoUdp(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2l3_ipv6_multicast_traffic(encap='udp')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_encap_change_of_l2_vn_forwarding_mode(self):
         '''Test to verify change of vn forwarding mode from l2 to l2l3 with udp encap
@@ -123,7 +111,6 @@ class TestEvpnCasesMplsoUdp(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_change_of_l2_vn_forwarding_mode(encap='udp')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_encap_change_of_l2l3_vn_forwarding_mode(self):
         '''Test to verify change of vn forwarding mode from l2l3 to l2 with udp  encap
@@ -131,7 +118,6 @@ class TestEvpnCasesMplsoUdp(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_change_of_l2l3_vn_forwarding_mode(encap='udp')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_encap_to_verify_l2_vm_file_trf_by_scp(self):
         '''Test to verify scp of a file with udp encap with l2 forwarding mode
@@ -139,7 +125,6 @@ class TestEvpnCasesMplsoUdp(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2_vm_file_trf_by_scp(encap='udp')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_encap_to_verify_l2_vm_file_trf_by_tftp(self):
         '''Test to verify tftp of a file with udp encap with l2 forwarding mode
@@ -147,21 +132,18 @@ class TestEvpnCasesMplsoUdp(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2_vm_file_trf_by_tftp(encap='udp')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_encap_ipv6_ping_for_non_ip_communication(self):
         '''Test ping to to IPV6 link local address of VM to check non ip traffic communication using UDP(L2 Unicast)
         '''
         return self.verify_ipv6_ping_for_non_ip_communication(encap='udp')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_encap_ipv6_ping_for_configured_ipv6_address(self):
         '''Test ping to to configured IPV6 address  of VM with encap udp
         '''
         return self.verify_ping_to_configured_ipv6_address(encap='udp')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_l2_mode(self):
         '''Test L2 forwarding mode with UDP Encap
@@ -179,7 +161,6 @@ class TestEvpnCasesVxlan(base.BaseEvpnTest, VerifyEvpnCases):
     #end runTest
 
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_vxlan_encap_l2l3_ipv6_multicast_traffic(self):
         '''Test l2 multicast with vxlan encap
@@ -187,7 +168,6 @@ class TestEvpnCasesVxlan(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2l3_ipv6_multicast_traffic(encap='vxlan')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_vxlan_encap_l2_ipv6_multicast_traffic(self):
         '''Test l2 multicast with vxlan  encap
@@ -195,7 +175,6 @@ class TestEvpnCasesVxlan(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2_ipv6_multicast_traffic(encap='vxlan')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_vxlan_encap_change_of_l2_vn_forwarding_mode(self):
         '''Test to verify change of vn forwarding mode from l2 to l2l3  with vxlan encap
@@ -203,7 +182,6 @@ class TestEvpnCasesVxlan(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_change_of_l2_vn_forwarding_mode(encap='vxlan')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_vxlan_encap_change_of_l2l3_vn_forwarding_mode(self):
         '''Test to verify change of vn forwarding mode from l2l3 to l2 with vxlan  encap
@@ -211,7 +189,7 @@ class TestEvpnCasesVxlan(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_change_of_l2l3_vn_forwarding_mode(encap='vxlan')
 
-    @test.attr(type=[ 'serial', 'sanity' ])
+    @test.attr(type=['sanity' ])
     @preposttest_wrapper
     def test_with_vxlan_encap_to_verify_l2_vm_file_trf_by_scp(self):
         '''Test to verify scp of a file with vxlan encap
@@ -227,7 +205,6 @@ class TestEvpnCasesVxlan(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_l2_vm_file_trf_by_tftp(encap='vxlan')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_vxlan_encap_to_verify_vlan_tagged_packets_for_l2_vn(self):
         '''Test to verify that configured vlan tag is shown in traffic when traffic is sent on the configured vlan
@@ -235,7 +212,6 @@ class TestEvpnCasesVxlan(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_vlan_tagged_packets_for_l2_vn(encap='vxlan')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_vxlan_encap_to_verify_vlan_qinq_tagged_packets_for_l2_vn(self):
         '''Test to verify that configured vlan tag is shown in traffic when traffic is sent on the configured vlan
@@ -247,21 +223,18 @@ class TestEvpnCasesVxlan(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_vlan_qinq_tagged_packets_for_l2_vn(encap='vxlan')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_vxlan_encap_ipv6_ping_for_non_ip_communication(self):
         '''Test ping to to IPV6 link local address of VM to check non_ip traffic communication using VXLAN(L2 Unicast)
         '''
         return self.verify_ipv6_ping_for_non_ip_communication(encap='vxla')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_vxlan_encap_ipv6_ping_for_configured_ipv6_address(self):
         '''Test ping to to configured IPV6 address  of VM with encap VXLAN
         '''
         return self.verify_ping_to_configured_ipv6_address(encap='vxlan')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_verify_vxlan_mode_with_configured_vxlan_id_l2_vn(self):
         ''' Testing setting of vxlan_id explicitly
@@ -286,7 +259,6 @@ class TestEvpnCasesVxlan(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_epvn_l2_mode(encap='vxlan')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_verify_vxlan_mode_with_configured_vxlan_id_l2l3_vn(self):
         ''' Testing setting of vxlan_id explicitly with vn forwarding mode as l2l3
@@ -304,14 +276,12 @@ class TestEvpnCasesRestart(base.BaseEvpnTest, VerifyEvpnCases):
         pass
     #end runTest
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_encap_agent_restart(self):
         '''Test agent restart with GRE Encap
         '''
         return self.verify_epvn_with_agent_restart(encap='gre')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_encap_agent_restart(self):
         '''Test agent restart with UDP Encap
@@ -333,7 +303,6 @@ class TestEvpnCasesRestart(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_epvn_with_agent_restart(encap='vxlan')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_gre_encap_to_verify_epvn_l2_mode_control_node_switchover(self):
         ''' Stop the control node and check peering with agent fallback to other control node.
@@ -349,7 +318,6 @@ class TestEvpnCasesRestart(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_epvn_l2_mode_control_node_switchover(encap='gre')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_udp_encap_to_verify_epvn_l2_mode_control_node_switchover(self):
         ''' Stop the control node and check peering with agent fallback to other control node.
@@ -365,7 +333,6 @@ class TestEvpnCasesRestart(base.BaseEvpnTest, VerifyEvpnCases):
         '''
         return self.verify_epvn_l2_mode_control_node_switchover(encap='udp')
 
-    @test.attr(type='serial')
     @preposttest_wrapper
     def test_with_vxlan_encap_to_verify_epvn_l2_mode_control_node_switchover(self):
         ''' Stop the control node and check peering with agent fallback to other control node.
