@@ -553,7 +553,6 @@ class QuantumFixture(fixtures.Fixture):
         except CommonNetworkClientException as e:
             self.logger.error(
                 "Quantum Exception while running  quota update " + str(e))
-            raise e
         return quota_rsp
     # end update_quota
 
