@@ -761,7 +761,7 @@ class ContrailTestInit(fixtures.Fixture):
         if self.jenkins_trigger:
             log_location = "nodeb10.englab.juniper.net:/cs-shared/test_runs" \
                 "/%s/%s" % (self.host_data[self.cfgm_ips[0]]['name'], self.ts) 
-            config.set('Test', 'LogsLocation', log_location)
+            config.set('Test', 'CoreLocation', log_location)
 
         details_h.close()
     # end 

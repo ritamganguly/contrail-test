@@ -25,6 +25,14 @@ def update_xml(config_file, xmlfile):
         properties_elem.append(prop_elem)
     except ConfigParser.NoOptionError,e:
         pass
+    try:
+        core_location = config.get('Test', 'CoreLocation')
+        prop_elem = ET.Element('property')
+        prop_elem.set('name','CoreLocation')
+        prop_elem.set('value', core_location)
+        properties_elem.append(prop_elem)
+    except ConfigParser.NoOptionError,e:
+        pass
         
     prop_elem = ET.Element('property')
     prop_elem.set('name','Build') 
