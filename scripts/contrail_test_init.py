@@ -127,6 +127,7 @@ class ContrailTestInit(fixtures.Fixture):
         self.web_serverUser = config.get('WebServer', 'username')
         self.web_server_password = config.get('WebServer', 'password')
         self.web_root = config.get('WebServer', 'webRoot')
+        self.path = config.get('WebServer', 'path')
 
         # Test Revision
         self.test_repo_dir = self.read_config_option(
@@ -168,9 +169,9 @@ class ContrailTestInit(fixtures.Fixture):
         self.html_report = self.log_path + '/junit-noframes.html'
         self.web_server_path = self.config.get(
             'WebServer', 'path') + '/' + self.build_folder + '/'
-        self.html_log_link = 'http://%s/%s/%s/%s' % (self.web_server, self.web_root,
+        self.html_log_link = 'http://%s/%s/%s/%s' % (self.web_server, self.path,
                                       self.build_folder, self.html_report.split('/')[-1])
-        self.log_link = 'http://%s/%s/%s/logs/' % (self.web_server, self.web_root,
+        self.log_link = 'http://%s/%s/%s/logs/' % (self.web_server, self.path,
                                       self.build_folder)
 #        self.html_log_link = '<a href=\"%s\">%s</a>' % (html_log_link,
 #                                                        html_log_link)

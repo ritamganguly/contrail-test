@@ -123,6 +123,15 @@
       <script type="text/javascript" language="JavaScript">
         var TestCases = new Array();
         var cur;
+        function toggleErrorDetail(elem) {
+            console.info(elem);
+            if(elem.nextSibling != null) {
+                if(elem.nextSibling.style.display == "block" || elem.nextSibling.style.display == "") {
+                    elem.nextSibling.style.display = "none"
+                } else
+                    elem.nextSibling.style.display = "block"
+            }
+        }
         <xsl:for-each select="./testsuite">      
             <xsl:apply-templates select="properties"/>
         </xsl:for-each>
@@ -233,7 +242,7 @@
         <h2>Properties</h2>
             <xsl:for-each select="/testsuites/testsuite/properties/property">
                 <xsl:sort select="@name"/>
-                <xsl:value-of select="@name"/>     : <xsl:text><xsl:value-of disable-output-escaping="yes" select="concat(@value,$newline)"/></xsl:text>
+                <xsl:value-of select="@name"/>     : <xsl:value-of disable-output-escaping="yes" select="concat(@value,$newline)"/>
             </xsl:for-each>
     </xsl:template>
     
@@ -463,13 +472,13 @@
 <!-- Style for the error and failure in the tescase template -->
 <xsl:template name="display-failures">
     <xsl:choose>
-        <xsl:when test="not(@message)">N/A</xsl:when>
+        <xsl:when test="not(@message)"><span style="cursor:pointer" onclick="javascript:toggleErrorDetail(this)">N/A</span></xsl:when>
         <xsl:otherwise>
             <xsl:value-of select="@message"/>
         </xsl:otherwise>
     </xsl:choose>
     <!-- display the stacktrace -->
-    <code>
+    <code style="display:none">
         <br/><br/>
         <xsl:call-template name="br-replace">
             <xsl:with-param name="word" select="."/>
