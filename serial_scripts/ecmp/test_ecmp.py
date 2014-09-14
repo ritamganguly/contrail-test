@@ -49,9 +49,7 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
         self.logger.info('Sleeping for 30 seconds')
         sleep(30)
         
-        self.vm1_fixture.verify_vm_in_agent()
         self.vm1_fixture.wait_till_vm_is_up()
-        self.vm2_fixture.verify_vm_in_agent()
         self.vm2_fixture.wait_till_vm_is_up()
 
         self.get_rt_info_tap_intf_list(
@@ -64,9 +62,7 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
         self.logger.info('Sleeping for 30 seconds')
         sleep(30)
 
-        self.vm1_fixture.verify_vm_in_agent()
         self.vm1_fixture.wait_till_vm_is_up()
-        self.vm2_fixture.verify_vm_in_agent()
         self.vm2_fixture.wait_till_vm_is_up()
 
         self.get_rt_info_tap_intf_list(
@@ -90,7 +86,6 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
             self.vn1_fixture, self.vm1_fixture, svm_ids)
         
         dst_vm_list= [self.vm2_fixture]
-#        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
         self.logger.info('Will reboot the Compute and Control nodes')
         nodes= []
@@ -109,21 +104,25 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
         sleep(240)
         self.logger.info(
             'Will check the state of the SIs and power it ON, if it is in SHUTOFF state')
-        for vm in self.nova_fixture.get_vm_list():
-            if vm.status != 'ACTIVE':
-                self.logger.info('Will Power-On %s' % vm.name)
-                vm.start()
+        # We need to check the status of only those VMs associated with this project
+        si_svms= []
+        si_svms= self.get_svms_in_si(self.si_fixtures, self.inputs.project_name)
+        vms= [self.vm1_fixture, self.vm2_fixture]
+        for svm in si_svms:
+            if not self.nova_fixture.wait_till_vm_is_active(svm):
+                self.logger.info('Will Power-On %s' % svm.name)
+                svm.start()
+        for vm in vms:
+            if not self.nova_fixture.wait_till_vm_is_active(vm.vm_obj):
+                self.logger.info('Will Power-On %s' % vm.vm_obj.name)
+                vm.vm_obj.start()
         self.logger.info('Sleeping for 30 seconds')
         sleep(30)
         self.get_rt_info_tap_intf_list(
             self.vn1_fixture, self.vm1_fixture, svm_ids)
         fab_connections.clear()
-        self.vm1_fixture.verify_vm_in_agent()
         self.vm1_fixture.wait_till_vm_is_up()
-        self.vm2_fixture.verify_vm_in_agent()
         self.vm2_fixture.wait_till_vm_is_up()
-
-#        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
         return True
     # end test_ecmp_svc_in_network_with_3_instance_reboot_nodes

@@ -125,3 +125,11 @@ class ECMPVerify():
 
         return True
     # end get_rt_info_tap_intf_list
+
+    def get_svms_in_si(self, si, proj_name):
+        svm_ids= si.svm_ids                                                                                                                                                                
+        svm_list= []
+        for svm_id in svm_ids:
+            svm_list.append(self.nova_fixture.get_vm_by_id(svm_id, proj_name))
+        return svm_list
+    #end get_svms_in_si

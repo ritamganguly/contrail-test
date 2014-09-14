@@ -183,6 +183,25 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
             vm_nodeip, inspect_h.get_vna_tap_interface_by_vm(vm_id=svm_obj.id))
         return inspect_h.get_vna_tap_interface_by_vm(vm_id=svm_obj.id)[0]['name']
 
+    def get_bridge_svm_tapintf(self, svm_name, direction):
+        self.is_svm_active(svm_name)
+        svm_obj = self.get_svm_obj(svm_name)
+        vm_nodeip = self.inputs.host_data[
+            self.nova_fixture.get_nova_host_of_vm(svm_obj)]['host_ip']
+        inspect_h = self.agent_inspect[vm_nodeip]
+        self.logger.debug(
+            "svm_obj:'%s' compute_ip:'%s' agent_inspect:'%s'", svm_obj.__dict__,
+            vm_nodeip, inspect_h.get_vna_tap_interface_by_vm(vm_id=svm_obj.id))
+        tap_intf_list = []
+        vn= 'svc-vn-'+ direction
+        vrf= ':'.join(self.inputs.project_fq_name) + ':' + vn + ':' + vn
+        for entry in inspect_h.get_vna_tap_interface_by_vm(vm_id=svm_obj.id):
+            if entry['vrf_name'] == vrf:
+                self.logger.debug(
+                    'The %s tap-interface of %s is %s' %
+                    (direction, svm_name, entry['name']))
+                return entry['name']
+
     def get_svm_tapintf_of_vn(self, svm_name, vn):
         self.is_svm_active(svm_name)
         svm_obj = self.get_svm_obj(svm_name)

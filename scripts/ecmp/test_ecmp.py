@@ -546,3 +546,103 @@ class TestECMPwithFIP(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
         time.sleep(10)
         self.verify_flow_records(self.fvn_vm1, self.fvn_vm1.vm_ip, self.my_fip)
         return True
+
+class TestECMPwithSVMChange(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffic, ECMPVerify):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestECMPwithSVMChange, cls).setUpClass()
+
+    def runTest(self):
+        pass                                                                                                                                                                                                   
+    #end runTest
+    
+    @test.attr(type=['sanity'])
+    @preposttest_wrapper
+    def test_ecmp_with_svm_deletion(self):
+        """
+           Description: Validate ECMP with service chaining transparent mode datapath by removing SVMs
+           Test steps:
+                1.Creating vm's - vm1 and vm2 in networks vn1 and vn2.
+                2.Creating a service instance in transparent mode with 3 instances.
+                3.Creating a service chain by applying the service instance as a service in a policy between the VNs.
+                4.Delete the SVMs in the SI one by one.
+                5.There should be no traffic loss.
+           Pass criteria: Ping between the VMs should be successful and TCP traffic should reach vm2 from vm1 and vice-versa.
+           Maintainer : ganeshahv@juniper.net
+        """
+        self.verify_svc_transparent_datapath(
+            si_count=1, svc_scaling=True, max_inst=3)
+        svms= self.get_svms_in_si(self.si_fixtures[0], self.inputs.project_name)
+        self.logger.info('The Service VMs in the Service Instance %s are %s'%(self.si_fixtures[0].si_name, svms))
+        for svm in svms:
+            self.logger.info('SVM %s is in %s state'%(svm, svm.status))
+        self.logger.info('Will send traffic between the VMs')
+        dst_vm_list= [self.vm2_fixture]
+        self.stream_list= self.setup_streams(self.vm1_fixture, dst_vm_list, self.vm1_fixture.vm_ip, self.vm2_fixture.vm_ip)
+        self.sender, self.receiver= self.start_traffic(self.vm1_fixture, dst_vm_list, self.stream_list, self.vm1_fixture.vm_ip, self.vm2_fixture.vm_ip)
+        self.verify_flow_thru_si(self.si_fixtures[0])
+        while(len(svms) > 1):
+            self.logger.info('Will Delete SVM %s'%svms[-1].name)
+            svms[-1].delete()
+            sleep(10)
+            svms= self.get_svms_in_si(self.si_fixtures[0], self.inputs.project_name)                                                
+            svms= sorted(set(svms))
+            if None in svms:
+                svms.remove(None) 
+            self.logger.info('The Service VMs in the Service Instance %s are %s'%(self.si_fixtures[0].si_name, svms))   
+            self.verify_flow_records(self.vm1_fixture, self.vm1_fixture.vm_ip, self.vm2_fixture.vm_ip)
+            self.verify_flow_thru_si(self.si_fixtures[0])
+        return True
+    # end test_ecmp_with_svm_deletion
+
+    @test.attr(type=['sanity'])
+    @preposttest_wrapper
+    def test_ecmp_with_svm_suspend_start(self):
+        """
+           Description: Validate ECMP with service chaining transparent mode datapath by suspending and later staring SVMs
+           Test steps:
+                1.Creating vm's - vm1 and vm2 in networks vn1 and vn2.
+                2.Creating a service instance in transparent mode with 3 instances.
+                3.Creating a service chain by applying the service instance as a service in a policy between the VNs.
+                4.Suspend the SVMs in the SI one by one.
+                5.There should be no traffic loss.
+           Pass criteria: Ping between the VMs should be successful and TCP traffic should reach vm2 from vm1 and vice-versa.
+           Maintainer : ganeshahv@juniper.net
+        """
+        self.verify_svc_transparent_datapath(
+            si_count=1, svc_scaling=True, max_inst=3)
+        svms= self.get_svms_in_si(self.si_fixtures[0], self.inputs.project_name)
+        self.logger.info('The Service VMs in the Service Instance %s are %s'%(self.si_fixtures[0].si_name, svms))
+        for svm in svms:
+            self.logger.info('SVM %s is in %s state'%(svm, svm.status))
+        self.logger.info('Will send traffic between the VMs')
+        dst_vm_list= [self.vm2_fixture]
+        self.stream_list= self.setup_streams(self.vm1_fixture, dst_vm_list, self.vm1_fixture.vm_ip, self.vm2_fixture.vm_ip)
+        self.sender, self.receiver= self.start_traffic(self.vm1_fixture, dst_vm_list, self.stream_list, self.vm1_fixture.vm_ip, self.vm2_fixture.vm_ip)
+        self.verify_flow_thru_si(self.si_fixtures[0])
+        
+        self.logger.info('****** Will suspend the SVMs and check traffic flow ******')
+        for i in range(len(svms) - 1):
+            self.logger.info('Will Suspend SVM %s'%svms[i].name)
+            svms[i].suspend()
+            sleep(30)
+            self.verify_flow_records(self.vm1_fixture, self.vm1_fixture.vm_ip, self.vm2_fixture.vm_ip)
+            self.verify_flow_thru_si(self.si_fixtures[0])
+        
+        self.logger.info('****** Will resume the suspended SVMs and check traffic flow ******')
+        for i in range(len(svms)):
+            svms= self.get_svms_in_si(self.si_fixtures[0], self.inputs.project_name)
+            if svms[i].status == 'SUSPENDED':
+                self.logger.info('Will resume the suspended SVM %s'%svms[i].name)
+                svms[i].resume()
+                sleep(30)
+            else:
+                self.logger.info('SVM %s is not SUSPENDED'%svms[i].name)
+            self.verify_flow_records(self.vm1_fixture, self.vm1_fixture.vm_ip, self.vm2_fixture.vm_ip)
+            self.verify_flow_thru_si(self.si_fixtures[0])
+
+        return True
+    # end test_ecmp_with_svm_suspend_start
+
+
