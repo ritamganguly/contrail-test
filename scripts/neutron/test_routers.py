@@ -195,8 +195,6 @@ class TestRouters(BaseNeutronTest):
             router_name = self.inputs.ext_routers[0][0]
             router_ip = self.inputs.ext_routers[0][1]
 
-            import pdb
-            pdb.set_trace()
             self.project_fixture = self.useFixture(
                 ProjectFixture(
                     vnc_lib_h=self.vnc_lib,
