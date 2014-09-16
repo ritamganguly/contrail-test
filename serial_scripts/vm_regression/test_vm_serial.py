@@ -472,3 +472,109 @@ class TestBasicVMVN0(BaseVnVmTest):
         assert result, "core generation validation test failed: %s" % err_msg
         return True
     # end test_kill_service_verify_core_generation
+
+
+    @test.attr(type=['sanity'])
+    @preposttest_wrapper
+    def test_control_node_switchover(self):
+        ''' Stop the control node and check peering with agent fallback to other control node.
+            1. Pick one VN from respource pool which has 2 VM's in it
+            2. Verify ping between VM's
+            3. Find active control node in cluster by agent inspect
+            4. Stop control service on active control node
+            5. Verify agents are connected to new active control-node using xmpp connections
+            6. Bring back control service on previous active node
+            7. Verify ping between VM's again after bringing up control serveice
+        Pass criteria: Step 2,5 and 7 should pass
+        '''
+        if len(set(self.inputs.bgp_ips)) < 2:
+            self.logger.info(
+                "Skiping Test. At least 2 control node required to run the test")
+            raise self.skipTest(
+                "Skiping Test. At least 2 control node required to run the test")
+        result = True
+        vn1_name = get_random_name('vn1')
+        vn1_subnets = ['192.168.1.0/24']
+        vn1_vm1_name = get_random_name('vn1_vm1')
+        vn1_vm2_name = get_random_name('vn1_vm2')
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        assert vn1_fixture.verify_on_setup()
+        vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name)
+        assert vm1_fixture.wait_till_vm_is_up()
+        vm2_fixture = self.create_vm(vn1_fixture, vn1_vm2_name)
+        assert vm2_fixture.wait_till_vm_is_up()
+        assert vm1_fixture.ping_to_ip(vm2_fixture.vm_ip)
+        assert vm2_fixture.ping_to_ip(vm1_fixture.vm_ip)
+
+        # Figuring the active control node
+        active_controller = None
+        self.agent_inspect = self.connections.agent_inspect
+        inspect_h = self.agent_inspect[vm1_fixture.vm_node_ip]
+        agent_xmpp_status = inspect_h.get_vna_xmpp_connection_status()
+        for entry in agent_xmpp_status:
+            if entry['cfg_controller'] == 'Yes':
+                active_controller = entry['controller_ip']
+        active_controller_host_ip = self.inputs.host_data[
+            active_controller]['host_ip']
+        self.logger.info('Active control node from the Agent %s is %s' %
+                         (vm1_fixture.vm_node_ip, active_controller_host_ip))
+
+        # Stop on Active node
+        self.logger.info('Stoping the Control service in  %s' %
+                         (active_controller_host_ip))
+        self.inputs.stop_service(
+            'contrail-control', [active_controller_host_ip])
+        sleep(5)
+
+        # Check the control node shifted to other control node
+        new_active_controller = None
+        new_active_controller_state = None
+        inspect_h = self.agent_inspect[vm1_fixture.vm_node_ip]
+        agent_xmpp_status = inspect_h.get_vna_xmpp_connection_status()
+        for entry in agent_xmpp_status:
+            if entry['cfg_controller'] == 'Yes':
+                new_active_controller = entry['controller_ip']
+                new_active_controller_state = entry['state']
+        new_active_controller_host_ip = self.inputs.host_data[
+            new_active_controller]['host_ip']
+        self.logger.info('Active control node from the Agent %s is %s' %
+                         (vm1_fixture.vm_node_ip, new_active_controller_host_ip))
+        if new_active_controller_host_ip == active_controller_host_ip:
+            self.logger.error(
+                'Control node switchover fail. Old Active controlnode was %s and new active control node is %s' %
+                (active_controller_host_ip, new_active_controller_host_ip))
+            result = False
+
+        if new_active_controller_state != 'Established':
+            self.logger.error(
+                'Agent does not have Established XMPP connection with Active control node')
+            result = result and False
+
+        # Start the control node service again
+        self.logger.info('Starting the Control service in  %s' %
+                         (active_controller_host_ip))
+        self.inputs.start_service(
+            'contrail-control', [active_controller_host_ip])
+
+        # Check the BGP peering status from the currently active control node
+        sleep(5)
+        cn_bgp_entry = self.cn_inspect[
+            new_active_controller_host_ip].get_cn_bgp_neigh_entry()
+        for entry in cn_bgp_entry:
+            if entry['state'] != 'Established':
+                result = result and False
+                self.logger.error(
+                    'With Peer %s peering is not Established. Current State %s ' %
+                    (entry['peer'], entry['state']))
+
+        # Check the ping
+        self.logger.info('Checking the ping between the VM again')
+        assert vm1_fixture.ping_to_ip(vm2_fixture.vm_ip)
+        assert vm2_fixture.ping_to_ip(vm1_fixture.vm_ip)
+
+        if not result:
+            self.logger.error('Switchover of control node failed')
+            assert result
+        return True
+
+    # end test_control_node_switchover
