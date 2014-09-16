@@ -12,6 +12,7 @@ import time
 
 from vn_test import *
 from vm_test import *
+from control_node import CNFixture
 from connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 
@@ -74,7 +75,7 @@ class TestRouters(BaseNeutronTest):
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
         self.delete_vn_from_router(router_dict['id'], vn1_fixture)
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip,
-                                                  expectation=False)
+                                                   expectation=False)
         self.add_vn_to_router(router_dict['id'], vn1_fixture)
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
     # end test_basic_router_behavior
@@ -171,3 +172,109 @@ class TestRouters(BaseNeutronTest):
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip),\
             'Ping between VMs across router failed!'
     # end test_router_with_existing_ports
+
+    @preposttest_wrapper
+    def test_basic_snat_behavior(self):
+        '''Create an external network, a router
+        set router-gateway to external network
+        launch a private network and attach it to router
+        validate ftp and ping to 8.8.8.8 from vm here
+        '''
+        if (('MX_GW_TEST' in os.environ) and (
+                os.environ.get('MX_GW_TEST') == '1')):
+
+            result = True
+            ext_vn_name = get_random_name('ext_vn')
+            ext_subnets = [self.inputs.fip_pool]
+            vm1_name = get_random_name('vm_private')
+            vn1_name = get_random_name('vn_private')
+            vn1_subnets = [get_random_cidr()]
+            api_server_port = self.inputs.api_server_port
+            api_server_ip = self.inputs.cfgm_ip
+            mx_rt = self.inputs.mx_rt
+            router_name = self.inputs.ext_routers[0][0]
+            router_ip = self.inputs.ext_routers[0][1]
+
+            import pdb
+            pdb.set_trace()
+            self.project_fixture = self.useFixture(
+                ProjectFixture(
+                    vnc_lib_h=self.vnc_lib,
+                    project_name=self.inputs.project_name,
+                    connections=self.connections))
+            self.logger.info(
+                'Default SG to be edited for allow all on project: %s' %
+                self.inputs.project_name)
+            self.project_fixture.set_sec_group_for_allow_all(
+                self.inputs.project_name, 'default')
+            ext_vn_fixture = self.useFixture(
+                VNFixture(
+                    project_name=self.inputs.project_name,
+                    connections=self.connections,
+                    vn_name=ext_vn_name,
+                    inputs=self.inputs,
+                    subnets=ext_subnets,
+                    router_asn=self.inputs.router_asn,
+                    rt_number=mx_rt,
+                    router_external=True))
+            assert ext_vn_fixture.verify_on_setup()
+            vn1_fixture = self.useFixture(
+                VNFixture(
+                    project_name=self.inputs.project_name,
+                    connections=self.connections,
+                    vn_name=vn1_name,
+                    inputs=self.inputs,
+                    subnets=vn1_subnets))
+            assert vn1_fixture.verify_on_setup()
+            vm1_fixture = self.useFixture(
+                VMFixture(
+                    project_name=self.inputs.project_name,
+                    connections=self.connections,
+                    vn_obj=vn1_fixture.obj,
+                    vm_name=vm1_name))
+            assert vm1_fixture.verify_on_setup()
+
+            routing_instance = ext_vn_fixture.ri_name
+            # Configuring all control nodes here
+
+            for entry in self.inputs.bgp_ips:
+                hostname = self.inputs.host_data[entry]['name']
+                entry_control_ip = self.inputs.host_data[
+                    entry]['host_control_ip']
+                cn_fixture1 = self.useFixture(
+                    CNFixture(
+                        connections=self.connections,
+                        router_name=hostname,
+                        router_ip=entry_control_ip,
+                        router_type='contrail',
+                        inputs=self.inputs))
+            cn_fixturemx = self.useFixture(
+                CNFixture(
+                    connections=self.connections,
+                    router_name=router_name,
+                    router_ip=router_ip,
+                    router_type='mx',
+                    inputs=self.inputs))
+            sleep(10)
+            assert cn_fixturemx.verify_on_setup()
+
+            router_name = get_random_name('router1')
+            router_dict = self.create_router(router_name)
+            router_rsp = self.quantum_fixture.router_gateway_set(
+                router_dict['id'],
+                ext_vn_fixture.vn_id)
+            self.add_vn_to_router(router_dict['id'], vn1_fixture)
+            assert vm1_fixture.ping_with_certainty('8.8.8.8')
+            self.logger.info('Testing FTP...Intsalling VIM In the VM via FTP')
+            run_cmd = "wget ftp://ftp.vim.org/pub/vim/unix/vim-7.3.tar.bz2"
+            vm1_fixture.run_cmd_on_vm(cmds=[run_cmd])
+            output = vm1_fixture.return_output_values_list[0]
+            if 'saved' not in output:
+                self.logger.error("FTP failed from VM %s" %
+                                  (vm1_fixture.vm_name))
+                result = result and False
+            else:
+                self.logger.info("FTP successful from VM %s via FIP" %
+                                 (vm1_fixture.vm_name))
+
+            return result
