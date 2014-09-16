@@ -32,6 +32,7 @@ class ContrailConnections():
         username = username or self.inputs.stack_user
         password = password or self.inputs.stack_password
         self.keystone_ip = self.inputs.keystone_ip
+        self.inputs.logger.info("In connections.py")
 
         self.ks_client = ks_client.Client(
             username=username,
@@ -41,6 +42,7 @@ class ContrailConnections():
                                  'http://' + self.keystone_ip + ':5000/v2.0'
         )
         self.project_id = get_dashed_uuid(self.ks_client.tenant_id)
+        self.inputs.logger.info("After ks client")
 
         if self.inputs.webui_verification_flag:
             self.os_type = self.inputs.os_type
@@ -67,6 +69,7 @@ class ContrailConnections():
             openstack_ip=self.inputs.openstack_ip)
         self.quantum_fixture.setUp()
         inputs.openstack_ip = self.inputs.openstack_ip
+        self.inputs.logger.info("After quantum client")
 
         self.vnc_lib_fixture = VncLibFixture(
             username=username, password=password,
@@ -76,26 +79,31 @@ class ContrailConnections():
         self.vnc_lib_fixture.setUp()
         self.vnc_lib = self.vnc_lib_fixture.get_handle()
 
+        self.inputs.logger.info("After vncapi client")
         self.nova_fixture = NovaFixture(inputs=inputs,
                                         project_name=project_name,
                                         username=username,
                                         password=password)
         self.nova_fixture.setUp()
 
+        self.inputs.logger.info("After nova client")
         self.api_server_inspects = {}
         for cfgm_ip in self.inputs.cfgm_ips:
             self.api_server_inspects[cfgm_ip] = VNCApiInspect(cfgm_ip,
                                                               args=self.inputs, logger=self.inputs.logger)
             self.api_server_inspect = VNCApiInspect(cfgm_ip,
                                                     args=self.inputs, logger=self.inputs.logger)
+        self.inputs.logger.info("After api introspect")
         self.cn_inspect = {}
         for bgp_ip in self.inputs.bgp_ips:
             self.cn_inspect[bgp_ip] = ControlNodeInspect(bgp_ip,
                                                          logger=self.inputs.logger)
+        self.inputs.logger.info("After cn introspect")
         self.agent_inspect = {}
         for compute_ip in self.inputs.compute_ips:
             self.agent_inspect[compute_ip] = AgentInspect(compute_ip,
                                                           logger=self.inputs.logger)
+        self.inputs.logger.info("After agent introspect")
         self.dnsagent_inspect = {}
         for bgp_ip in self.inputs.bgp_ips:
             self.dnsagent_inspect[bgp_ip] = DnsAgentInspect(
@@ -111,6 +119,7 @@ class ContrailConnections():
             self.ops_inspects[collector_name] = VerificationOpsSrv(
                 collector_ip,
                 logger=self.inputs.logger)
+        self.inputs.logger.info("After ops introspect")
 
         self.analytics_obj = AnalyticsVerification(
             self.inputs, self.api_server_inspect, self.cn_inspect, self.agent_inspect, self.ops_inspects, logger=self.inputs.logger)

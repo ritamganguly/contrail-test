@@ -38,11 +38,13 @@ class NovaFixture(fixtures.Fixture):
         self.logger = inputs.logger
         self.images_info = parse_cfg_file('configs/images.cfg')
         self.flavor_info = parse_cfg_file('configs/flavors.cfg')
+        self.logger.info("Inside nova client")
     # end __init__
 
     def setUp(self):
         super(NovaFixture, self).setUp()
         insecure = bool(os.getenv('OS_INSECURE',True)) 
+        self.logger.info("Inside nova client - before nova client object")
         self.obj = mynovaclient.Client('2',
                                        username=self.username,
                                        project_id=self.project_name,
@@ -50,11 +52,14 @@ class NovaFixture(fixtures.Fixture):
                                        auth_url=self.auth_url,
                                        insecure=insecure)
 
+        self.logger.info("Inside nova client - after nova client object")
         try:
             self._create_keypair(self.key)
         except Exception as e:
             self.logger.exception("Got exception in create keypair")
+        self.logger.info("Inside nova client - after nova client object compute nodes")
         self.compute_nodes = self.get_compute_host()
+        self.logger.info("Exit client - after nova client object compute nodes")
     # end setUp
 
     def cleanUp(self):
