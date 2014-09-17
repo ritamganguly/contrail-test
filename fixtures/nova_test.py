@@ -228,20 +228,30 @@ class NovaFixture(fixtures.Fixture):
             return
         username = self.inputs.host_data[self.cfgm_ip]['username']
         password = self.inputs.host_data[self.cfgm_ip]['password']
-        with hide('everything'):
+        #with hide('everything'):
+        if True:
             with settings(
                 host_string='%s@%s' % (username, self.cfgm_ip),
-                    password=password, warn_only=True, abort_on_prompts=False):
+#                    password=password, warn_only=True, abort_on_prompts=False):
+                    password=password, warn_only=True, abort_on_prompts=True):
                 rsa_pub_arg = '.ssh/id_rsa'
+                self.logger.debug('Creating keypair') 
                 if exists('.ssh/id_rsa.pub'):  # If file exists on remote m/c
+                    self.logger.debug('Public key exists. Getting public key') 
                     get('.ssh/id_rsa.pub', '/tmp/')
                 else:
+                    self.logger.debug('Making .ssh dir')
                     run('mkdir -p .ssh')
+                    self.logger.debug('Removing id_rsa*')
                     run('rm -f .ssh/id_rsa*')
+                    self.logger.debug('Creating key using : ssh-keygen -f -t rsa -N') 
                     run('ssh-keygen -f %s -t rsa -N \'\'' % (rsa_pub_arg))
+                    self.logger.debug('Getting the created keypair')
                     get('.ssh/id_rsa.pub', '/tmp/')
+                self.logger.debug('Reading publick key')
                 pub_key = open('/tmp/id_rsa.pub', 'r').read()
                 self.obj.keypairs.create(key_name, public_key=pub_key)
+                self.logger.debug('Exit create_keypair')
     # end _create_keypair
 
     def get_nova_services(self, **kwargs):
