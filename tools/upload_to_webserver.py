@@ -95,6 +95,8 @@ def upload_to_webserver(config_file, report_config_file, elem):
                     run('mkdir -p %s' % (web_server_path))
                     output = put(elem, web_server_path)
                     put('logs', web_server_path)
+                    put('result.xml', web_server_path)
+                    put('result1.xml', web_server_path)
 
     except Exception,e:
         print 'Error occured while uploading the logs to the Web Server ',e
