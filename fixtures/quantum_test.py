@@ -82,16 +82,22 @@ class QuantumFixture(fixtures.Fixture):
         return self.obj
     # end get_handle
 
-    def create_network(self, vn_name, vn_subnets, ipam_fq_name, shared=False, router_external=False):
+    def create_network(
+            self,
+            vn_name,
+            vn_subnets,
+            ipam_fq_name,
+            shared=False,
+            router_external=False):
         """Create network given a name and a list of subnets.
         """
         try:
             net_req = {}
             net_req['name'] = vn_name
             if shared:
-               net_req['shared'] = shared
+                net_req['shared'] = shared
             if router_external:
-               net_req['router:external'] = router_external
+                net_req['router:external'] = router_external
             net_rsp = self.obj.create_network({'network': net_req})
             self.logger.debug('Response for create_network : ' + repr(net_rsp))
 
@@ -130,7 +136,7 @@ class QuantumFixture(fixtures.Fixture):
                       'cidr': cidr,
                       'ip_version': 4,
                       'contrail:ipam_fq_name': ipam_fq_name,
-                     }
+                      }
         subnet_rsp = self.obj.create_subnet({'subnet': subnet_req})
         self.logger.debug('Response for create_subnet : ' + repr(subnet_rsp))
         return subnet_rsp
@@ -232,7 +238,13 @@ class QuantumFixture(fixtures.Fixture):
             project_id = get_dashed_uuid(self.project_id)
         try:
             net_rsp = self.obj.list_networks()
-            for (x, y, z) in [(network['name'], network['id'], network['tenant_id']) for network in net_rsp['networks']]:
+            for (
+                x,
+                y,
+                z) in [
+                (network['name'],
+                 network['id'],
+                 network['tenant_id']) for network in net_rsp['networks']]:
                 dashed_tenant_id = get_dashed_uuid(z)
                 if vn_name == x and project_id in dashed_tenant_id:
                     net_id = y
@@ -323,7 +335,13 @@ class QuantumFixture(fixtures.Fixture):
     def get_vn_id(self, vn_name):
         net_id = None
         net_rsp = self.obj.list_networks()
-        for (x, y, z) in [(network['name'], network['id'], network['tenant_id']) for network in net_rsp['networks']]:
+        for (
+            x,
+            y,
+            z) in [
+            (network['name'],
+             network['id'],
+             network['tenant_id']) for network in net_rsp['networks']]:
             if vn_name == x and self.project_id in z:
                 net_id = y
                 break
@@ -357,7 +375,13 @@ class QuantumFixture(fixtures.Fixture):
         policy_rsp = None
         try:
             policy_rsp = self.list_policys()
-            for (x, y, z) in [(policy['name'], policy['id'], policy['fq_name']) for policy in policy_rsp['policys']]:
+            for (
+                x,
+                y,
+                z) in [
+                (policy['name'],
+                 policy['id'],
+                    policy['fq_name']) for policy in policy_rsp['policys']]:
                 if policy_name == x:
                     if project_name:
                         if project_name in z:
@@ -474,6 +498,21 @@ class QuantumFixture(fixtures.Fixture):
             self.logger.exception(e)
             raise NetworkClientException(message=str(e))
     # end delete_router_interface
+
+    def router_gateway_set(self, router_id, ex_net_id):
+        '''Set gateway for router
+        '''
+        body = {}
+        body['network_id'] = ex_net_id
+        self.logger.info('Setting gateway for router %s to network %s '
+                         % (router_id, ex_net_id))
+        try:
+            result = self.obj.add_gateway_router(router_id, body)
+            return result
+        except NetworkClientException as e:
+            self.logger.exception(e)
+            raise NetworkClientException(message=str(e))
+    # end router_gateway_set
 
     def update_router(self, router_id, router_dict):
         router_rsp = None
