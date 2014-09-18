@@ -595,4 +595,106 @@ class QuantumFixture(fixtures.Fixture):
         return quota_rsp
     # end update_quota
 
+    def create_lb_pool(self, name, lb_method, protocol, subnet_id):
+        '''Create lb pool. Returns the lb object created'''
+        pass
+
+    def delete_lb_pool(self, pool_id):
+        '''Delete the lb'''
+        pass
+    
+    def update_lb_pool(self, pool_id, pool_dict):
+        pool_rsp = None
+        try:
+            pool_rsp = self.obj.update_pool(pool_id, pool_dict)
+        except CommonNetworkClientException as e:
+            self.logger.error(
+                "NetworkClient Exception while updating pool" + str(e))
+        return pool_rsp
+    # end update_lb_pool
+
+    def show_lb_pool(self, pool_id):
+        ''' Returns the pool dict 
+            If pool_id is not found , returns None'''
+        pass
+
+    def list_lb_pools(self):
+        ''' Returns the LB pools in this tenant'''
+        pass
+
+    def create_health_monitor(self, delay, max_retries, probe_type, timeout):
+        '''Returns the neutron health monitor dict created '''
+        pass
+
+    def delete_health_monitor(self, hm_id):
+        ''' Delete the Health monitor '''
+        pass
+
+    def update_health_monitor(self, hm_id, hm_dict):
+        '''Update Health monitor object'''
+        pass
+
+    def show_health_monitor(self, hm_id):
+        ''' Returns Health monitor object as dict. 
+            If not found, returns None
+        '''
+        pass
+
+    def list_health_monitors(self):
+        ''' Returns a list of health monitor objects(dicts) in a tenant '''
+        pass
+
+    def associate_health_monitor(self, hm_id, pool_id):
+        ''' Associate Health monitor to the pool. Returns True on success.
+            Returns False if it fails
+        '''
+        pass
+
+    def disassociate_health_monitor(hm_id, pool_id):
+        '''Disassociate health monitor from the pool
+        '''
+        pass
+
+    def create_vip(self, name, protocol, protocol_port, subnet_id, pool_id):
+        ''' Create vip in the pool. Returns the vip object as dict
+        '''
+        pass
+
+    def delete_vip(self, vip_id):
+        '''Delete the vip'''
+        pass
+
+    def update_vip(self, vip_id, vip_dict):
+        '''Update vip usign vip_dict. Returns the updated object as dict'''
+        pass
+
+    def show_vip(self, vip_id):
+        '''Returns the vip object using id. If not found, returns None'''
+        pass
+
+    def list_vips(self):
+        '''List the vips in this tenant'''
+        pass
+
+    def create_lb_member(self, ip_address, protocol_port, pool_id):
+        '''Create lb member. Returns the created lb member as dict'''
+        pass
+
+    def delete_lb_member(self, lb_member_id):
+        '''Delete the lb member'''
+        pass
+
+    def update_lb_member(self, lb_member_id, lb_member_dict):
+        '''Update lb member using lb_member_dict. 
+           Returns the updated object '''
+        pass
+
+    def list_lb_members(self):
+        '''Returns a list of lb member objects in the tenant'''
+        pass
+
+    def show_lb_member(self, lb_member_id):
+        '''Returns the lb member dict '''
+        pass
+    
 # end QuantumFixture
