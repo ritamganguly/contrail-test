@@ -54,9 +54,12 @@ class NovaFixture(fixtures.Fixture):
 
         self.logger.info("Inside nova client - after nova client object")
         try:
+            f = '/tmp/%s'%self.key
+            lock = Lock(f)
+            lock.acquire()
             self._create_keypair(self.key)
-        except Exception as e:
-            self.logger.exception("Got exception in create keypair")
+        finally:
+            lock.release()
         self.logger.info("Inside nova client - after nova client object compute nodes")
         self.compute_nodes = self.get_compute_host()
         self.logger.info("Exit client - after nova client object compute nodes")
@@ -98,7 +101,7 @@ class NovaFixture(fixtures.Fixture):
 
     def get_image(self, image_name='ubuntu-traffic'):
         got_image = self.find_image(image_name)
-#        except novaException.NotFound:
+#       except novaException.NotFound:
         if not got_image:
             self._install_image(image_name=image_name)
         got_image = self.find_image(image_name)
@@ -301,8 +304,14 @@ class NovaFixture(fixtures.Fixture):
     def create_vm(self, project_uuid, image_name, vm_name, vn_ids,
                   node_name=None, sg_ids=None, count=1, userdata=None,
                   flavor='contrail_flavor_small', port_ids=None, fixed_ips=None):
-        image = self.get_image(image_name=image_name)
-        flavor = self.get_flavor(name=flavor)
+        try:
+            f = '/tmp/%s'%image_name
+            lock = Lock(f)
+            lock.acquire()
+            image = self.get_image(image_name=image_name)
+            flavor = self.get_flavor(name=flavor)
+        finally:
+            lock.release()
         # flavor=self.obj.flavors.find(name=flavor_name)
 
         if node_name == 'disable':
