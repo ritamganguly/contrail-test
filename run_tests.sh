@@ -36,6 +36,7 @@ force=0
 wrapper=""
 config_file="sanity_params.ini"
 update=0
+upload=0
 logging=0
 logging_config=logging.conf
 result_xml="result.xml"
