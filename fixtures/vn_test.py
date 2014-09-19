@@ -42,7 +42,7 @@ class VNFixture(fixtures.Fixture):
 # subnets=[], project_name= 'admin', router_asn='64512', rt_number=None,
 # ipam_fq_name=None, option = 'api'):
 
-    def __init__(self, connections, vn_name, inputs, policy_objs=[], subnets=[], project_name='admin', router_asn='64512', rt_number=None, ipam_fq_name=None, option='quantum', forwarding_mode=None, vxlan_id=None, shared=False, router_external=False, clean_up=True):
+    def __init__(self, connections, vn_name, inputs, policy_objs=[], subnets=[], project_name='admin', router_asn='64512', rt_number=None, ipam_fq_name=None, option='quantum', forwarding_mode=None, vxlan_id=None, shared=False, router_external=False, clean_up=True, project_obj= None):
         self.connections = connections
         self.inputs = inputs
         self.quantum_fixture = self.connections.quantum_fixture
@@ -88,6 +88,8 @@ class VNFixture(fixtures.Fixture):
         self.not_in_api_verification_flag = True
         self.not_in_cn_verification_flag = True
         self._parse_subnets()
+        self.project_obj = project_obj
+        self.scale = False
     # end __init__
 
     def _parse_subnets(self):
@@ -99,8 +101,9 @@ class VNFixture(fixtures.Fixture):
     @retry(delay=10, tries=10)
     def _create_vn_quantum(self):
         try:
-            self.obj = self.quantum_fixture.get_vn_obj_if_present(self.vn_name,
-                                                                  self.project_id)
+            if not self.scale:
+                self.obj = self.quantum_fixture.get_vn_obj_if_present(
+                                                self.vn_name, self.project_id)
             if not self.obj:
                 self.obj = self.quantum_fixture.create_network(
                 self.vn_name, self.vn_subnets, self.ipam_fq_name, self.shared, self.router_external)
@@ -199,8 +202,12 @@ class VNFixture(fixtures.Fixture):
         super(VNFixture, self).setUp()
         with self.lock:
             self.logger.info("Creating vn %s.." % (self.vn_name))
-        self.project_obj = self.useFixture(ProjectFixture(
-            vnc_lib_h=self.vnc_lib_h, project_name=self.project_name, connections=self.connections))
+        if not self.project_obj:
+            self.project_obj = self.useFixture(ProjectFixture(
+                                   vnc_lib_h=self.vnc_lib_h,
+                                   project_name=self.project_name,
+                                   connections=self.connections))
+        self.scale = self.project_obj.scale
         self.project_id = self.project_obj.uuid
         if self.inputs.webui_config_flag:
             self.webui.create_vn_in_webui(self)
@@ -1070,11 +1077,10 @@ class VNFixture(fixtures.Fixture):
 
     def update_vn_object(self):
         self.obj = self.quantum_fixture.get_vn_obj_from_id(self.vn_id)
-        self.policy_objs = []
-        policies_bound = self.get_current_policies_bound()
-        for policy_fq_name in self.get_current_policies_bound():
-            self.policy_objs.append(
-                self.quantum_fixture.get_policy_if_present(policy_fq_name[1], policy_fq_name[2]))
+        if not self.policy_objs:
+            for policy_fq_name in self.get_current_policies_bound():
+                self.policy_objs.append(
+                    self.quantum_fixture.get_policy_if_present(policy_fq_name[1], policy_fq_name[2]))
     # end update_vn_object
 
     def unbind_policies(self, vn_id, policy_fq_names=[]):
@@ -1095,6 +1101,7 @@ class VNFixture(fixtures.Fixture):
         net_rsp = self.quantum_fixture.update_network(
             vn_id, {'network': net_req})
 
+        self.policy_objs= []
         self.update_vn_object()
         return net_rsp
     # end unbind_policy

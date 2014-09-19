@@ -16,7 +16,8 @@ from webui_test import *
 
 class PolicyFixture(fixtures.Fixture):
 
-    def __init__(self, policy_name, rules_list, inputs, connections, api=None):
+    def __init__(self, policy_name, rules_list, inputs, connections, api=None,
+                                                        project_fixture= None):
         self.inputs = inputs
         self.rules_list = rules_list
         self.project_fq_name = self.inputs.project_fq_name
@@ -37,13 +38,20 @@ class PolicyFixture(fixtures.Fixture):
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
+        self.scale = False
+        self.project_fixture= project_fixture
+        if self.project_fixture:
+            self.project_fq_name = self.project_fixture.project_fq_name
+            self.project_name = self.project_fixture.project_name
+            self.scale = self.project_fixture.scale
     # end __init__
 
     def setUp(self):
         super(PolicyFixture, self).setUp()
         if self.api_flag is None:
-            self.policy_obj = self.quantum_fixture.get_policy_if_present(
-                self.project_name, self.policy_name)
+            if not self.scale:
+                self.policy_obj = self.quantum_fixture.get_policy_if_present(
+                                          self.project_name, self.policy_name)
             if not self.policy_obj:
                 if self.inputs.webui_config_flag:
                     self.webui.create_policy_in_webui(self)
@@ -323,19 +331,15 @@ class PolicyFixture(fixtures.Fixture):
             if self.inputs.webui_config_flag:
                 self.webui.delete_policy_in_webui(self)
             else:
-                self._delete_policy(self.policy_name)
+                self._delete_policy()
             self.logger.info("Deleted policy %s" % (self.policy_name))
         else:
             self.logger.info('Skipping deletion of policy %s' %
                              (self.policy_name))
     # end cleanUp
 
-    def _delete_policy(self, policy_name):
-        pol_list = self.quantum_fixture.list_policys()
-        for policy in pol_list['policys']:
-            if policy['name'] == policy_name:
-                self.quantum_fixture.delete_policy(policy['id'])
-                break
+    def _delete_policy(self):
+        self.quantum_fixture.delete_policy(self.policy_obj['policy']['id'])
     # end _delete_policy
 
     def update_policy(self, policy_id, policy_data):
@@ -545,12 +549,12 @@ class PolicyFixture(fixtures.Fixture):
                 m = re.match(r"(\S+):(\S+):(\S+)", rule['src'])
                 if not m:
                     rule['src'] = ':'.join(
-                        self.inputs.project_fq_name) + ':' + rule['src']
+                        self.project_fq_name) + ':' + rule['src']
             if rule['dst'] != 'any':
                 m = re.match(r"(\S+):(\S+):(\S+)", rule['dst'])
                 if not m:
                     rule['dst'] = ':'.join(
-                        self.inputs.project_fq_name) + ':' + rule['dst']
+                        self.project_fq_name) + ':' + rule['dst']
             try:
                 del rule['direction']
             except:

@@ -13,7 +13,7 @@ from webui_test import *
 
 class IPAMFixture(fixtures.Fixture):
 
-    def __init__(self, name=None, project_obj=None, ipamtype=IpamType("dhcp")):
+    def __init__(self, name=None, project_obj=None, ipamtype=IpamType("dhcp"), vdns_obj= None):
         self.connections = project_obj.connections
         self.name = name
         self.inputs = project_obj.inputs
@@ -37,6 +37,7 @@ class IPAMFixture(fixtures.Fixture):
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
+        self.vdns_obj = vdns_obj
     # end __init__
 
     def setUp(self):
@@ -60,6 +61,8 @@ class IPAMFixture(fixtures.Fixture):
         if not self.already_present:
             self.obj = NetworkIpam(
                 name=self.name, parent_obj=self.project_obj, network_ipam_mgmt=self.ipamtype)
+            if self.vdns_obj:
+                self.obj.add_virtual_DNS(self.vdns_obj)
             if self.inputs.webui_config_flag:
                 self.webui.create_ipam_in_webui(self)
             else:
