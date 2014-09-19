@@ -90,9 +90,9 @@ def comp_rules_from_policy_to_system(self):
                             no_of_rules = []
                             for each_rule in list_of_rules:
                                 if ((each_rule['dst_addresses'][0]
-                                           ['network_policy']!=None) and
+                                           ['network_policy'] is not None) and
                                      (each_rule['src_addresses'][0]
-                                           ['network_policy']!=None)):
+                                           ['network_policy'] is not None)):
                                     dst_pol = str(each_rule['dst_addresses'][0]
                                         ['network_policy'])
                                     src_pol = str(each_rule['src_addresses'][0]
@@ -119,9 +119,9 @@ def comp_rules_from_policy_to_system(self):
                                                'network_policy'] = None
                                             no_of_rules.append(new_rule2)
                                 elif ((each_rule['dst_addresses'][0][
-                                    'network_policy']!=None) and
+                                    'network_policy'] is not None) and
                                     (each_rule['src_addresses'][0][
-                                    'network_policy']==None)):
+                                    'network_policy'] is None)):
                                     dst_pol = str(each_rule['dst_addresses'][0][
                                          'network_policy'])
                                     for each_vn in self.topo.policy_vn[
@@ -136,9 +136,9 @@ def comp_rules_from_policy_to_system(self):
                                                 'network_policy'] = None
                                         no_of_rules.append(new_rule)
                                 elif ((each_rule['dst_addresses'][0][
-                                    'network_policy']==None) and
+                                    'network_policy'] is None) and
                                     (each_rule['src_addresses'][0][
-                                    'network_policy']!=None)):
+                                    'network_policy'] is not None)):
                                     src_pol = str(each_rule['src_addresses'][0][
                                         'network_policy'])
                                     for srcvn in self.topo.policy_vn[
