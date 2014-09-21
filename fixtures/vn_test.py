@@ -251,37 +251,19 @@ class VNFixture(fixtures.Fixture):
     def verify_on_setup_without_collector(self):
         # once api server gets restarted policy list for vn in not reflected in
         # vn uve so removing that check here
-        result = True
-        t_api = threading.Thread(target=self.verify_vn_in_api_server, args=())
-        t_api.start()
-        time.sleep(1)
-        t_api.join()
-        t_cn = threading.Thread(
-            target=self.verify_vn_in_control_nodes, args=())
-        t_cn.start()
-        time.sleep(1)
-        t_pol_api = threading.Thread(
-            target=self.verify_vn_policy_in_api_server, args=())
-        t_pol_api.start()
-        time.sleep(1)
-        t_op = threading.Thread(target=self.verify_vn_in_opserver, args=())
-        t_op.start()
-        time.sleep(1)
-        t_cn.join()
-        t_pol_api.join()
-        t_op.join()
-        if not self.api_verification_flag:
+        result = True 
+        if not self.verify_vn_in_api_server():
             result = result and False
             self.logger.error(
                 "One or more verifications in API Server for VN %s failed" % (self.vn_name))
-        if not self.cn_verification_flag:
+        if not self.verify_vn_in_control_nodes():
             result = result and False
             self.logger.error(
                 "One or more verifications in Control-nodes for VN %s failed" % (self.vn_name))
-        if not self.policy_verification_flag['result']:
+        if not self.verify_vn_policy_in_api_server():
             result = result and False
             self.logger.error(ret['msg'])
-        if not self.op_verification_flag:
+        if not self.verify_vn_in_opserver():
             result = result and False
             self.logger.error(
                 "One or more verifications in OpServer for VN %s failed" % (self.vn_name))
@@ -292,42 +274,28 @@ class VNFixture(fixtures.Fixture):
 
     def verify_on_setup(self):
         result = True
-        if self.inputs.webui_verification_flag:
-            self.webui.verify_vn_in_webui(self)
-        t_api = threading.Thread(target=self.verify_vn_in_api_server, args=())
-#        t_api.daemon = True
-        t_api.start()
-        time.sleep(1)
-        t_api.join()
-        t_cn = threading.Thread(
-            target=self.verify_vn_in_control_nodes, args=())
-        t_cn.start()
-        time.sleep(1)
-        t_pol_api = threading.Thread(
-            target=self.verify_vn_policy_in_api_server, args=())
-        t_pol_api.start()
-        time.sleep(1)
-        if self.policy_objs:
-            t_pol_op = threading.Thread(
-                target=self.verify_vn_policy_in_vn_uve, args=())
-            t_pol_op.daemon = True
-            t_pol_op.start()
-            time.sleep(1)
-            t_pol_op.join()
-        t_op = threading.Thread(target=self.verify_vn_in_opserver, args=())
-        t_op.start()
-        time.sleep(1)
-        t_cn.join()
-        t_pol_api.join()
-        t_op.join()
-        if not self.api_verification_flag:
+        if not self.verify_vn_in_api_server():
             result = result and False
             self.logger.error(
                 "One or more verifications in API Server for VN %s failed" % (self.vn_name))
-        if not self.cn_verification_flag:
+            return result
+        if not self.verify_vn_in_control_nodes():
             result = result and False
             self.logger.error(
                 "One or more verifications in Control-nodes for VN %s failed" % (self.vn_name))
+            return result
+        if not self.verify_vn_policy_in_api_server():
+            result = result and False
+            self.logger.error(ret['msg'])
+        if not self.verify_vn_in_opserver():
+            result = result and False
+            self.logger.error(
+                "One or more verifications in OpServer for VN %s failed" % (self.vn_name))
+            return result
+        if self.inputs.webui_verification_flag:
+            self.webui.verify_vn_in_webui(self)
+        if self.policy_objs:
+            self.verify_vn_policy_in_vn_uve()
         if not self.policy_verification_flag['result']:
             result = result and False
             self.logger.error(
@@ -337,10 +305,6 @@ class VNFixture(fixtures.Fixture):
                 result = result and False
                 self.logger.warn("Attached policy not shown in vn uve %s" %
                                  (self.vn_name))
-        if not self.op_verification_flag:
-            result = result and False
-            self.logger.error(
-                "One or more verifications in OpServer for VN %s failed" % (self.vn_name))
 
         self.verify_is_run = True
         self.verify_result = result
@@ -583,7 +547,7 @@ class VNFixture(fixtures.Fixture):
         return True
     # end verify_vn_not_in_api_server
 
-    @retry(delay=5, tries=5)
+    @retry(delay=5, tries=25)
     def verify_vn_in_control_nodes(self):
         """ Checks for VN details in Control-nodes.
 
@@ -664,7 +628,7 @@ class VNFixture(fixtures.Fixture):
         return found
     # end verify_vn_policy_not_in_api_server
 
-    @retry(delay=5, tries=10)
+    @retry(delay=5, tries=20)
     def verify_vn_not_in_control_nodes(self):
         '''Verify that VN details are not in any Control-node
 
@@ -999,39 +963,6 @@ class VNFixture(fixtures.Fixture):
                     else:
                         break
             if self.verify_is_run:
-                t_api = threading.Thread(
-                    target=self.verify_vn_not_in_api_server, args=())
-                #t_api.daemon = True
-                t_api.start()
-                time.sleep(1)
-                t_cn = threading.Thread(
-                    target=self.verify_vn_not_in_control_nodes, args=())
-                t_cn.start()
-                time.sleep(1)
-                t_agent = threading.Thread(
-                    target=self.verify_vn_not_in_agent, args=())
-                #t_agent.daemon = True
-                t_agent.start()
-                time.sleep(1)
-                self.logger.info(
-                    'Printing Not in API verification flag VN %s %s ' %
-                    (self.vn_name, self.not_in_api_verification_flag))
-                self.logger.info(
-                    'Printing Not in Control Node verification flag VN %s %s ' %
-                    (self.vn_name, self.not_in_cn_verification_flag))
-                self.logger.info(
-                    'Printing Not in Agent verification flag VN %s %s' %
-                    (self.vn_name, self.not_in_agent_verification_flag))
-                self.verify_not_in_result = self.not_in_api_verification_flag and self.not_in_cn_verification_flag and self.not_in_agent_verification_flag
-                #assert self.not_in_api_verification_flag
-                #assert self.not_in_cn_verification_flag
-                #assert self.not_in_agent_verification_flag
-                # t_api.join()
-                self.logger.info('Printing verify not in result VN %s %s' %
-                                 (self.vn_name, self.verify_not_in_result))
-                t_cn.join()
-                t_agent.join()
-                t_api.join()
                 assert self.verify_vn_not_in_api_server()
                 assert self.verify_vn_not_in_agent()
                 assert self.verify_vn_not_in_control_nodes()
