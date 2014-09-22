@@ -84,8 +84,76 @@ def comp_rules_from_policy_to_system(self):
                                  pro_vm_list,
                                  vn_list))
                             # Total no of rules for each policy
-                            no_of_rules = policy_detail['policy'][
+                            list_of_rules = policy_detail['policy'][
                                 'entries']['policy_rule']
+
+                            no_of_rules = []
+                            for each_rule in list_of_rules:
+                                if ((each_rule['dst_addresses'][0]
+                                           ['network_policy'] is not None) and
+                                     (each_rule['src_addresses'][0]
+                                           ['network_policy'] is not None)):
+                                    dst_pol = str(each_rule['dst_addresses'][0]
+                                        ['network_policy'])
+                                    src_pol = str(each_rule['src_addresses'][0]
+                                        ['network_policy'])
+                                    for each_vn in self.topo.policy_vn[
+                                        dst_pol.split(':')[2]]:
+                                        new_rule = copy.deepcopy(each_rule)
+                                        new_fqn = [project_domains[pr],
+                                                   project_names[pr], each_vn]
+                                        new_vnfqn = ':'.join(new_fqn)
+                                        new_rule['dst_addresses'][0][
+                                                'virtual_network'] = new_vnfqn
+                                        new_rule['dst_addresses'][0][
+                                                'network_policy'] = None
+                                        for srcvn in self.topo.policy_vn[
+                                            src_pol.split(':')[2]]:
+                                            new_rule2 = copy.deepcopy(new_rule)
+                                            new_fqns = [project_domains[pr],
+                                                     project_names[pr], srcvn]
+                                            new_vnfqns = ':'.join(new_fqns)
+                                            new_rule2['src_addresses'][0][
+                                               'virtual_network'] = new_vnfqns
+                                            new_rule2['src_addresses'][0][
+                                               'network_policy'] = None
+                                            no_of_rules.append(new_rule2)
+                                elif ((each_rule['dst_addresses'][0][
+                                    'network_policy'] is not None) and
+                                    (each_rule['src_addresses'][0][
+                                    'network_policy'] is None)):
+                                    dst_pol = str(each_rule['dst_addresses'][0][
+                                         'network_policy'])
+                                    for each_vn in self.topo.policy_vn[
+                                        dst_pol.split(':')[2]]:
+                                        new_rule = copy.deepcopy(each_rule)
+                                        new_fqn = [project_domains[pr],
+                                                   project_names[pr], each_vn]
+                                        new_vnfqn = ':'.join(new_fqn)
+                                        new_rule['dst_addresses'][0][
+                                                'virtual_network'] = new_vnfqn
+                                        new_rule['dst_addresses'][0][
+                                                'network_policy'] = None
+                                        no_of_rules.append(new_rule)
+                                elif ((each_rule['dst_addresses'][0][
+                                    'network_policy'] is None) and
+                                    (each_rule['src_addresses'][0][
+                                    'network_policy'] is not None)):
+                                    src_pol = str(each_rule['src_addresses'][0][
+                                        'network_policy'])
+                                    for srcvn in self.topo.policy_vn[
+                                        src_pol.split(':')[2]]:
+                                        new_rule = copy.deepcopy(each_rule)
+                                        new_fqn = [project_domains[pr],
+                                                   project_names[pr], srcvn]
+                                        new_vnfqn = ':'.join(new_fqn)
+                                        new_rule['src_addresses'][0][
+                                                'virtual_network'] = new_vnfqn
+                                        new_rule['src_addresses'][0][
+                                                'network_policy'] = None
+                                        no_of_rules.append(new_rule)
+                                else:
+                                    no_of_rules.append(each_rule)
 
                             # Traslation of  quantum rules to ACES
                             fq_name = [project_domains[pr],
