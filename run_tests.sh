@@ -36,6 +36,7 @@ force=0
 wrapper=""
 config_file="sanity_params.ini"
 update=0
+upload=0
 logging=0
 logging_config=logging.conf
 result_xml="result.xml"
@@ -205,14 +206,16 @@ then
 fi
 
 function find_python_version {
-output=$(python --version)
-if [[ "$output"  =~ "2.6" ]];then
-            returncode=0
-            return $returncode 
-fi
-if [[ "$output" =~ "2.7" ]];then
-        returncode=1 
-        return $returncode 
+output="$(python --version | grep python)"
+output="$(python -c 'import sys; print(sys.version_info[:])')"
+substring='2, 6, 6'
+
+if echo "$output" | grep -q "$substring"; then
+    echo "matched";
+    return 0
+else
+    echo "no match";
+    return 1
 fi
 }
 
@@ -259,6 +262,7 @@ if [[ -z $path ]] && [[ -z $testrargs ]];then
     run_tests_serial
 fi
 sleep 2
+python tools/report_gen.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE
 generate_html 
 upload_to_web_server
 sleep 2
