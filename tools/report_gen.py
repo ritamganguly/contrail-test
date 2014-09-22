@@ -419,6 +419,6 @@ class ContrailTestInit:
 def main(arg1,arg2):
     obj = ContrailTestInit(arg1)
     obj.setUp()
-    obj.upload_to_webserver(arg2)
+    #obj.upload_to_webserver(arg2)
 if __name__ == "__main__":
     main(sys.argv[1],sys.argv[2])
