@@ -93,9 +93,9 @@ class ContrailTestInit(fixtures.Fixture):
         else:
             self.log_scenario = self.log_scenario
 
-        ts = self.get_os_env('SCRIPT_TS') or \
-              datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-        self.ts = ts
+  #      ts = self.get_os_env('SCRIPT_TS') or \
+  #            datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+  #      self.ts = ts
         self.single_node = self.get_os_env('SINGLE_NODE_IP')
         self.jenkins_trigger = self.get_os_env('JENKINS_TRIGGERED')
 
@@ -164,17 +164,6 @@ class ContrailTestInit(fixtures.Fixture):
         else:
             self.prov_data = self._read_prov_file()
         self.build_id = self.get_build_id()
-        self.build_folder = self.build_id + '_' + self.ts
-        self.log_path = os.environ.get('PWD') + '/logs/' + self.build_folder
-        self.html_report = self.log_path + '/junit-noframes.html'
-        self.web_server_path = self.config.get(
-            'WebServer', 'path') + '/' + self.build_folder + '/'
-        self.html_log_link = 'http://%s/%s/%s/%s' % (self.web_server, self.path,
-                                      self.build_folder, self.html_report.split('/')[-1])
-        self.log_link = 'http://%s/%s/%s/logs/' % (self.web_server, self.path,
-                                      self.build_folder)
-#        self.html_log_link = '<a href=\"%s\">%s</a>' % (html_log_link,
-#                                                        html_log_link)
 
         self.os_type = self.get_os_version()
         self.username = self.host_data[self.cfgm_ip]['username']
@@ -197,7 +186,6 @@ class ContrailTestInit(fixtures.Fixture):
             self.mysql_token = 'contrail123'
         else:
             self.mysql_token = self.get_mysql_token()
-        self.write_report_details()
     # end setUp
 
     def get_repo_version(self):
