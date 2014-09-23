@@ -82,7 +82,7 @@ done
 #    testrargs+=$tags
 #fi
 
-export SCRIPT_TS=$(date +"%F_%T")
+#export SCRIPT_TS=$(date +"%F_%T")
 
 if [ -n "$config_file" ]; then
     config_file=`readlink -f "$config_file"`
