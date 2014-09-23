@@ -508,7 +508,7 @@ class VMFixture(fixtures.Fixture):
             self.agent_vrf_name[vn_fq_name] = self.tap_intf[
                 vn_fq_name]['vrf_name']
 
-            self.logger.info("agent vrf name: %s"%(strself.agent_vrf_name[vn_fq_name])))
+            self.logger.info("agent vrf name: %s"%(str(self.agent_vrf_name[vn_fq_name])))
 
             try:
                 self.agent_vrf_objs = inspect_h.get_vna_vrf_objs(
