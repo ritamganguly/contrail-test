@@ -502,8 +502,14 @@ class VMFixture(fixtures.Fixture):
                     self.tap_intf[vn_fq_name]['name'])[0]
             except Exception as e:
                 return False
+
+            self.logger.info("tap intf: %s"%(str(self.tap_intf[vn_fq_name])))
+
             self.agent_vrf_name[vn_fq_name] = self.tap_intf[
                 vn_fq_name]['vrf_name']
+
+            self.logger.info("agent vrf name: %s"%(strself.agent_vrf_name[vn_fq_name])))
+
             try:
                 self.agent_vrf_objs = inspect_h.get_vna_vrf_objs(
                     domain, project, vn)
@@ -665,6 +671,8 @@ class VMFixture(fixtures.Fixture):
     # end verify_vm_in_agent
 
     def get_matching_vrf(self, vrf_objs, vrf_name):
+        self.logger.info("vrf_objs: %s"%(str(vrf_objs)))
+        self.logger.info("vrf_name: %s"%(str(vrf_name)))
         return [x for x in vrf_objs if x['name'] == vrf_name][0]
 
     def reset_state(self, state):
