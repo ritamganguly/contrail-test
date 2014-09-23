@@ -520,10 +520,15 @@ class VMFixture(fixtures.Fixture):
             if not self.agent_vrf_objs:
                 self.logger.info("vrf obj : %s"%(str(self.agent_vrf_objs)))
                 return False
-
-            self.agent_vrf_obj[vn_fq_name] = self.get_matching_vrf(
-                self.agent_vrf_objs['vrf_list'],
-                self.agent_vrf_name[vn_fq_name])
+            #Bug 1372858 
+            try:
+                self.agent_vrf_obj[vn_fq_name] = self.get_matching_vrf(
+                    self.agent_vrf_objs['vrf_list'],
+                    self.agent_vrf_name[vn_fq_name])
+            except Exception as e:
+                self.logger.warn("Exception: %s"%(e))
+                return False 
+    
             self.agent_vrf_id[vn_fq_name] = self.agent_vrf_obj[
                 vn_fq_name]['ucindex']
             if fw_mode != unicode('l2'):
