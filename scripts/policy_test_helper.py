@@ -25,11 +25,15 @@ def comp_rules_from_policy_to_system(self):
     #
     # Step 1 :Get all projects
     project_names, project_ids, project_domains = get_project_list(self)
-    for pr in range(len([self.project_name])):
-        # Step 2:Check VMs are exist for selected project
-        pro_vm_list = self.nova_fixture.get_vm_list(
-            project_id=project_ids[pr])
-        if pro_vm_list:
+    for pr in range(len(project_names)):
+        pro_vm_list = None
+        if self.project_name == project_names[pr]:
+            # Step 2:Check VMs are exist for selected project
+            pro_vm_list = self.nova_fixture.get_vm_list(
+                project_id=project_ids[pr])
+        else:
+            pro_vm_list = None
+        if pro_vm_list is not None:
             # Arragenging all VM's
             vm_list = []
             old_vn = ''
