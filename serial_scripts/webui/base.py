@@ -79,7 +79,7 @@ class BaseResource(fixtures.Fixture):
 
     def setup_common_objects(self, inputs , connections):
         time.sleep(5)
-        topo_obj = sdn_webui_config()
+        topo_obj = sdn_webui_config(project=self.inputs.stack_tenant)
         setup_obj = self.useFixture(
             sdnTopoSetupFixture(self.connections, topo_obj))
         out = setup_obj.topo_setup(skip_verify='yes') 

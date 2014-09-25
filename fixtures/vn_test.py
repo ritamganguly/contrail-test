@@ -42,7 +42,7 @@ class VNFixture(fixtures.Fixture):
 # subnets=[], project_name= 'admin', router_asn='64512', rt_number=None,
 # ipam_fq_name=None, option = 'api'):
 
-    def __init__(self, connections, vn_name, inputs, policy_objs=[], subnets=[], project_name='admin', router_asn='64512', rt_number=None, ipam_fq_name=None, option='quantum', forwarding_mode=None, vxlan_id=None, shared=False, router_external=False, clean_up=True, project_obj= None):
+    def __init__(self, connections, vn_name, inputs, policy_objs=[], subnets=[], project_name=None, router_asn='64512', rt_number=None, ipam_fq_name=None, option='quantum', forwarding_mode=None, vxlan_id=None, shared=False, router_external=False, clean_up=True, project_obj= None):
         self.connections = connections
         self.inputs = inputs
         self.quantum_fixture = self.connections.quantum_fixture
@@ -56,6 +56,8 @@ class VNFixture(fixtures.Fixture):
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
+        if not project_name:
+            project_name = self.inputs.stack_tenant
         self.project_name = project_name
         self.project_obj = None
         self.project_id = None
@@ -1124,7 +1126,7 @@ class MultipleVNFixture(fixtures.Fixture):
     """
 
     def __init__(self, connections, inputs, vn_count=1, subnet_count=1,
-                 vn_name_net={},  project_name='admin'):
+                 vn_name_net={},  project_name=None):
         """
         vn_count     : Number of VN's to be created.
         subnet_count : Subnet per each VN's
@@ -1146,6 +1148,8 @@ class MultipleVNFixture(fixtures.Fixture):
         """
         self.inputs = inputs
         self.connections = connections
+        if not project_name:
+            project_name = self.inputs.stack_tenant
         self.project_name = project_name
         self.vn_count = vn_count
         self.subnet_count = subnet_count

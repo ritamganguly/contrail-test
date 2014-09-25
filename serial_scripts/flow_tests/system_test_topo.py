@@ -3,7 +3,7 @@
 
 class systest_topo_single_project ():
 
-    def __init__(self, compute_node_list=None, domain='default-domain', project='admin', username=None, password=None):
+    def __init__(self, compute_node_list=None, domain='default-domain', project=None, username=None, password=None):
         self.project_list = ['project2']
 
         # Define the vm to compute node mapping to pin a vm to a particular

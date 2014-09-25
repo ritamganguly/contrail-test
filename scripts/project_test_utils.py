@@ -19,7 +19,7 @@ def _create_project_return_connection(self, projectname):
     username = 'user-' + projectname
     role = 'admin'
     user_list = [(username, password, role)]
-    if projectname == 'admin':
+    if projectname == self.inputs.stack_tenant:
         self.logger.info('Project admin already exist, no need to create')
         return [self.inputs, self.connections]
     auth_url = os.getenv('OS_AUTH_URL') or \
@@ -45,7 +45,7 @@ def _create_project_return_connection(self, projectname):
     users = set([user.name for user in kc.users.list()])
     roles = set([user.name for user in kc.roles.list()])
     tenants = kc.tenants.list()
-    admin_tenant = [x for x in tenants if x.name == 'admin'][0]
+    admin_tenant = [x for x in tenants if x.name == self.inputs.stack_tenant][0]
 
     create_user_set = user_set - users
     create_role_set = role_set - roles

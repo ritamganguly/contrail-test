@@ -730,9 +730,11 @@ class AnalyticsVerification(fixtures.Fixture):
                 return self.opsobj.get_ops_vn(vn_fq_name=vn_fq_name)
         return None
 
-    def verify_vn_uve_tiers(self, vn_fq_name='default-domain:admin:default-virtual-network'):
+    def verify_vn_uve_tiers(self, vn_fq_name=None):
         '''Verify that when vn is created , vn uve should show info from UveVirtualNetworkConfig and UveVirtualNetworkAgent'''
         result = False
+        if not vn_fq_name:
+            vn_fq_name='default-domain:%s:default-virtual-network'%self.inputs.stack_tenant
         for ip in self.inputs.collector_ips:
             self.logger.info("Verifying through opserver in  %s" % (ip))
             self.opsobj = self.ops_inspect[ip]
@@ -757,10 +759,11 @@ class AnalyticsVerification(fixtures.Fixture):
         return result
 
     @retry(delay=5, tries=6)
-    def verify_vn_uve_ri(self, vn_fq_name='default-domain:admin:default-virtual-network', ri_name=None):
+    def verify_vn_uve_ri(self, vn_fq_name=None, ri_name=None):
         '''Verify  routing instance element when vn  is created by apiserver'''
-
         result = True
+        if not vn_fq_name:
+            vn_fq_name='default-domain:%s:default-virtual-network'%self.inputs.stack_tenant
         for ip in self.inputs.collector_ips:
             self.logger.info("Verifying through opserver in %s" % (ip))
             self.opsobj = self.ops_inspect[ip]
@@ -792,10 +795,11 @@ class AnalyticsVerification(fixtures.Fixture):
         return result
 
     @retry(delay=5, tries=6)
-    def verify_ri_not_in_vn_uve(self, vn_fq_name='default-domain:admin:default-virtual-network', ri_name=None):
+    def verify_ri_not_in_vn_uve(self, vn_fq_name=None, ri_name=None):
         '''Verify  routing instance element when vn  is created by apiserver'''
-
         result = True
+        if not vn_fq_name:
+            vn_fq_name='default-domain:%s:default-virtual-network'%self.inputs.stack_tenant
         for ip in self.inputs.collector_ips:
             self.logger.info("Verifying through opserver in %s" % (ip))
             self.opsobj = self.ops_inspect[ip]
@@ -1444,8 +1448,10 @@ class AnalyticsVerification(fixtures.Fixture):
         return result
 # service instance uve functions
 
-    def get_svc_instance(self, collector, project='admin', instance=None):
+    def get_svc_instance(self, collector, project=None, instance=None):
         '''get the svc insance uve our put'''
+        if not project:
+            project = self.inputs.stack_tenant
         self.svc_obj = self.ops_inspect[
             collector].get_ops_svc_instance(svc_instance=instance)
         return self.svc_obj.get_attr('Config')
@@ -2681,11 +2687,13 @@ class AnalyticsVerification(fixtures.Fixture):
 
     def provision_static_route(
         self, prefix='111.1.0.0/16', virtual_machine_id='',
-        tenant_name='admin', api_server_ip='127.0.0.1',
+        tenant_name=None, api_server_ip='127.0.0.1',
         api_server_port='8082', oper='add',
         virtual_machine_interface_ip='11.1.1.252', route_table_name='my_route_table',
             user='admin', password='contrail123'):
 
+        if not tenant_name:
+            tenant_name = self.inputs.stack_tenant
         cmd = "python /opt/contrail/utils/provision_static_route.py --prefix %s \
                 --virtual_machine_id %s \
                 --tenant_name %s  \

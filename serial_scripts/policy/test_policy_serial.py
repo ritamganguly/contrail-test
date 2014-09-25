@@ -1005,7 +1005,13 @@ class TestSerialPolicy(BaseSerialPolicyTest):
     def test_policy_replace_single_vn_modify_rules_of_live_flows(self):
         """ Call policy_test_modify_rules_of_live_flows with single VN scenario..
         """
-        topo = sdn_policy_traffic_test_topo.sdn_1vn_2vm_config()
+        try:
+            topo = sdn_policy_traffic_test_topo.sdn_1vn_2vm_config(
+                project=self.project.project_name,
+                username=self.project.username,
+                password=self.project.password)
+        except NameError:
+            topo = sdn_policy_traffic_test_topo.sdn_1vn_2vm_config()
         return self.policy_test_modify_rules_of_live_flows(
             topo,
             update_mode='replace')

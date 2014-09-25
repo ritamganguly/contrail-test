@@ -688,7 +688,7 @@ class VerifyEvpnCases():
         # Explictly check that l3 routes are removed
         for compute_ip in self.inputs.compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
-            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name)
+            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             if vn is None:
                 continue
             agent_vrf_objs = inspect_h.get_vna_vrf_objs(
@@ -820,7 +820,7 @@ class VerifyEvpnCases():
         # Verify that configured vxlan_id shows up in agent introspect
         for compute_ip in self.inputs.compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
-            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name)
+            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             if vn is None:
                 continue
             agent_vrf_objs = inspect_h.get_vna_vrf_objs(
@@ -965,7 +965,7 @@ class VerifyEvpnCases():
         # Verify that configured vxlan_id shows up in agent introspect
         for compute_ip in self.inputs.compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
-            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name)
+            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             if vn is None:
                 continue
             agent_vrf_objs = inspect_h.get_vna_vrf_objs(
@@ -1131,7 +1131,7 @@ class VerifyEvpnCases():
         # Explictly check that l3 routes are removed
         for compute_ip in self.inputs.compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
-            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name)
+            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             if vn is None:
                 continue
             agent_vrf_objs = inspect_h.get_vna_vrf_objs(
