@@ -393,8 +393,10 @@ l[0]={'protocol': '1', 'stats_bytes': '222180', 'stats_packets': '2645', 'setup_
         ret_list = []
         p = None
         vnl = self.dict_get('Snh_ItfReq?name=')
-        avn = filter(lambda x:  self._itf_fltr(x, _type, value),
-                     vnl.xpath('./itf_list/list/ItfSandeshData'))
+        intf_list = vnl.xpath('./itf_list/list/ItfSandeshData')
+        if not intf_list:
+            intf_list = vnl.xpath('./ItfResp/itf_list/list/ItfSandeshData')
+        avn = filter(lambda x:  self._itf_fltr(x, _type, value), intf_list)
 #        if 1 == len (avn):
         for intf in avn:
             p = VnaItfResult()
