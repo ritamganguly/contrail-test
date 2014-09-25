@@ -2887,12 +2887,12 @@ echo "Hello World.  The time is now $(date -R)!" | tee /tmp/output.txt
             else:
                 break
         if ret:
-            if '200 OK' in str(ret):
-                self.logger.info("Generic metadata worked")
-                result = True
             if 'Connection timed out' in str(ret):
                 self.logger.warn("Generic metadata did NOT work")
                 result = False
+            if '200 OK' in str(ret):
+                self.logger.info("Generic metadata worked")
+                result = True
 
         link_local_args = "--admin_user admin \
          --admin_password contrail123 --linklocal_service_name vim\
