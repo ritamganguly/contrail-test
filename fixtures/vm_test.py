@@ -43,7 +43,7 @@ class VMFixture(fixtures.Fixture):
                  image_name='ubuntu', subnets=[],
                  flavor='contrail_flavor_small',
                  node_name=None, sg_ids=[], count=1, userdata=None,
-                 port_ids=[], fixed_ips=[]):
+                 port_ids=[], fixed_ips=[], project_fixture= None):
         self.connections = connections
         self.api_s_inspects = self.connections.api_server_inspects
         self.api_s_inspect = self.connections.api_server_inspect
@@ -126,19 +126,24 @@ class VMFixture(fixtures.Fixture):
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
+        self.project_fixture = project_fixture
+        self.scale = False
 
     # end __init__
 
     def setUp(self):
         super(VMFixture, self).setUp()
-        self.project_fixture = self.useFixture(
-            ProjectFixture(vnc_lib_h=self.vnc_lib_h,
-                           project_name=self.project_name,
-                           connections=self.connections))
+        if not self.project_fixture:
+            self.project_fixture = self.useFixture(
+                ProjectFixture(vnc_lib_h=self.vnc_lib_h,
+                               project_name=self.project_name,
+                               connections=self.connections))
+        self.scale = self.project_fixture.scale
         self.vn_ids = [x['network']['id'] for x in self.vn_objs]
-        self.vm_obj = self.nova_fixture.get_vm_if_present(
-            self.vm_name, self.project_fixture.uuid)
-        self.vm_objs = self.nova_fixture.get_vm_list(name_pattern=self.vm_name,
+        if not self.scale:
+            self.vm_obj = self.nova_fixture.get_vm_if_present(
+                self.vm_name, self.project_fixture.uuid)
+            self.vm_objs = self.nova_fixture.get_vm_list(name_pattern=self.vm_name,
                                                      project_id=self.project_fixture.uuid)
         if self.vm_obj:
             self.already_present = True
@@ -686,6 +691,8 @@ class VMFixture(fixtures.Fixture):
     def ping_vm_from_host(self, vn_fq_name):
         ''' Ping the VM metadata IP from the host
         '''
+        if self.scale:
+            return True
         host = self.inputs.host_data[self.vm_node_ip]
         output = ''
         with hide('everything'):
