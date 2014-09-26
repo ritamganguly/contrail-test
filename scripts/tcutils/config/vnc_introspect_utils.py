@@ -568,6 +568,23 @@ class VNCApiInspect (VerificationUtilBase):
             pp = CsGlobalVrouterConfigResult(gvr_config)
         return pp
 
+    def get_secgrp_acls_href(self, domain='default-domain', project='admin',
+                      secgrp='default-security-group', refresh=False):
+        '''
+            method: get_secgrp_acls find acls href for a security group
+            returns empty list if not found, a list of href
+        '''
+        p = []
+        proj = self.get_cs_project(domain, project, refresh)
+        pp = None
+        if proj:
+            pp = self.dict_get('access-control-lists')
+            for acl in pp['access-control-lists']:
+                if acl['fq_name'][2] == secgrp:
+                    p.append(acl['href'])
+
+        return p
+
 if __name__ == '__main__':
     va = VNCApiInspect('10.84.7.2')
     r = va.get_cs_domain()
