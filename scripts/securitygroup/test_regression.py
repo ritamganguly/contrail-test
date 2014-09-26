@@ -16,6 +16,7 @@ import sys
 sys.path.append(os.path.realpath('scripts/flow_tests'))
 from sdn_topo_setup import *
 import test
+import sdn_sg_test_topo
 
 
 class SecurityGroupRegressionTests1(BaseSGTest, VerifySecGroup, ConfigPolicy):
@@ -392,13 +393,12 @@ class SecurityGroupRegressionTests4(BaseSGTest, VerifySecGroup, ConfigPolicy):
         pass
 
     @preposttest_wrapper
-    def test_SG(self):
-        """Tests SG and rules to check if traffic is allowed as per rules in SG"""
+    def test_vn_compute_sg_comb(self):
+	""" Verify traffic between intra/inter VN,intra/inter compute and same/diff default/user-define SG"""
         topology_class_name = None
 
         #
         # Get config for test from topology
-        import sdn_sg_test_topo 
         result = True
         msg = []
         if not topology_class_name:
@@ -412,8 +412,8 @@ class SecurityGroupRegressionTests4(BaseSGTest, VerifySecGroup, ConfigPolicy):
                 project=self.project.project_name,
                 username=self.project.username,
                 password=self.project.password, compute_node_list=self.inputs.compute_ips)
-        except NameError:
-            topo = topology_class_name()
+        except (AttributeError,NameError):
+            topo = topology_class_name(compute_node_list=self.inputs.compute_ips)
 
         #
         # Test setup: Configure policy, VN, & VM
@@ -422,16 +422,15 @@ class SecurityGroupRegressionTests4(BaseSGTest, VerifySecGroup, ConfigPolicy):
         # config_topo= {'policy': policy_fixt, 'vn': vn_fixture, 'vm': vm_fixture}
         setup_obj = self.useFixture(
             sdnTopoSetupFixture(self.connections, topo))
-	out = setup_obj.topo_setup()
+	out = setup_obj.topo_setup(VmToNodeMapping=topo.vm_node_map)
         self.logger.info("Setup completed with result %s" % (out['result']))
         self.assertEqual(out['result'], True, out['msg'])
         if out['result']:
             topo_obj, config_topo = out['data']
 
-        self.attach_remove_sg_edit_sg_verify_traffic(topo_obj, config_topo)
-
+        self.start_traffic_and_verify_negative_cases(topo_obj, config_topo)
         return True
-    #end test_SG
+    #end test_vn_compute_sg_comb 
 
 #end class SecurityGroupRegressionTests4
 
@@ -521,7 +520,7 @@ class SecurityGroupRegressionTests5(BaseSGTest, VerifySecGroup, ConfigPolicy):
 
         self.verify_sec_group_port_proto(double_rule=True)
         return True
-#end test_sec_group_with_proto_double_rules_sg1
+    #end test_sec_group_with_proto_double_rules_sg1
 
 #end class SecurityGroupRegressionTests5
 
@@ -545,7 +544,6 @@ class SecurityGroupRegressionTests6(BaseSGTest, VerifySecGroup, ConfigPolicy):
 
         #
         # Get config for test from topology
-        import sdn_sg_test_topo
         result = True
         msg = []
         if not topology_class_name:
@@ -560,7 +558,7 @@ class SecurityGroupRegressionTests6(BaseSGTest, VerifySecGroup, ConfigPolicy):
                 project=self.project.project_name,
                 username=self.project.username,
                 password=self.project.password)
-        except NameError:
+        except (AttributeError,NameError):
             topo.build_topo_sg_stateful()
         #
         # Test setup: Configure policy, VN, & VM
@@ -579,6 +577,84 @@ class SecurityGroupRegressionTests6(BaseSGTest, VerifySecGroup, ConfigPolicy):
         return True
     #end test_sg_stateful 
 
+    @preposttest_wrapper
+    def test_sg_multiproject(self):
+        """ Test SG across projects"""
+
+        topology_class_name = None
+
+        result = True
+        msg = []
+        if not topology_class_name:
+            topology_class_name = sdn_sg_test_topo.sdn_topo_config_multiproject
+
+        self.logger.info("Scenario for the test used is: %s" %
+                         (topology_class_name))
+
+        topo = topology_class_name()
+        self.topo = topo
+
+        #
+        # Test setup: Configure policy, VN, & VM
+        # return {'result':result, 'msg': err_msg, 'data': [self.topo, config_topo]}
+        # Returned topo is of following format:
+        # config_topo= {'policy': policy_fixt, 'vn': vn_fixture, 'vm': vm_fixture}
+        topo_objs = {}
+        config_topo = {}
+        setup_obj = self.useFixture(
+            sdnTopoSetupFixture(self.connections, topo))
+        out = setup_obj.sdn_topo_setup()
+        self.assertEqual(out['result'], True, out['msg'])
+        if out['result'] == True:
+            topo_objs, config_topo, vm_fip_info = out['data']
+
+        self.start_traffic_and_verify_multiproject(topo_objs, config_topo, traffic_reverse=False)
+
+        return True
+    #end test_sg_multiproject
+
+    @preposttest_wrapper
+    def test_sg_no_rule(self):
+        '''Test SG without any rule:
+           it should deny all traffic'''
+
+        topology_class_name = None
+
+        #
+        # Get config for test from topology
+        result = True
+        msg = []
+        if not topology_class_name:
+            topology_class_name = sdn_sg_test_topo.sdn_topo_1vn_2vm_config
+
+        self.logger.info("Scenario for the test used is: %s" %
+                         (topology_class_name))
+        topo = topology_class_name()
+        try:
+            # provided by wrapper module if run in parallel test env
+            topo.build_topo(
+                project=self.project.project_name,
+                username=self.project.username,
+                password=self.project.password)
+        except (AttributeError,NameError):
+            topo.build_topo()
+        #
+        # Test setup: Configure policy, VN, & VM
+        # return {'result':result, 'msg': err_msg, 'data': [self.topo, config_topo]}
+        # Returned topo is of following format:
+        # config_topo= {'policy': policy_fixt, 'vn': vn_fixture, 'vm': vm_fixture}
+        setup_obj = self.useFixture(
+            sdnTopoSetupFixture(self.connections, topo))
+        out = setup_obj.topo_setup()
+        self.logger.info("Setup completed with result %s" % (out['result']))
+        self.assertEqual(out['result'], True, out['msg'])
+        if out['result']:
+            topo_obj, config_topo = out['data']
+
+        self.start_traffic_and_verify(topo_obj, config_topo, traffic_reverse=True)
+
+        return True
+        #end test_sg_no_rule
 
 #end class SecurityGroupRegressionTests6
 
