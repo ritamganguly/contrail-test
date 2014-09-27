@@ -940,6 +940,31 @@ class VMFixture(fixtures.Fixture):
         return result
     # end verify_vm_not_in_agent
 
+    @retry(delay=2, tries=20)
+    def verify_vm_routes_not_in_agent(self):
+        '''Verify that the VM routes is fully removed in all Agents. This will specfically address the scenario where VM interface is down ir shutoff
+        '''
+        result = True
+        inspect_h = self.agent_inspect[self.vm_node_ip]
+        for vn_fq_name in self.vn_fq_names:
+            for compute_ip in self.inputs.compute_ips:
+                inspect_h = self.agent_inspect[compute_ip]
+                if inspect_h.get_vna_active_route(
+                        vrf_id=self.agent_vrf_id[vn_fq_name],
+                        ip=self.vm_ip_dict[vn_fq_name],
+                        prefix='32') is not None:
+                    self.logger.warn(
+                        "Route for VM %s, IP %s is still seen in agent %s " %
+                        (self.vm_name, self.vm_ip_dict[vn_fq_name], compute_ip))
+                    self.verify_vm_not_in_agent_flag = self.verify_vm_not_in_agent_flag and False
+                    result = result and False
+            if result:
+                self.logger.info(
+                    "VM %s routes are removed "
+                    "in all agent nodes" % (self.vm_name))
+        return result
+
+
     def get_control_nodes(self):
         bgp_ips = {}
         vm_host = self.vm_node_ip
