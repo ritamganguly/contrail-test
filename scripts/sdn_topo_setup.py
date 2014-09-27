@@ -104,7 +104,8 @@ class sdnTopoSetupFixture(fixtures.Fixture):
             'si': self.si_fixture, 'st': self.st_fixture, 'sec_grp': self.secgrp_fixture, 'ipam': self.ipam_fixture}
         if self.err_msg != []:
             self.result = False
-        return {'result': self.result, 'msg': self.err_msg, 'data': [self.topo, config_topo]}
+        updated_topo = copy.copy(self.topo)
+        return {'result': self.result, 'msg': self.err_msg, 'data': [updated_topo, config_topo]}
     # end topo_setup
 
     def sdn_topo_setup(self, config_option='openstack', skip_verify='yes', flavor='contrail_flavor_small', vms_on_single_compute=False):
