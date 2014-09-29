@@ -21,6 +21,7 @@ import test
 from tcutils.util import *
 from testtools import skipIf
 
+
 class TestRouters(BaseNeutronTest):
 
     @classmethod
@@ -173,7 +174,7 @@ class TestRouters(BaseNeutronTest):
             'Ping between VMs across router failed!'
     # end test_router_with_existing_ports
 
-    @skipIf(os.environ.get('MX_GW_TEST') != '1',"Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
+    @skipIf(os.environ.get('MX_GW_TEST') != '1', "Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
     @preposttest_wrapper
     def test_basic_snat_behavior(self):
         '''Create an external network, a router
@@ -189,47 +190,47 @@ class TestRouters(BaseNeutronTest):
         vn1_subnets = [get_random_cidr()]
         mx_rt = self.inputs.mx_rt
         self.project_fixture = self.useFixture(
-                ProjectFixture(
-                    vnc_lib_h=self.vnc_lib,
-                    project_name=self.inputs.project_name,
-                    connections=self.connections))
+            ProjectFixture(
+                vnc_lib_h=self.vnc_lib,
+                project_name=self.inputs.project_name,
+                connections=self.connections))
         self.logger.info(
-                'Default SG to be edited for allow all on project: %s' %
-                self.inputs.project_name)
+            'Default SG to be edited for allow all on project: %s' %
+            self.inputs.project_name)
         self.project_fixture.set_sec_group_for_allow_all(
-                self.inputs.project_name, 'default')
+            self.inputs.project_name, 'default')
         ext_vn_fixture = self.useFixture(
-                VNFixture(
-                    project_name=self.inputs.project_name,
-                    connections=self.connections,
-                    vn_name=ext_vn_name,
-                    inputs=self.inputs,
-                    subnets=ext_subnets,
-                    router_asn=self.inputs.router_asn,
-                    rt_number=mx_rt,
-                    router_external=True))
+            VNFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                vn_name=ext_vn_name,
+                inputs=self.inputs,
+                subnets=ext_subnets,
+                router_asn=self.inputs.router_asn,
+                rt_number=mx_rt,
+                router_external=True))
         assert ext_vn_fixture.verify_on_setup()
         vn1_fixture = self.useFixture(
-                VNFixture(
-                    project_name=self.inputs.project_name,
-                    connections=self.connections,
-                    vn_name=vn1_name,
-                    inputs=self.inputs,
-                    subnets=vn1_subnets))
+            VNFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                vn_name=vn1_name,
+                inputs=self.inputs,
+                subnets=vn1_subnets))
         assert vn1_fixture.verify_on_setup()
         vm1_fixture = self.useFixture(
-                VMFixture(
-                    project_name=self.inputs.project_name,
-                    connections=self.connections,
-                    vn_obj=vn1_fixture.obj,
-                    vm_name=vm1_name))
+            VMFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                vn_obj=vn1_fixture.obj,
+                vm_name=vm1_name))
         assert vm1_fixture.verify_on_setup()
 
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name)
         router_rsp = self.quantum_fixture.router_gateway_set(
-                router_dict['id'],
-                ext_vn_fixture.vn_id)
+            router_dict['id'],
+            ext_vn_fixture.vn_id)
         self.add_vn_to_router(router_dict['id'], vn1_fixture)
         assert vm1_fixture.ping_with_certainty('8.8.8.8')
         self.logger.info('Testing FTP...Intsalling VIM In the VM via FTP')
@@ -237,11 +238,68 @@ class TestRouters(BaseNeutronTest):
         vm1_fixture.run_cmd_on_vm(cmds=[run_cmd])
         output = vm1_fixture.return_output_values_list[0]
         if 'saved' not in output:
-              self.logger.error("FTP failed from VM %s" %
-                                  (vm1_fixture.vm_name))
-              result = result and False
+            self.logger.error("FTP failed from VM %s" %
+                              (vm1_fixture.vm_name))
+            result = result and False
         else:
-              self.logger.info("FTP successful from VM %s via FIP" %
-                                 (vm1_fixture.vm_name))
+            self.logger.info("FTP successful from VM %s via FIP" %
+                             (vm1_fixture.vm_name))
 
         return result
+
+    @preposttest_wrapper
+    def test_router_with_alloc_pool_and_gateway(self):
+        ''' Validate that with non-default alloc pool,
+            router ports are created fine
+        '''
+        vn1_name = get_random_name('vn1')
+        vn1_subnet_cidr = get_random_cidr()
+        vn1_subnets = [{'cidr': vn1_subnet_cidr,
+                        'allocation_pools': [
+                            {'start': get_an_ip(vn1_subnet_cidr, 3),
+                             'end': get_an_ip(vn1_subnet_cidr, 4)
+                             },
+                            {'start': get_an_ip(vn1_subnet_cidr, 6),
+                                'end': get_an_ip(vn1_subnet_cidr, 6)
+                             }
+                        ],
+                        }]
+        router_name = get_random_name('router1')
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        router_dict = self.create_router(router_name)
+        add_intf_result = self.add_vn_to_router(router_dict['id'], vn1_fixture)
+        assert 'port_id' in add_intf_result.keys(), \
+            'Router port not created when allocation-pool is set in Subnet'
+        router_port_ip = self.quantum_fixture.get_port_ips(
+            add_intf_result['port_id'])[0]
+        vn1_gateway_ip = vn1_fixture.vn_subnet_objs[0]['gateway_ip']
+        assert router_port_ip == vn1_gateway_ip,\
+            'Gateway IP(%s) is not the same as Router intf IP(%s)' % (
+                vn1_gateway_ip, router_port_ip)
+
+        # Now test with custom gateway and alloc pool
+        vn2_name = get_random_name('vn2')
+        vn2_subnet_cidr = get_random_cidr()
+        vn2_subnets = [{'cidr': vn1_subnet_cidr,
+                        'allocation_pools': [
+                            {'start': get_an_ip(vn1_subnet_cidr, 3),
+                             'end': get_an_ip(vn1_subnet_cidr, 4)
+                             },
+                            {'start': get_an_ip(vn1_subnet_cidr, 6),
+                                'end': get_an_ip(vn1_subnet_cidr, 6)
+                             }
+                        ],
+                        'gateway_ip': get_an_ip(vn1_subnet_cidr, 10)
+                        }]
+        router_name = get_random_name('router2')
+        vn2_fixture = self.create_vn(vn2_name, vn2_subnets)
+        router_dict = self.create_router(router_name)
+        add_intf_result = self.add_vn_to_router(router_dict['id'], vn2_fixture)
+        assert 'port_id' in add_intf_result.keys(), \
+            'Router port not created when allocation-pool is set in Subnet'
+        router_port_ip = self.quantum_fixture.get_port_ips(
+            add_intf_result['port_id'])[0]
+        vn2_gateway_ip = vn2_fixture.vn_subnet_objs[0]['gateway_ip']
+        assert router_port_ip == vn2_gateway_ip,\
+            'Gateway IP(%s) is not the same as Router intf IP(%s)' % (
+                vn2_gateway_ip, router_port_ip)

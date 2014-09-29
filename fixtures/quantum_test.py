@@ -85,8 +85,8 @@ class QuantumFixture(fixtures.Fixture):
     def create_network(
             self,
             vn_name,
-            vn_subnets,
-            ipam_fq_name,
+            vn_subnets=None,
+            ipam_fq_name=None,
             shared=False,
             router_external=False):
         """Create network given a name and a list of subnets.
@@ -173,6 +173,10 @@ class QuantumFixture(fixtures.Fixture):
         except CommonNetworkClientException as e:
             self.logger.debug('Get port on %s failed' % (port_id))
     # end get_port
+
+    def get_port_ips(self, port_id):
+        port_obj = self.get_port(port_id)
+        return [x['ip_address'] for x in port_obj['fixed_ips']]
 
     def create_security_group(self, name):
         sg_dict = {'name': name, 'description': 'SG-' + name}
@@ -588,8 +592,8 @@ class QuantumFixture(fixtures.Fixture):
 
     def create_lb_pool(self, name, lb_method, protocol, subnet_id):
         '''Create lb pool. Returns the lb object created'''
-        pool_dict = {'name': name, 'lb_method': lb_method, 
-                     'protocol': protocol, 'subnet_id': subnet_id }
+        pool_dict = {'name': name, 'lb_method': lb_method,
+                     'protocol': protocol, 'subnet_id': subnet_id}
         try:
             pool_resp = self.obj.create_pool(
                 {'pool': pool_dict})
@@ -598,14 +602,14 @@ class QuantumFixture(fixtures.Fixture):
             self.logger.exception(
                 'Network Exception while creating LB Pool %s' % (name))
             return None
-    #end create_lb_pool
+    # end create_lb_pool
 
     def delete_lb_pool(self, pool_id):
         '''Delete the lb'''
         pool_rsp = self.obj.delete_pool(pool_id)
         self.logger.debug('Response for delete_pool : ' + repr(pool_rsp))
     # end delete_lb_pool
-    
+
     def update_lb_pool(self, pool_id, pool_dict):
         pool_rsp = None
         try:
@@ -625,7 +629,6 @@ class QuantumFixture(fixtures.Fixture):
         except CommonNetworkClientException as e:
             self.logger.debug('Get pool on %s failed' % (pool_id))
     # end get_pool
-        
 
     def list_lb_pools(self):
         ''' Returns the LB pools in this tenant'''
@@ -634,12 +637,12 @@ class QuantumFixture(fixtures.Fixture):
         except CommonNetworkClientException as e:
             self.logger.debug('List pools failed')
             return None
-        return pools_list['pools']    
+        return pools_list['pools']
 
     def create_health_monitor(self, delay, max_retries, probe_type, timeout):
         '''Returns the neutron health monitor dict created '''
         hm_dict = {'delay': delay, 'max_retries': max_retries,
-                     'type': probe_type, 'timeout': timeout}
+                   'type': probe_type, 'timeout': timeout}
         try:
             hm_resp = self.obj.create_health_monitor(
                 {'health_monitor': hm_dict})
@@ -653,7 +656,8 @@ class QuantumFixture(fixtures.Fixture):
     def delete_health_monitor(self, hm_id):
         ''' Delete the Health monitor '''
         hm_rsp = self.obj.delete_health_monitor(hm_id)
-        self.logger.debug('Response for delete_health_monitor : %s' + repr(hm_rsp))
+        self.logger.debug(
+            'Response for delete_health_monitor : %s' + repr(hm_rsp))
 
     def update_health_monitor(self, hm_id, hm_dict):
         '''Update Health monitor object'''
@@ -689,14 +693,14 @@ class QuantumFixture(fixtures.Fixture):
         ''' Associate Health monitor to the pool. Returns True on success.
             Returns False if it fails
         '''
-        body = { 'health_monitors' : [hm_id] }
+        body = {'health_monitors': [hm_id]}
         try:
             hm_list = self.obj.associate_health_monitor(pool_id, body)
         except CommonNetworkClientException as e:
             self.logger.error('Associating HM %s to Pool %s failed' % (
                               hm_id, pool_id))
             return None
-        return hm_list['health_monitors']        
+        return hm_list['health_monitors']
 
     def disassociate_health_monitor(pool_id, hm_id):
         '''Disassociate health monitor from the pool
@@ -753,7 +757,7 @@ class QuantumFixture(fixtures.Fixture):
             self.logger.error('List vips failed')
             return None
         return vip_list['vips']
-        
+
     def create_lb_member(self, ip_address, protocol_port, pool_id):
         '''Create lb member. Returns the created lb member as dict'''
         pass
@@ -774,5 +778,5 @@ class QuantumFixture(fixtures.Fixture):
     def show_lb_member(self, lb_member_id):
         '''Returns the lb member dict '''
         pass
-    
+
 # end QuantumFixture

@@ -117,12 +117,12 @@ class BaseNeutronTest(test.BaseTestCase):
             router_id, subnet_id, port_id)
 
     def add_vn_to_router(self, router_id, vn_fixture):
-        self.add_router_interface(
+        return self.add_router_interface(
             router_id,
             vn_fixture.vn_subnet_objs[0]['id'])
 
     def delete_vn_from_router(self, router_id, vn_fixture):
-        self.delete_router_interface(
+        return self.delete_router_interface(
             router_id,
             vn_fixture.vn_subnet_objs[0]['id'])
 
@@ -262,9 +262,9 @@ class BaseNeutronTest(test.BaseTestCase):
     def create_lb_pool(self, name, lb_method, protocol, subnet_id):
         lb_pool_resp = None
         lb_pool_resp = self.quantum_fixture.create_lb_pool(
-                            name, lb_method, protocol, subnet_id)
-        if lb_pool_resp :
-            self.addCleanup(self.quantum_fixture.delete_lb_pool, 
+            name, lb_method, protocol, subnet_id)
+        if lb_pool_resp:
+            self.addCleanup(self.quantum_fixture.delete_lb_pool,
                             lb_pool_resp['id'])
         return lb_pool_resp
     # end create_lb_pool
@@ -272,8 +272,8 @@ class BaseNeutronTest(test.BaseTestCase):
     def create_lb_member(self, ip_address, protocol_port, pool_id):
         lb_member_resp = None
         lb_member_resp = self.quantum_fixture.create_lb_member(
-                            ip_address, protocol_port, pool_id)
-        if lb_member_resp :
+            ip_address, protocol_port, pool_id)
+        if lb_member_resp:
             self.addCleanup(self.quantum_fixture.delete_lb_member,
                             lb_member_resp['id'])
         return lb_member_resp
@@ -282,18 +282,18 @@ class BaseNeutronTest(test.BaseTestCase):
     def create_health_monitor(self, delay, max_retries, probe_type, timeout):
         hm_resp = None
         hm_resp = self.quantum_fixture.create_health_monitor(
-                    delay, max_retries, probe_type, timeout) 
-        if hm_resp :
+            delay, max_retries, probe_type, timeout)
+        if hm_resp:
             self.addCleanup(self.quantum_fixture.delete_health_monitor,
                             hm_resp['id'])
-        return hm_resp 
+        return hm_resp
     # end create_health_monitor
 
     def create_vip(self, name, protocol, protocol_port, subnet_id, pool_id):
         vip_resp = None
         vip_resp = self.quantum_fixture.create_vip(
-                    name, protocol, protocol_port, subnet_id, pool_id)
-        if vip_resp :
+            name, protocol, protocol_port, subnet_id, pool_id)
+        if vip_resp:
             self.addCleanup(self.quantum_fixture.delete_vip,
                             vip_resp['id'])
         return vip_resp
@@ -301,8 +301,8 @@ class BaseNeutronTest(test.BaseTestCase):
 
     def associate_health_monitor(self, pool_id, hm_id):
         hm_resp = self.quantum_fixture.associate_health_monitor(
-                    pool_id, hm_id)
+            pool_id, hm_id)
         if hm_resp:
             self.addCleanup(self.quantum_fixture.disassociate_health_monitor(
-                pool_id, hm_id)) 
+                pool_id, hm_id))
     # end associate_health_monitor
