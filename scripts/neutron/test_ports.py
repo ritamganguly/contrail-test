@@ -493,3 +493,76 @@ class TestPorts(BaseNeutronTest):
                 port1_obj)
 
     # end test_ports_device_owner_and_id
+
+    @preposttest_wrapper
+    def test_shutoff_vm_route_withdrawal(self):
+        '''Test shutdown of VM using nova command and correponfing route withdrawal.
+        Shutoff the VM using nova stop
+        Verify the route is removed from all agent and compute node.
+        '''
+        result = True
+
+        (self.vn1_name, self.vn1_subnets) = (
+            get_random_name("vn1"), ["11.1.1.0/24"])
+        (self.vn1_vm1_name, self.vn1_vm2_name) = (
+            get_random_name('vn1_vm1'), get_random_name('vn1_vm2'))
+        # Get all compute host
+        host_list = []
+        for host in self.inputs.compute_ips:
+            host_list.append(self.inputs.host_data[host]['name'])
+        compute_1 = host_list[0]
+        compute_2 = host_list[0]
+        if len(host_list) > 1:
+            compute_1 = host_list[0]
+            compute_2 = host_list[1]
+
+        self.vn1_fixture = self.useFixture(
+            VNFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                inputs=self.inputs,
+                vn_name=self.vn1_name,
+                subnets=self.vn1_subnets))
+        
+        self.vn1_vm1_fixture = self.useFixture(
+            VMFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                vn_obj=self.vn1_fixture.obj,
+                vm_name=self.vn1_vm1_name,
+                node_name=compute_1))
+        
+        self.vn1_vm2_fixture = self.useFixture(
+            VMFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                vn_obj=self.vn1_fixture.obj,
+                vm_name=self.vn1_vm2_name,
+                node_name=compute_2))
+
+
+        vn1_fixture = self.vn1_fixture
+        vn1_vm1_fixture = self.vn1_vm1_fixture
+        vn1_vm2_fixture = self.vn1_vm2_fixture
+        vm1_name = self.vn1_vm1_name
+        vn1_name = self.vn1_name
+        vn1_subnets = self.vn1_subnets
+        vm2_name = self.vn1_vm2_name
+        assert vn1_fixture.verify_on_setup()
+        assert vn1_vm1_fixture.verify_on_setup()
+        assert vn1_vm2_fixture.verify_on_setup()
+ 
+        # Test Triger: Shutoff VM       
+        self.logger.info(
+            'Executing nova stop to shutoff the VM %s' %(vm1_name))   
+        vn1_vm1_fixture.vm_obj.stop()
+
+        # Test specific verification 
+        self.logger.info(
+            'Verifying VM route entry is removed from agent after shutoff')
+        assert vn1_vm1_fixture.verify_vm_routes_not_in_agent()
+        self.logger.info(
+            'Verifying VM route entry is removed from control node after shutoff')
+        assert vn1_vm1_fixture.verify_vm_not_in_control_nodes()
+
+        return True

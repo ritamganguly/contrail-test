@@ -17,7 +17,8 @@ from tcutils.util import get_dashed_uuid
 
 class ProjectFixture(fixtures.Fixture):
 
-    def __init__(self, vnc_lib_h, connections, project_name='admin', username=None, password=None, role='admin'):
+    def __init__(self, vnc_lib_h, connections, project_name='admin',
+                 username=None, password=None, role='admin', scale= False):
         self.inputs = connections.inputs
         self.vnc_lib_h = vnc_lib_h
         self.connections = connections
@@ -45,6 +46,7 @@ class ProjectFixture(fixtures.Fixture):
         self.project_connections = None
         self.api_server_inspects = self.connections.api_server_inspects
         self.verify_is_run = False
+        self.scale = scale
     # end __init__
 
     def _create_project(self):
@@ -67,8 +69,9 @@ class ProjectFixture(fixtures.Fixture):
             self.logger.info('Project admin already exist, no need to create')
             return self
 
-        project_list_in_api_before_test = self.vnc_lib_h.projects_list()
-        print "project list before test: %s" % project_list_in_api_before_test
+        if not self.scale:
+            project_list_in_api_before_test = self.vnc_lib_h.projects_list()
+            print "project list before test: %s" % project_list_in_api_before_test
 
         # create project using keystone
         self.logger.info('Proceed with creation of new project.')
@@ -101,22 +104,28 @@ class ProjectFixture(fixtures.Fixture):
 
     def setUp(self):
         super(ProjectFixture, self).setUp()
-        try:
-            ks_project = self.kc.tenants.find(name=self.project_name)
-            if ks_project:
-                self.already_present = True
-                self.project_id = get_dashed_uuid(ks_project.id)
-                self.logger.debug(
-                    'Project %s already present.Not creating it' %
-                    self.project_fq_name)
-        except ks_exceptions.NotFound, e:
-            self.logger.info('Project %s not found, creating it' % (
-                self.project_name))
+        if self.scale:
             self._create_project_keystone()
-            time.sleep(2)
+        else:
+            try:
+                ks_project = self.kc.tenants.find(name=self.project_name)
+                if ks_project:
+                    self.already_present = True
+                    self.project_id = get_dashed_uuid(ks_project.id)
+                    self.logger.debug(
+                        'Project %s already present.Not creating it' %
+                        self.project_fq_name)
+            except ks_exceptions.NotFound, e:
+                self.logger.info('Project %s not found, creating it' % (
+                    self.project_name))
+                self._create_project_keystone()
+                time.sleep(2)
         self.project_obj = self.vnc_lib_h.project_read(id=self.project_id)
         self.uuid = self.project_id
     # end setUp
+
+    def getObj(self):
+        return self.project_obj
 
     def cleanUp(self):
         super(ProjectFixture, self).cleanUp()
@@ -182,9 +191,9 @@ class ProjectFixture(fixtures.Fixture):
 
     def get_project_connections(self, username=None, password=None):
         if not username:
-            username = self.username or 'admin'
+            username = self.username or self.inputs.stack_user
         if not password:
-            password = self.password or 'contrail123'
+            password = self.password or self.inputs.stack_password
         if not self.project_connections:
             self.project_connections = ContrailConnections(
                 inputs=self.inputs,
@@ -218,7 +227,7 @@ class ProjectFixture(fixtures.Fixture):
                 result &= False
                 return result
             if cs_project_obj['project']['uuid'] != self.project_id:
-                self.logger.warn('Project id %s got from API Server %s'
+                self.logger.warn('Project id %s got from API Server is'
                                  ' not matching expected ID %s' % (
                                      cs_project_obj['project']['uuid'], self. project_id))
                 result &= False

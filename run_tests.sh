@@ -82,7 +82,7 @@ done
 #    testrargs+=$tags
 #fi
 
-export SCRIPT_TS=$(date +"%F_%T")
+#export SCRIPT_TS=$(date +"%F_%T")
 
 if [ -n "$config_file" ]; then
     config_file=`readlink -f "$config_file"`
@@ -262,6 +262,7 @@ if [[ -z $path ]] && [[ -z $testrargs ]];then
     run_tests_serial
 fi
 sleep 2
+python tools/report_gen.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE
 generate_html 
 upload_to_web_server
 sleep 2

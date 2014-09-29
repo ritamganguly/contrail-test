@@ -16,7 +16,8 @@ from webui_test import *
 
 class PolicyFixture(fixtures.Fixture):
 
-    def __init__(self, policy_name, rules_list, inputs, connections, api=None):
+    def __init__(self, policy_name, rules_list, inputs, connections, api=None,
+                                                        project_fixture= None):
         self.inputs = inputs
         self.rules_list = rules_list
         self.project_fq_name = self.inputs.project_fq_name
@@ -37,13 +38,20 @@ class PolicyFixture(fixtures.Fixture):
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
+        self.scale = False
+        self.project_fixture= project_fixture
+        if self.project_fixture:
+            self.project_fq_name = self.project_fixture.project_fq_name
+            self.project_name = self.project_fixture.project_name
+            self.scale = self.project_fixture.scale
     # end __init__
 
     def setUp(self):
         super(PolicyFixture, self).setUp()
         if self.api_flag is None:
-            self.policy_obj = self.quantum_fixture.get_policy_if_present(
-                self.project_name, self.policy_name)
+            if not self.scale:
+                self.policy_obj = self.quantum_fixture.get_policy_if_present(
+                                          self.project_name, self.policy_name)
             if not self.policy_obj:
                 if self.inputs.webui_config_flag:
                     self.webui.create_policy_in_webui(self)
@@ -115,9 +123,11 @@ class PolicyFixture(fixtures.Fixture):
                 'simple_action': 'pass',
                 'protocol': 'any',
                 'source_network': None,
+                'source_policy': None,
                 'src_ports': [PortType(-1, -1)],
                 'application': None,
                 'dest_network': None,
+                'dest_policy': None,
                 'dst_ports': [PortType(-1, -1)],
                 'action_list': {},
             }
@@ -148,37 +158,83 @@ class PolicyFixture(fixtures.Fixture):
                     self.logger.error(
                         "Error in Destination ports arguments, should be (Start port, end port) or any ")
                     return None
-            m = re.match(r"(\S+):(\S+):(\S+)", new_rule['source_network'])
-            if m:
-                source_vn = new_rule['source_network']
-            else:
-                source_vn = ':'.join(self.project_fq_name) + \
-                    ':' + new_rule['source_network']
-            m = re.match(r"(\S+):(\S+):(\S+)", new_rule['dest_network'])
-            if m:
-                dest_vn = new_rule['dest_network']
-            else:
-                dest_vn = ':'.join(self.project_fq_name) + \
-                    ':' + new_rule['dest_network']
+            if new_rule['source_network'] is not None:
+                m = re.match(r"(\S+):(\S+):(\S+)", new_rule['source_network'])
+                if m:
+                    source_vn = new_rule['source_network']
+                else:
+                    source_vn = ':'.join(self.project_fq_name) + \
+                        ':' + new_rule['source_network']
+            if new_rule['dest_network'] is not None:
+                m = re.match(r"(\S+):(\S+):(\S+)", new_rule['dest_network'])
+                if m:
+                    dest_vn = new_rule['dest_network']
+                else:
+                    dest_vn = ':'.join(self.project_fq_name) + \
+                        ':' + new_rule['dest_network']
+            if new_rule['source_policy'] is not None:
+                m = re.match(r"(\S+):(\S+):(\S+)", new_rule['source_policy'])
+                if m:
+                    source_policy = new_rule['source_policy']
+                else:
+                    source_policy = ':'.join(self.project_fq_name) + \
+                        ':' + new_rule['source_policy']
+            if new_rule['dest_policy'] is not None:
+                m = re.match(r"(\S+):(\S+):(\S+)", new_rule['dest_policy'])
+                if m:
+                    dest_policy = new_rule['dest_policy']
+                else:
+                    dest_policy = ':'.join(self.project_fq_name) + \
+                        ':' + new_rule['dest_policy']
+
             # handle 'any' network case
-            if rule_dict['source_network'] == 'any':
-                source_vn = 'any'
-            if rule_dict['dest_network'] == 'any':
-                dest_vn = 'any'
+            try:
+                if rule_dict['source_network'] == 'any':
+                    source_vn = 'any'
+            except:
+                self.logger.debug("No source network defined")
+            try:
+                 if rule_dict['dest_network'] == 'any':
+                    dest_vn = 'any'
+            except:
+                self.logger.debug("No destination network defined")
             # end code to handle 'any' network
-            new_rule['source_network'] = [
-                AddressType(virtual_network=source_vn)]
-            new_rule['dest_network'] = [
-                AddressType(virtual_network=dest_vn)]
+            try:
+                new_rule['source_network'] = [
+                    AddressType(virtual_network=source_vn)]
+                src_address = new_rule['source_network']
+            except NameError:
+                self.logger.debug("No source vn defined in this rule of %s \
+                    policy" % (policy_name))
+            try:
+                new_rule['dest_network'] = [
+                    AddressType(virtual_network=dest_vn)]
+                dest_address = new_rule['dest_network']
+            except NameError:
+                self.logger.debug("No dest vn defined in this rule of %s \
+                    policy" % (policy_name))
+            try:
+                new_rule['source_policy'] = [
+                    AddressType(network_policy=source_policy)]
+                src_address = new_rule['source_policy']
+            except NameError:
+                self.logger.debug("No source policy defined in this rule of %s \
+                    policy" % (policy_name))
+            try:
+                new_rule['dest_policy'] = [
+                    AddressType(network_policy=dest_policy)]
+                dest_address = new_rule['dest_policy']
+            except NameError:
+                self.logger.debug("No dest policy defined in this rule of %s \
+                    policy" % (policy_name))
+
             np_rules.append(PolicyRuleType(direction=new_rule['direction'],
                                            protocol=new_rule['protocol'],
-                                           src_addresses=new_rule[
-                                               'source_network'],
+                                           src_addresses=src_address,
                                            src_ports=new_rule['src_ports'],
                                            application=new_rule[
                                                'application'],
-                                           dst_addresses=new_rule[
-                                               'dest_network'],
+                                           dst_addresses=dest_address,
                                            dst_ports=new_rule['dst_ports'],
                                            action_list=new_rule['action_list']))
         # end for
@@ -323,19 +379,15 @@ class PolicyFixture(fixtures.Fixture):
             if self.inputs.webui_config_flag:
                 self.webui.delete_policy_in_webui(self)
             else:
-                self._delete_policy(self.policy_name)
+                self._delete_policy()
             self.logger.info("Deleted policy %s" % (self.policy_name))
         else:
             self.logger.info('Skipping deletion of policy %s' %
                              (self.policy_name))
     # end cleanUp
 
-    def _delete_policy(self, policy_name):
-        pol_list = self.quantum_fixture.list_policys()
-        for policy in pol_list['policys']:
-            if policy['name'] == policy_name:
-                self.quantum_fixture.delete_policy(policy['id'])
-                break
+    def _delete_policy(self):
+        self.quantum_fixture.delete_policy(self.policy_obj['policy']['id'])
     # end _delete_policy
 
     def update_policy(self, policy_id, policy_data):
@@ -345,6 +397,58 @@ class PolicyFixture(fixtures.Fixture):
         self.policy_obj = policy_rsp
         return policy_rsp
     # end update_policy
+
+    def tx_policy_to_vn(self, rules, vn_policy_dict):
+        """
+        Return rules that have source and destination vn names in place of
+        source and destination policy.
+        """
+        tx_rule_list = []
+        src_pol = 'Null'
+        dest_pol = 'Null'
+        for rule in rules:
+            if ((not 'source_policy' in rule) and
+                (not 'dest_policy' in rule)):
+                tx_rule_list.append(rule)
+                continue
+            if 'source_policy' in rule:
+                src_pol = rule['source_policy']
+            if 'dest_policy' in rule:
+                dest_pol = rule['dest_policy']
+            src_pol_vns = []
+            dest_pol_vns= []
+            for each_vn in vn_policy_dict:
+                if src_pol in vn_policy_dict[each_vn]:
+                    src_pol_vns.append(each_vn)
+                if dest_pol in vn_policy_dict[each_vn]:
+                    dest_pol_vns.append(each_vn)
+            if (src_pol_vns and dest_pol_vns):
+                for eachvn in src_pol_vns:
+                    new_rule = copy.deepcopy(rule)
+                    del new_rule['source_policy']
+                    new_rule['source_network'] = eachvn
+                    for eachvn2 in dest_pol_vns:
+                        new_rule2 = copy.deepcopy(new_rule)
+                        del new_rule2['dest_policy']
+                        new_rule2['dest_network'] = eachvn2
+                        tx_rule_list.append(new_rule)
+
+            if (src_pol_vns and (not dest_pol_vns)):
+                for eachvn in src_pol_vns:
+                    new_rule = copy.deepcopy(rule)
+                    del new_rule['source_policy']
+                    new_rule['source_network'] = eachvn
+                    tx_rule_list.append(new_rule)
+
+            if (dest_pol_vns and (not src_pol_vns)):
+                for eachvn in dest_pol_vns:
+                    new_rule = copy.deepcopy(rule)
+                    del new_rule['dest_policy']
+                    new_rule['dest_network'] = eachvn
+                    tx_rule_list.append(new_rule)
+
+        return tx_rule_list
+    # end tx_policy_to_vn
 
     def tx_user_def_rule_to_aces(self, test_vn, rules):
         """
@@ -545,12 +649,12 @@ class PolicyFixture(fixtures.Fixture):
                 m = re.match(r"(\S+):(\S+):(\S+)", rule['src'])
                 if not m:
                     rule['src'] = ':'.join(
-                        self.inputs.project_fq_name) + ':' + rule['src']
+                        self.project_fq_name) + ':' + rule['src']
             if rule['dst'] != 'any':
                 m = re.match(r"(\S+):(\S+):(\S+)", rule['dst'])
                 if not m:
                     rule['dst'] = ':'.join(
-                        self.inputs.project_fq_name) + ':' + rule['dst']
+                        self.project_fq_name) + ':' + rule['dst']
             try:
                 del rule['direction']
             except:
@@ -608,7 +712,7 @@ class PolicyFixture(fixtures.Fixture):
         return (match, rules.index(r))
     # end check_5tuple_in_rules
 
-    def verify_policy_in_vna(self, scn):
+    def verify_policy_in_vna(self, scn, policy_attch_to_vn=None):
         '''
         Policies attached to VN will be pushed to VNA [in Compute node] once
         a VM is spawned in a VN.
@@ -627,10 +731,21 @@ class PolicyFixture(fixtures.Fixture):
         # expected data: translate user rules to system format for verification
         # Step 1: Translate user rules to ACEs
         user_rules_tx = {}
+        if policy_attch_to_vn is None:
+            policy_attch_to_vn = scn.vn_policy
         for policy in scn.policy_list:
+            flag_policy_inheritance = 0
+            policy_rules = scn.rules[policy]
+            for rule in scn.rules[policy]:
+                if (('dest_policy' in rule) or
+                    ('source_policy' in rule)):
+                    flag_policy_inheritance = 1
+            if flag_policy_inheritance == 1:
+                policy_rules = self.tx_policy_to_vn(scn.rules[policy],
+                                   policy_attch_to_vn)
             for test_vn in scn.policy_vn[policy]:
                 user_rules_tx[policy] = self.tx_user_def_rule_to_aces(
-                    test_vn, scn.rules[policy])
+                    test_vn, policy_rules)
 
         # Step 2: Aggregate rules by network
         rules_by_vn = {}
