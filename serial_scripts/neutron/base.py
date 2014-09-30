@@ -276,7 +276,7 @@ class BaseNeutronTest(test.BaseTestCase):
 
     def allow_default_sg_to_allow_all_on_project(self, project_name):
 
-        project_fixture = self.useFixture(
+        self.project_fixture = self.useFixture(
                 ProjectFixture(
                     vnc_lib_h=self.vnc_lib,
                     project_name=self.inputs.project_name,
@@ -284,7 +284,7 @@ class BaseNeutronTest(test.BaseTestCase):
         self.logger.info(
                 'Default SG to be edited for allow all on project: %s' %
                 project_name)
-        project_fixture.set_sec_group_for_allow_all(
+        self.project_fixture.set_sec_group_for_allow_all(
                 project_name, 'default')
 
     # end allow_default_sg_to_allow_all_on_project
