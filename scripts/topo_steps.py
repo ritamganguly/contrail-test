@@ -440,7 +440,7 @@ def createVMNova(
         else:
             vn_obj = self.vn_fixture[self.topo.vn_of_vm[vm]].obj
         if hasattr(self.topo, 'sg_of_vm'):
-            if vm in self.topo.sg_of_vm:
+            if self.topo.sg_of_vm.has_key(vm):
                 for sg in self.topo.sg_of_vm[vm]:
                     sec_gp.append(self.sg_uuid[sg])
         else:
