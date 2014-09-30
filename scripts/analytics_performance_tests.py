@@ -11,14 +11,14 @@ import socket
 import unittest
 import fixtures
 import testtools
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from multiple_vn_vm_test import *
 from tcutils.wrappers import preposttest_wrapper
-from servicechain.config import ConfigSvcChain
-from servicechain.verify import VerifySvcChain
+from common.servicechain.config import ConfigSvcChain
+from common.servicechain.verify import VerifySvcChain
 import threading
 from subprocess import Popen, PIPE
 import shlex

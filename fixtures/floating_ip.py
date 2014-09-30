@@ -7,7 +7,7 @@ from contrail_fixtures import *
 import ast
 import sys
 from tcutils.util import retry
-from analytics_tests import *
+#from analytics_tests import *
 from webui_test import *
 
 #@contrail_fix_ext ()

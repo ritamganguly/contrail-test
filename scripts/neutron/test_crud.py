@@ -1,4 +1,4 @@
-from attributes import *
+from common.neutron.attributes import *
 import testtools
 from neutronclient.client import HTTPClient
 from neutronclient.neutron import client
@@ -9,8 +9,8 @@ from keystoneclient import exceptions as ks_exceptions
 
 from tcutils.util import *
 from tcutils.wrappers import preposttest_wrapper
-from neutron_util import combos
-from base import BaseNeutronTest
+from common.neutron.neutron_util import combos
+from common.neutron.base import BaseNeutronTest
 import test
 
 

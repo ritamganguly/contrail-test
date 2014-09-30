@@ -4,8 +4,8 @@ import testtools
 import unittest
 import traffic_tests
 import time
-from connections import ContrailConnections
-from contrail_test_init import ContrailTestInit
+from common.connections import ContrailConnections
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from floating_ip import *
 from quantum_test import *
@@ -14,9 +14,9 @@ from nova_test import *
 from vm_test import *
 from tcutils.wrappers import preposttest_wrapper
 from tcutils.commands import ssh, execute_cmd, execute_cmd_out
-from servicechain.firewall.verify import VerifySvcFirewall
-from ecmp.ecmp_traffic import ECMPTraffic
-from ecmp.ecmp_verify import ECMPVerify
+from common.servicechain.firewall.verify import VerifySvcFirewall
+from common.ecmp.ecmp_traffic import ECMPTraffic
+from common.ecmp.ecmp_verify import ECMPVerify
 from traffic.core.stream import Stream
 from traffic.core.profile import create, ContinuousProfile
 from traffic.core.helpers import Host

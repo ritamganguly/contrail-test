@@ -2,7 +2,7 @@ import unittest
 import fixtures
 import testtools
 import traceback
-from scripts.tcutils.wrappers import preposttest_wrapper
+from tcutils.wrappers import preposttest_wrapper
 import uuid
 import base
 import test

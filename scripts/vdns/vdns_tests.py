@@ -11,12 +11,12 @@ import fixtures
 import testtools
 import traceback
 
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from quantum_test import *
 from vnc_api_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from contrail_fixtures import *
 from tcutils.wrappers import preposttest_wrapper
 from vnc_api import vnc_api

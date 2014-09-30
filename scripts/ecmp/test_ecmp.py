@@ -12,20 +12,16 @@ from nova_test import *
 from vm_test import *
 from tcutils.wrappers import preposttest_wrapper
 from tcutils.commands import ssh, execute_cmd, execute_cmd_out
-from servicechain.firewall.verify import VerifySvcFirewall
-from ecmp.ecmp_traffic import ECMPTraffic
-from ecmp.ecmp_verify import ECMPVerify
-sys.path.append(os.path.realpath('scripts/tcutils/pkgs/Traffic'))
+from common.servicechain.firewall.verify import VerifySvcFirewall
+from common.ecmp.ecmp_traffic import ECMPTraffic
+from common.ecmp.ecmp_verify import ECMPVerify
+sys.path.append(os.path.realpath('tcutils/pkgs/Traffic'))
 from traffic.core.stream import Stream
 from traffic.core.profile import create, ContinuousProfile, ContinuousSportRange
 from traffic.core.helpers import Host
 from traffic.core.helpers import Sender, Receiver
-#from tcutils.pkgs.Traffic.traffic.core.stream import Stream
-#from tcutils.pkgs.Traffic.traffic.core.profile import create, ContinuousProfile
-#from tcutils.pkgs.Traffic.traffic.core.helpers import Host
-#from tcutils.pkgs.Traffic.traffic.core.helpers import Sender, Receiver
 from fabric.state import connections as fab_connections
-from ecmp.ecmp_test_resource import ECMPSolnSetup
+from common.ecmp.ecmp_test_resource import ECMPSolnSetup
 from base import BaseECMPTest                                                                                                                                                                                  
 from common import isolated_creds                                                                                                                                                                              
 import inspect

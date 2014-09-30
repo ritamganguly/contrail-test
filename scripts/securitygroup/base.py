@@ -5,11 +5,10 @@ from fabric.api import run, hide, settings
 from vn_test import VNFixture
 from vm_test import VMFixture
 from policy_test import PolicyFixture
-from policy.config import ConfigPolicy
-from security_group import SecurityGroupFixture
+from common.policy.config import ConfigPolicy
+from security_group import SecurityGroupFixture, get_secgrp_id_from_name
 from common import isolated_creds
 from tcutils.util import get_random_name
-
 
 class BaseSGTest(test.BaseTestCase):
 
@@ -82,10 +81,15 @@ class BaseSGTest(test.BaseTestCase):
         self.vm5_fix.add_security_group(secgrp=self.sg1_name)
 
         self.logger.info("Remove the default sec group form the VM's")
-        self.vm1_fix.remove_security_group(secgrp='default')
-        self.vm2_fix.remove_security_group(secgrp='default')
-        self.vm4_fix.remove_security_group(secgrp='default')
-        self.vm5_fix.remove_security_group(secgrp='default')
+	default_secgrp_id = get_secgrp_id_from_name(
+                        	self.connections,
+                        	':'.join([self.inputs.domain_name,
+					self.inputs.project_name,
+					'default']))
+        self.vm1_fix.remove_security_group(secgrp=default_secgrp_id)
+        self.vm2_fix.remove_security_group(secgrp=default_secgrp_id)
+        self.vm4_fix.remove_security_group(secgrp=default_secgrp_id)
+        self.vm5_fix.remove_security_group(secgrp=default_secgrp_id)
 
         self.logger.info("Verifying setup of security group tests.")
         self.verify_sg_test_resources()
@@ -94,7 +98,7 @@ class BaseSGTest(test.BaseTestCase):
 
 
     def config_sec_groups(self):
-        self.sg1_name = 'test_tcp_sec_group'
+        self.sg1_name = 'test_tcp_sec_group' + '_' + get_random_name()
         rule = [{'direction': '<>',
                 'protocol': 'tcp',
                  'dst_addresses': [{'subnet': {'ip_prefix': '10.1.1.0', 'ip_prefix_len': 24}},
@@ -114,7 +118,7 @@ class BaseSGTest(test.BaseTestCase):
 
         self.sg1_fix = self.config_sec_group(name=self.sg1_name, entries=rule)
 
-        self.sg2_name = 'test_udp_sec_group'
+        self.sg2_name = 'test_udp_sec_group' + '_' + get_random_name()
         rule = [{'direction': '<>',
                 'protocol': 'udp',
                  'dst_addresses': [{'subnet': {'ip_prefix': '10.1.1.0', 'ip_prefix_len': 24}},

@@ -125,6 +125,7 @@ function send_mail {
 function run_tests_serial {
   echo in serial_run_test
   rm -f $serial_result_xml
+  export PYTHONPATH=$PATH:$PWD/serial_scripts:$PWD/fixtures
   testr_init
   ${wrapper} find . -type f -name "*.pyc" -delete
   export OS_TEST_PATH=./serial_scripts/$1

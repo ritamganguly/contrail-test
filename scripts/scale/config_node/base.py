@@ -6,7 +6,7 @@ import platform
 from fabric.context_managers import settings
 from fabric.api import local, run
 from tcutils.util import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 
 class BaseScaleTest(test.BaseTestCase):
 

@@ -6,8 +6,8 @@ import fixtures
 from topo_helper import topology_helper
 from vnc_api import vnc_api
 from vnc_api.gen.resource_test import *
-from contrail_test_init import *
-from connections import ContrailConnections
+from common.contrail_test_init import ContrailTestInit
+from common.connections import ContrailConnections
 from keystoneclient.v2_0 import client as ksclient
 
 

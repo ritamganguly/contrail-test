@@ -1,11 +1,11 @@
 import random
 from vn_test import MultipleVNFixture
 from floating_ip import FloatingIPFixture
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 from user_test import UserFixture
 from project_test import ProjectFixture
-from base import BaseNeutronTest
+from common.neutron.base import BaseNeutronTest
 import test
 from tcutils.util import *
 
@@ -49,7 +49,7 @@ class TestQuota(BaseNeutronTest):
         assert result, 'Default quota for custom tenant is not set'
 
     @preposttest_wrapper
-    def test_update_default_quota_for_admin_tenant(self):
+    def itest_update_default_quota_for_admin_tenant(self):
         result = True
         self.update_default_quota_list(
             subnet=3,

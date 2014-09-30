@@ -4,8 +4,8 @@ import fixtures
 import testtools
 import random
 
-from connections import ContrailConnections
-from contrail_test_init import ContrailTestInit
+from common.connections import ContrailConnections
+from common.contrail_test_init import ContrailTestInit
 from tcutils.wrappers import preposttest_wrapper
 
 from vpc_fixture_new import VPCFixture

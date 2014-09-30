@@ -7,7 +7,7 @@ from netaddr import *
 from time import sleep
 from contrail_fixtures import *
 import inspect
-import policy_test_utils
+import common.policy.policy_test_utils
 from webui_test import *
 
 

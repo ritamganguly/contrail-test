@@ -13,13 +13,14 @@ import time
 from vn_test import *
 from vm_test import *
 from control_node import CNFixture
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 
-from neutron.base import BaseNeutronTest
+from common.neutron.base import BaseNeutronTest
 import test
 from tcutils.util import *
 from testtools import skipIf
+from floating_ip import FloatingIPFixture
 
 
 class TestRouters(BaseNeutronTest):
@@ -182,49 +183,263 @@ class TestRouters(BaseNeutronTest):
         launch a private network and attach it to router
         validate ftp and ping to 8.8.8.8 from vm here
         '''
-        result = True
-        ext_vn_name = get_random_name('ext_vn')
-        ext_subnets = [self.inputs.fip_pool]
         vm1_name = get_random_name('vm_private')
         vn1_name = get_random_name('vn_private')
         vn1_subnets = [get_random_cidr()]
-        mx_rt = self.inputs.mx_rt
-        self.project_fixture = self.useFixture(
-            ProjectFixture(
-                vnc_lib_h=self.vnc_lib,
-                project_name=self.inputs.project_name,
-                connections=self.connections))
-        self.logger.info(
-            'Default SG to be edited for allow all on project: %s' %
-            self.inputs.project_name)
-        self.project_fixture.set_sec_group_for_allow_all(
-            self.inputs.project_name, 'default')
-        ext_vn_fixture = self.useFixture(
-            VNFixture(
-                project_name=self.inputs.project_name,
-                connections=self.connections,
-                vn_name=ext_vn_name,
-                inputs=self.inputs,
-                subnets=ext_subnets,
-                router_asn=self.inputs.router_asn,
-                rt_number=mx_rt,
-                router_external=True))
-        assert ext_vn_fixture.verify_on_setup()
+        self.allow_default_sg_to_allow_all_on_project(self.inputs.project_name)
+        ext_vn_fixture = self.create_external_network(self.connections, self.inputs)
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        vn1_fixture.verify_on_setup()
+        vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
+                                         image_name='ubuntu')
+        vm1_fixture.verify_on_setup()
+        router_name = get_random_name('router1')
+        router_dict = self.create_router(router_name)
+        router_rsp = self.quantum_fixture.router_gateway_set(
+                router_dict['id'],
+                ext_vn_fixture.vn_id)
+        self.add_vn_to_router(router_dict['id'], vn1_fixture)
+        assert self.verify_snat(vm1_fixture)
+
+    @skipIf(os.environ.get('MX_GW_TEST') != '1',"Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
+    @preposttest_wrapper
+    def test_basic_snat_behavior_with_fip(self):
+        vm1_name = get_random_name('vm_private')
+        vm2_name = get_random_name('vm_public')
+        vn1_name = get_random_name('vn_private')
+        vn1_subnets = [get_random_cidr()]
+        self.allow_default_sg_to_allow_all_on_project(self.inputs.project_name) 
+        ext_vn_fixture = self.create_external_network(self.connections, self.inputs)
+        ext_vn_fixture.verify_on_setup()
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        vn1_fixture.verify_on_setup()
+        vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
+                                         image_name='ubuntu')
+        vm1_fixture.verify_on_setup()
+        vm2_fixture = self.create_vm(ext_vn_fixture, vm2_name,
+                                         image_name='ubuntu')
+        assert vm2_fixture.verify_on_setup()
+
+        router_name = get_random_name('router1')
+        router_dict = self.create_router(router_name)
+        router_rsp = self.quantum_fixture.router_gateway_set(
+                router_dict['id'],
+                ext_vn_fixture.vn_id)
+        self.add_vn_to_router(router_dict['id'], vn1_fixture)
+        assert self.verify_snat(vm1_fixture)
+        assert self.verify_snat_with_fip(ext_vn_fixture, vm2_fixture, vm1_fixture, connections= self.connections, inputs = self.inputs)
+
+    @skipIf(os.environ.get('MX_GW_TEST') != '1',"Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
+    @preposttest_wrapper
+    def test_basic_snat_behavior_with_diff_projects(self):
+        project_name = get_random_name('project1')
+        user_fixture = self.useFixture(UserFixture(
+            connections=self.connections, username='test_usr',
+            password='testusr123'))
+        project_fixture_obj = self.useFixture(ProjectFixture(
+            username=self.inputs.stack_user,
+            password=self.inputs.stack_password,
+            project_name=project_name,
+            vnc_lib_h=self.vnc_lib,
+            connections=self.connections))
+        user_fixture.add_user_to_tenant(project_name, 'test_usr', 'admin')
+        assert project_fixture_obj.verify_on_setup()
+
+        project_name1 = get_random_name('project2')
+        user_fixture1 = self.useFixture(UserFixture(
+            connections=self.connections, username='test_usr1',
+            password='testusr1231'))
+        project_fixture_obj1 = self.useFixture(ProjectFixture(
+            username=self.inputs.stack_user,
+            password=self.inputs.stack_password,
+            project_name=project_name1,
+            vnc_lib_h=self.vnc_lib,
+            connections=self.connections))
+        user_fixture1.add_user_to_tenant(project_name1, 'test_usr1', 'admin')
+        assert project_fixture_obj1.verify_on_setup()
+
+        proj_connection = project_fixture_obj.get_project_connections(username='test_usr', password='testusr123') 
+        proj_connection1 = project_fixture_obj1.get_project_connections(username='test_usr1', password= 'testusr1231')
+        vm1_name = get_random_name('vm1_vn1_private')
+        vn1_name = get_random_name('vn1_private')
+        vn1_subnets = [get_random_cidr()]
+        vm2_name = get_random_name('vm2_vn2_private')
+        vn2_name = get_random_name('vn2_private')
+        vn2_subnets = [get_random_cidr()]
+        self.allow_default_sg_to_allow_all_on_project(self.admin_inputs.project_name)
+        self.allow_default_sg_to_allow_all_on_project(project_name1)
+        self.allow_default_sg_to_allow_all_on_project(project_name)
+        ext_vn_fixture = self.create_external_network(self.admin_connections, self.admin_inputs)
         vn1_fixture = self.useFixture(
-            VNFixture(
-                project_name=self.inputs.project_name,
-                connections=self.connections,
-                vn_name=vn1_name,
-                inputs=self.inputs,
-                subnets=vn1_subnets))
+                VNFixture(
+                    project_name=project_name1,
+                    connections=proj_connection1,
+                    vn_name=vn1_name,
+                    inputs=proj_connection1.inputs,
+                    subnets=vn1_subnets))
         assert vn1_fixture.verify_on_setup()
         vm1_fixture = self.useFixture(
-            VMFixture(
-                project_name=self.inputs.project_name,
-                connections=self.connections,
-                vn_obj=vn1_fixture.obj,
-                vm_name=vm1_name))
+                VMFixture(
+                    project_name=project_name1,
+                    connections=proj_connection1,
+                    vn_obj=vn1_fixture.obj,
+                    vm_name=vm1_name))
         assert vm1_fixture.verify_on_setup()
+
+        vn2_fixture = self.useFixture(
+                VNFixture(
+                    project_name=project_name,
+                    connections=proj_connection,
+                    vn_name=vn2_name,
+                    inputs=proj_connection.inputs,
+                    subnets=vn2_subnets))
+        assert vn2_fixture.verify_on_setup()
+        vm2_fixture = self.useFixture(
+                VMFixture(
+                    project_name=project_name,
+                    connections=proj_connection,
+                    vn_obj=vn2_fixture.obj,
+                    vm_name=vm2_name))
+        assert vm2_fixture.verify_on_setup()
+        router_name = get_random_name('router1')
+        router_dict = self.create_router(router_name, tenant_id=project_fixture_obj1.project_id)
+        router_rsp = self.quantum_fixture.router_gateway_set(
+                router_dict['id'],
+                ext_vn_fixture.vn_id)
+        self.add_vn_to_router(router_dict['id'], vn1_fixture)
+
+        assert self.verify_snat(vm1_fixture)
+        router_name = get_random_name('router2')
+        router_dict = self.create_router(router_name, tenant_id=project_fixture_obj.project_id)
+        router_rsp = self.quantum_fixture.router_gateway_set(
+                router_dict['id'],
+                ext_vn_fixture.vn_id)
+        self.add_vn_to_router(router_dict['id'], vn2_fixture)
+     
+        assert self.verify_snat(vm2_fixture)
+
+    @skipIf(os.environ.get('MX_GW_TEST') != '1',"Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
+    @preposttest_wrapper
+    def test_basic_snat_behavior_with_fip_and_diff_projects(self):
+        project_name = get_random_name('project1')
+        user_fixture = self.useFixture(UserFixture(
+            connections=self.connections, username='test_usr',
+            password='testusr123'))
+        project_fixture_obj = self.useFixture(ProjectFixture(
+            username=self.inputs.stack_user,
+            password=self.inputs.stack_password,
+            project_name=project_name,
+            vnc_lib_h=self.vnc_lib,
+            connections=self.connections))
+        user_fixture.add_user_to_tenant(project_name, 'test_usr', 'admin')
+        assert project_fixture_obj.verify_on_setup()
+
+        project_name1 = get_random_name('project2')
+        user_fixture1 = self.useFixture(UserFixture(
+            connections=self.connections, username='test_usr1',
+            password='testusr1231'))
+        project_fixture_obj1 = self.useFixture(ProjectFixture(
+            username=self.inputs.stack_user,
+            password=self.inputs.stack_password,
+            project_name=project_name1,
+            vnc_lib_h=self.vnc_lib,
+            connections=self.connections))
+        user_fixture1.add_user_to_tenant(project_name1, 'test_usr1', 'admin')
+        assert project_fixture_obj1.verify_on_setup()
+
+        proj_connection = project_fixture_obj.get_project_connections(
+            'test_usr',
+            'testusr123')
+        proj_connection1 = project_fixture_obj1.get_project_connections(
+            'test_usr1',
+            'testusr1231')
+        vm1_name = get_random_name('vm1_vn1_private')
+        vn1_name = get_random_name('vn1_private')
+        vn1_subnets = [get_random_cidr()]
+        vm2_name = get_random_name('vm2_vn2_private')
+        vn2_name = get_random_name('vn2_private')
+        vn2_subnets = [get_random_cidr()]
+        vm3_name = get_random_name('public_vm')
+        self.allow_default_sg_to_allow_all_on_project(self.admin_inputs.project_name)
+        self.allow_default_sg_to_allow_all_on_project(project_name1)
+        self.allow_default_sg_to_allow_all_on_project(project_name)
+        ext_vn_fixture = self.create_external_network(self.admin_connections, self.admin_inputs)
+
+        vn1_fixture = self.useFixture(
+                VNFixture(
+                    project_name=project_name1,
+                    connections=proj_connection1,
+                    vn_name=vn1_name,
+                    inputs=proj_connection1.inputs,
+                    subnets=vn1_subnets))
+        assert vn1_fixture.verify_on_setup()
+        vm1_fixture = self.useFixture(
+                VMFixture(
+                    project_name=project_name1,
+                    connections=proj_connection1,
+                    vn_obj=vn1_fixture.obj,
+                    vm_name=vm1_name))
+        assert vm1_fixture.verify_on_setup()
+
+        vn2_fixture = self.useFixture(
+                VNFixture(
+                    project_name=project_name,
+                    connections=proj_connection,
+                    vn_name=vn2_name,
+                    inputs=proj_connection.inputs,
+                    subnets=vn2_subnets))
+        assert vn2_fixture.verify_on_setup()
+        vm2_fixture = self.useFixture(
+                VMFixture(
+                    project_name=project_name,
+                    connections=proj_connection,
+                    vn_obj=vn2_fixture.obj,
+                    vm_name=vm2_name))
+        assert vm2_fixture.verify_on_setup()
+        vm3_fixture = self.useFixture(
+                VMFixture(
+                    project_name=self.admin_inputs.project_name,
+                    connections=self.admin_connections,
+                    vn_obj=ext_vn_fixture.obj,
+                    vm_name=vm3_name))
+        assert vm3_fixture.verify_on_setup()
+
+        router_name = get_random_name('router1')
+        router_dict = self.create_router(router_name, tenant_id=project_fixture_obj1.project_id)
+        router_rsp = self.quantum_fixture.router_gateway_set(
+                router_dict['id'],
+                ext_vn_fixture.vn_id)
+        self.add_vn_to_router(router_dict['id'], vn1_fixture)
+        assert self.verify_snat(vm1_fixture)
+        router_name = get_random_name('router2')
+        router_dict = self.create_router(router_name, tenant_id=project_fixture_obj.project_id)
+        router_rsp = self.quantum_fixture.router_gateway_set(
+                router_dict['id'],
+                ext_vn_fixture.vn_id)
+        self.add_vn_to_router(router_dict['id'], vn2_fixture)
+        assert self.verify_snat(vm2_fixture)
+        assert self.verify_snat_with_fip(ext_vn_fixture, vm3_fixture, vm1_fixture, connections= self.admin_connections, inputs = self.admin_inputs)
+        assert self.verify_snat_with_fip(ext_vn_fixture, vm3_fixture, vm1_fixture, connections= self.admin_connections, inputs = self.admin_inputs)
+
+    @skipIf(os.environ.get('MX_GW_TEST') != '1',"Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
+    @preposttest_wrapper
+    def test_basic_snat_behavior_with_subnet_attach_detach(self):
+        vm1_name = get_random_name('vm_private')
+        vm2_name = get_random_name('vm_public')
+        vn1_name = get_random_name('vn_private')
+        vn1_subnets = [get_random_cidr()]
+
+        self.allow_default_sg_to_allow_all_on_project(self.inputs.project_name)
+        ext_vn_fixture = self.create_external_network(self.connections, self.inputs)
+        ext_vn_fixture.verify_on_setup()
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        vn1_fixture.verify_on_setup()
+        vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
+                                         image_name='ubuntu')
+        vm1_fixture.verify_on_setup()
+        vm2_fixture = self.create_vm(ext_vn_fixture, vm2_name,
+                                         image_name='ubuntu')
+        assert vm2_fixture.verify_on_setup()
 
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name)
@@ -232,19 +447,40 @@ class TestRouters(BaseNeutronTest):
             router_dict['id'],
             ext_vn_fixture.vn_id)
         self.add_vn_to_router(router_dict['id'], vn1_fixture)
-        assert vm1_fixture.ping_with_certainty('8.8.8.8')
-        self.logger.info('Testing FTP...Intsalling VIM In the VM via FTP')
-        run_cmd = "wget ftp://ftp.vim.org/pub/vim/unix/vim-7.3.tar.bz2"
-        vm1_fixture.run_cmd_on_vm(cmds=[run_cmd])
-        output = vm1_fixture.return_output_values_list[0]
-        if 'saved' not in output:
-            self.logger.error("FTP failed from VM %s" %
-                              (vm1_fixture.vm_name))
-            result = result and False
-        else:
-            self.logger.info("FTP successful from VM %s via FIP" %
-                             (vm1_fixture.vm_name))
+        assert self.verify_snat(vm1_fixture)
+        assert self.verify_snat_with_fip(ext_vn_fixture, vm2_fixture, vm1_fixture, connections= self.connections, inputs = self.inputs)
 
+        self.delete_vn_from_router(router_dict['id'], vn1_fixture)
+
+        assert not self.verify_snat(vm1_fixture)
+        assert not self.verify_snat_with_fip(ext_vn_fixture, vm2_fixture, vm1_fixture, connections= self.connections, inputs = self.inputs)
+
+        self.add_vn_to_router(router_dict['id'], vn1_fixture)
+        assert self.verify_snat(vm1_fixture)
+        assert self.verify_snat_with_fip(ext_vn_fixture, vm2_fixture, vm1_fixture, connections= self.connections, inputs = self.inputs)
+
+    def verify_snat_with_fip(self, ext_vn_fixture, public_vm_fix, vm_fixture, connections, inputs):
+        result = True
+        fip_fixture = self.useFixture(
+            FloatingIPFixture(
+                project_name = inputs.project_name,
+                inputs = inputs,
+                connections = connections,
+                pool_name='',
+                vn_id=ext_vn_fixture.vn_id, option='neutron'))
+        assert fip_fixture.verify_on_setup()
+        fip_id = fip_fixture.create_and_assoc_fip(
+                ext_vn_fixture.vn_id, vm_fixture.vm_id)
+        self.addCleanup(fip_fixture.disassoc_and_delete_fip, fip_id)
+        fip = vm_fixture.vnc_lib_h.floating_ip_read(
+            id=fip_id).get_floating_ip_address()
+        if not public_vm_fix.ping_to_ip(fip):
+            result = result and False
+            self.logger.error('Ping from %s to %s FAILED' %(public_vm_fix.vm_name, vm_fixture.vm_name))
+        public_vm_fix.put_pub_key_to_vm()
+        vm_fixture.put_pub_key_to_vm()
+        self.logger.info("scp files from public_vm %s to private vm %s " %(public_vm_fix.vm_name, vm_fixture.vm_name))
+        result = result and public_vm_fix.check_file_transfer(dest_vm_fixture=vm_fixture, mode='scp', size='1000', fip = fip)
         return result
 
     @preposttest_wrapper

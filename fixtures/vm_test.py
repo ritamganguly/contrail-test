@@ -1440,12 +1440,15 @@ class VMFixture(fixtures.Fixture):
         self.run_cmd_on_vm(cmds, as_sudo=True)
 
     @retry(delay=10, tries=5)
-    def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100'):
+    def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100', fip=None):
         '''
         Creates a file of "size" bytes and transfers to the VM in dest_vm_fixture using mode scp/tftp
         '''
         filename = 'testfile'
-        dest_vm_ip = dest_vm_fixture.vm_ip
+        if fip:
+           dest_vm_ip = fip
+        else:
+           dest_vm_ip = dest_vm_fixture.vm_ip
 
         # Create file
         cmd = 'dd bs=%s count=1 if=/dev/zero of=%s' % (size, filename)
@@ -1461,7 +1464,7 @@ class VMFixture(fixtures.Fixture):
             dest_vm_fixture.run_cmd_on_vm(
                 cmds=['sudo touch /var/lib/tftpboot/%s' % (filename),
                       'sudo chmod 777 /var/lib/tftpboot/%s' % (filename)])
-            self.tftp_file_to_vm(filename, vm_ip=dest_vm_fixture.vm_ip)
+            self.tftp_file_to_vm(filename, vm_ip=dest_vm_ip)
         else:
             self.logger.error('No transfer mode specified!!')
             return False
@@ -1638,7 +1641,7 @@ class VMFixture(fixtures.Fixture):
         with settings(host_string='%s@%s' % (host['username'],
                       self.vm_node_ip), password=host['password'],
                       warn_only=True, abort_on_prompts=False):
-            put('scripts/tcutils/fabfile.py', '~/')
+            put('tcutils/fabfile.py', '~/')
 
         # Check if ssh from compute node to VM works(with retries)
         cmd = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running wait_for_ssh:' % (
