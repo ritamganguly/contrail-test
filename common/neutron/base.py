@@ -260,15 +260,15 @@ class BaseNeutronTest(test.BaseTestCase):
         ext_subnets = [self.inputs.fip_pool]
         mx_rt = self.inputs.mx_rt
         ext_vn_fixture = self.useFixture(
-                VNFixture(
-                    project_name=inputs.project_name,
-                    connections=connections,
-                    vn_name=ext_vn_name,
-                    inputs=inputs,
-                    subnets=ext_subnets,
-                    router_asn=self.inputs.router_asn,
-                    rt_number=mx_rt,
-                    router_external=True))
+            VNFixture(
+                project_name=inputs.project_name,
+                connections=connections,
+                vn_name=ext_vn_name,
+                inputs=inputs,
+                subnets=ext_subnets,
+                router_asn=self.inputs.router_asn,
+                rt_number=mx_rt,
+                router_external=True))
         assert ext_vn_fixture.verify_on_setup()
         return ext_vn_fixture
 
@@ -276,36 +276,37 @@ class BaseNeutronTest(test.BaseTestCase):
 
     def allow_default_sg_to_allow_all_on_project(self, project_name):
 
-        project_fixture = self.useFixture(
-                ProjectFixture(
-                    vnc_lib_h=self.vnc_lib,
-                    project_name=self.inputs.project_name,
-                    connections=self.connections))
+        self.project_fixture = self.useFixture(
+            ProjectFixture(
+                vnc_lib_h=self.vnc_lib,
+                project_name=self.inputs.project_name,
+                connections=self.connections))
         self.logger.info(
-                'Default SG to be edited for allow all on project: %s' %
-                project_name)
-        project_fixture.set_sec_group_for_allow_all(
-                project_name, 'default')
+            'Default SG to be edited for allow all on project: %s' %
+            project_name)
+        self.project_fixture.set_sec_group_for_allow_all(
+            project_name, 'default')
 
     # end allow_default_sg_to_allow_all_on_project
 
     def verify_snat(self, vm_fixture):
-        result= True
+        result = True
         self.logger.info("Ping to 8.8.8.8 from vm %s" % (vm_fixture.vm_name))
         if not vm_fixture.ping_with_certainty('8.8.8.8'):
-           self.logger.error("Ping to 8.8.8.8 from vm %s Failed" % (vm_fixture.vm_name))
-           result = result and False
+            self.logger.error("Ping to 8.8.8.8 from vm %s Failed" %
+                              (vm_fixture.vm_name))
+            result = result and False
         self.logger.info('Testing FTP...Intsalling VIM In the VM via FTP')
         run_cmd = "wget ftp://ftp.vim.org/pub/vim/unix/vim-7.3.tar.bz2"
         vm_fixture.run_cmd_on_vm(cmds=[run_cmd])
         output = vm_fixture.return_output_values_list[0]
         if 'saved' not in output:
-              self.logger.error("FTP failed from VM %s" %
-                                  (vm_fixture.vm_name))
-              result = result and False
+            self.logger.error("FTP failed from VM %s" %
+                              (vm_fixture.vm_name))
+            result = result and False
         else:
-              self.logger.info("FTP successful from VM %s via FIP" %
-                                 (vm_fixture.vm_name))
+            self.logger.info("FTP successful from VM %s via FIP" %
+                             (vm_fixture.vm_name))
         return result
     # end verify_snat
 

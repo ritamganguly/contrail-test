@@ -21,8 +21,8 @@ from fabric.context_managers import settings, hide
 from fabric.exceptions import NetworkError
 from fabric.contrib.files import exists
 
-from tcutils.util import *
-from tcutils.custom_filehandler import *
+from scripts.tcutils.util import *
+from scripts.tcutils.custom_filehandler import *
 
 import subprocess
 
