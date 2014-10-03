@@ -643,7 +643,7 @@ class TestPorts(BaseNeutronTest):
         port1_obj = self.create_port(net_id=vn1_fixture.vn_id)
         port2_obj = self.create_port(net_id=vn1_fixture.vn_id)
         vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
-                                     image_name='ubuntu-traffic'
+                                     image_name='ubuntu-traffic',
                                      port_ids=[port1_obj['id']])
         vm2_fixture = self.create_vm(vn1_fixture, vm2_name,
                                      image_name='ubuntu-traffic', 
