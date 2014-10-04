@@ -1,7 +1,7 @@
 import random
 from vn_test import MultipleVNFixture
 from floating_ip import FloatingIPFixture
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 from user_test import UserFixture
 from project_test import ProjectFixture
