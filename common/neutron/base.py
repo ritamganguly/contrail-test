@@ -9,6 +9,7 @@ from tcutils.util import get_random_name
 from fabric.context_managers import settings
 from fabric.api import run
 from fabric.operations import get, put
+from tcutils.commands import ssh, execute_cmd, execute_cmd_out
 import ConfigParser
 
 contrail_api_conf = '/etc/contrail/contrail-api.conf'
@@ -98,6 +99,15 @@ class BaseNeutronTest(test.BaseTestCase):
         if quiet and not self.quantum_fixture.get_port(port_id):
             return
         self.quantum_fixture.delete_port(port_id)
+
+    def update_port(self, port_id, port_dict):
+        if not self.quantum_fixture.get_port(port_id):
+            self.logger.error('Port with port_id %s not found'%port_id)
+            return
+        else:
+            port_rsp= self.quantum_fixture.update_port(port_id, port_dict)
+        return port_rsp
+
 
     def add_router_interface(self, router_id, subnet_id=None, port_id=None):
         if subnet_id:
@@ -310,6 +320,65 @@ class BaseNeutronTest(test.BaseTestCase):
         return result
     # end verify_snat
 
+    def config_aap(self, port1, port2, ip):
+        self.logger.info('Configuring AAP on ports %s and %s'%(port1['id'], port2['id']))
+        port1_dict = {'allowed_address_pairs': [{"ip_address": ip+'/32', "mac_address": port1['mac_address']}]}
+        port1_rsp= self.update_port(port1['id'], port1_dict)
+        port2_dict = {'allowed_address_pairs': [{"ip_address": ip+'/32', "mac_address": port2['mac_address']}]}
+        port2_rsp= self.update_port(port2['id'], port2_dict)
+        return True
+    #end config_aap
+
+    def config_vrrp(self, vm1, vm2, ip):
+        self.logger.info('Configuring VRRP on %s and %s'%(vm1.vm_name, vm2.vm_name))
+        vrrp_mas_cmd = 'nohup vrrpd -n -D -i eth0 -v 1 -a none -p 20 %s'%ip
+        vrrp_bck_cmd = 'nohup vrrpd -n -D -i eth0 -v 1 -a none -p 10 %s'%ip
+        vm1.run_cmd_on_vm(cmds=[vrrp_mas_cmd], as_sudo=True)
+        vm2.run_cmd_on_vm(cmds=[vrrp_bck_cmd], as_sudo=True)
+        return True
+    #end config_vrrp
+    
+    def vrrp_mas_chk(self, vm, vn, ip):
+        vrrp_mas_chk_cmd= 'ip -4 addr ls'
+        self.logger.info('Will verify who the VRRP master is and the corresponding route entries in the Agent')
+        vm.run_cmd_on_vm(cmds=[vrrp_mas_chk_cmd], as_sudo=True)
+        output = vm.return_output_cmd_dict[vrrp_mas_chk_cmd]
+        if ip in output:
+            self.logger.info('%s is selected as the VRRP Master'%vm.vm_name)
+            result= True
+        assert result, 'VRRP Master not selected'
+        inspect_h = self.agent_inspect[vm.vm_node_ip]
+        (domain, project, vnw) = vn.vn_fq_name.split(':')
+        agent_vrf_objs = inspect_h.get_vna_vrf_objs(domain, project, vnw)
+        agent_vrf_obj = vm.get_matching_vrf(agent_vrf_objs['vrf_list'], vn.vrf_name)
+        vn1_vrf_id = agent_vrf_obj['ucindex']
+        paths = inspect_h.get_vna_active_route(vrf_id=vn1_vrf_id, ip=ip, prefix='32')['path_list']
+        for path in paths:
+            if path['peer'] == 'LocalVmPort' and path['path_preference_data']['wait_for_traffic'] == 'false':
+                result= True
+                break
+            else:
+                result= False
+        assert result, 'The Agent entries to the vIP do not correspond to the VRRP master'
+        return True
+    #end vrrp_mas_chk
+    
+    def verify_vrrp_action(self, src_vm, dst_vm, ip):
+        self.logger.info('Will ping %s from %s and check if %s responds'%(ip, src_vm.vm_name, dst_vm.vm_name))
+        compute_ip = dst_vm.vm_node_ip
+        compute_user = self.inputs.host_data[compute_ip]['username']
+        compute_password = self.inputs.host_data[compute_ip]['password'] 
+        session = ssh(compute_ip, compute_user, compute_password)
+        vm_tapintf = dst_vm.tap_intf[dst_vm.vn_fq_name]['name']
+        cmd = 'tcpdump -nni %s -c 10 > /tmp/%s_out.log' % (vm_tapintf,vm_tapintf)
+        execute_cmd(session, cmd, self.logger) 
+        assert src_vm.ping_with_certainty(ip), 'Ping to vIP failure'
+        output_cmd = 'cat /tmp/%s_out.log' % vm_tapintf  
+        output, err = execute_cmd_out(session, output_cmd, self.logger) 
+        assert ip in output, 'ICMP Requests not seen on the VRRP Master'
+        return True
+    #end verify_vrrp_sction
+    
     def _remove_from_cleanup(self, func_call, args):
         for cleanup in self._cleanups:
             if func_call in cleanup and args == cleanup[1]:

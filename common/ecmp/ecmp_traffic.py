@@ -125,7 +125,7 @@ class ECMPTraffic(ConfigSvcChain, VerifySvcChain):
                     direction= 'left'
                     tapintf = self.get_bridge_svm_tapintf(svm_name, direction)
                 session = ssh(host['host_ip'], host['username'], host['password'])
-                cmd = 'tcpdump -ni %s -c 10 > /tmp/%s_out.log' % (tapintf,tapintf)
+                cmd = 'tcpdump -nni %s -c 10 > /tmp/%s_out.log' % (tapintf,tapintf)
                 execute_cmd(session, cmd, self.logger)
             else:
                 self.logger.info('%s is not in ACTIVE state'%svm.name)
