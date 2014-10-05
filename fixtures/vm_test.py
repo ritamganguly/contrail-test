@@ -942,6 +942,31 @@ class VMFixture(fixtures.Fixture):
         return result
     # end verify_vm_not_in_agent
 
+    @retry(delay=2, tries=20)
+    def verify_vm_routes_not_in_agent(self):
+        '''Verify that the VM routes is fully removed in all Agents. This will specfically address the scenario where VM interface is down ir shutoff
+        '''
+        result = True
+        inspect_h = self.agent_inspect[self.vm_node_ip]
+        for vn_fq_name in self.vn_fq_names:
+            for compute_ip in self.inputs.compute_ips:
+                inspect_h = self.agent_inspect[compute_ip]
+                if inspect_h.get_vna_active_route(
+                        vrf_id=self.agent_vrf_id[vn_fq_name],
+                        ip=self.vm_ip_dict[vn_fq_name],
+                        prefix='32') is not None:
+                    self.logger.warn(
+                        "Route for VM %s, IP %s is still seen in agent %s " %
+                        (self.vm_name, self.vm_ip_dict[vn_fq_name], compute_ip))
+                    self.verify_vm_not_in_agent_flag = self.verify_vm_not_in_agent_flag and False
+                    result = result and False
+            if result:
+                self.logger.info(
+                    "VM %s routes are removed "
+                    "in all agent nodes" % (self.vm_name))
+        return result
+
+
     def get_control_nodes(self):
         bgp_ips = {}
         vm_host = self.vm_node_ip
@@ -1417,12 +1442,15 @@ class VMFixture(fixtures.Fixture):
         self.run_cmd_on_vm(cmds, as_sudo=True)
 
     @retry(delay=10, tries=5)
-    def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100'):
+    def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100', fip=None):
         '''
         Creates a file of "size" bytes and transfers to the VM in dest_vm_fixture using mode scp/tftp
         '''
         filename = 'testfile'
-        dest_vm_ip = dest_vm_fixture.vm_ip
+        if fip:
+           dest_vm_ip = fip
+        else:
+           dest_vm_ip = dest_vm_fixture.vm_ip
 
         # Create file
         cmd = 'dd bs=%s count=1 if=/dev/zero of=%s' % (size, filename)
@@ -1438,7 +1466,7 @@ class VMFixture(fixtures.Fixture):
             dest_vm_fixture.run_cmd_on_vm(
                 cmds=['sudo touch /var/lib/tftpboot/%s' % (filename),
                       'sudo chmod 777 /var/lib/tftpboot/%s' % (filename)])
-            self.tftp_file_to_vm(filename, vm_ip=dest_vm_fixture.vm_ip)
+            self.tftp_file_to_vm(filename, vm_ip=dest_vm_ip)
         else:
             self.logger.error('No transfer mode specified!!')
             return False

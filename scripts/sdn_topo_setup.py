@@ -104,7 +104,8 @@ class sdnTopoSetupFixture(fixtures.Fixture):
             'si': self.si_fixture, 'st': self.st_fixture, 'sec_grp': self.secgrp_fixture, 'ipam': self.ipam_fixture}
         if self.err_msg != []:
             self.result = False
-        return {'result': self.result, 'msg': self.err_msg, 'data': [self.topo, config_topo]}
+        updated_topo = copy.copy(self.topo)
+        return {'result': self.result, 'msg': self.err_msg, 'data': [updated_topo, config_topo]}
     # end topo_setup
 
     def sdn_topo_setup(self, config_option='openstack', skip_verify='yes', flavor='contrail_flavor_small', vms_on_single_compute=False):
@@ -146,7 +147,15 @@ class sdnTopoSetupFixture(fixtures.Fixture):
             topo_obj = topo_name()
             # expect class topology elements to be defined under method
             # "build_topo_<project_name>"
-            topo[project] = eval("topo_obj.build_topo_" + project + "()")
+            try:
+                topo[project] = eval("topo_obj." + self.topo.topo_of_project[project] + "(" +
+                                        "project='" + project +
+                                        "',username='" + self.topo.user_of_project[project] +
+                                        "',password='" + self.topo.pass_of_project[project] +
+                                        "')")
+            except (NameError, AttributeError):
+                topo[project] = eval("topo_obj.build_topo_" + project + "()")
+
             setup_obj[project] = self.useFixture(
                 sdnTopoSetupFixture(self.connections, topo[project]))
             out = setup_obj[project].topo_setup(

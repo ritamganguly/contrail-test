@@ -224,6 +224,33 @@ class ControlNodeInspect (VerificationUtilBase):
     def dissassociate_ip(self, domain='default-domain', *arg):
         pass
 
+    def get_cn_sec_grp(self, domain='default-domain', project='admin', secgrp='default'):
+        sec_name = 'security-group:' + domain + ':' + project + ':' + secgrp
+        path = 'Snh_IFMapTableShowReq'
+        xpath = './IFMapTableShowResp/ifmap_db/list/IFMapNodeShowInfo'
+        p = self.dict_get(path)
+        ifmaps = EtreeToDict(xpath).get_all_entry(p)
+        for ifmap in ifmaps:
+            if ifmap['node_name'] == sec_name:
+                return ifmap
+
+    def get_cn_sec_grp_acls(self, domain='default-domain', project='admin', secgrp='default'):
+        sec_name = 'access-control-list:' + domain + ':' + project + ':' + secgrp
+        egress = sec_name + ':' + 'egress-access-control-list'
+        ingress = sec_name + ':' + 'ingress-access-control-list'
+        path = 'Snh_IFMapTableShowReq'
+        xpath = './IFMapTableShowResp/ifmap_db/list/IFMapNodeShowInfo'
+        acls_dict = {}
+        p = self.dict_get(path)
+        ifmaps = EtreeToDict(xpath).get_all_entry(p)
+        for ifmap in ifmaps:
+            if ifmap['node_name'] == egress:
+                acls_dict['egress-access-control-list'] = ifmap
+            if ifmap['node_name'] == ingress:
+                acls_dict['ingress-access-control-list'] = ifmap
+
+        return acls_dict
+
 if __name__ == '__main__':
     cn = ControlNodeInspect('10.84.14.9')
     print "ipam", cn.get_cn_config_ipam()

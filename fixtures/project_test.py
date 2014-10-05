@@ -238,7 +238,7 @@ class ProjectFixture(fixtures.Fixture):
                 result &= False
                 return result
             if cs_project_obj['project']['uuid'] != self.project_id:
-                self.logger.warn('Project id %s got from API Server %s'
+                self.logger.warn('Project id %s got from API Server is'
                                  ' not matching expected ID %s' % (
                                      cs_project_obj['project']['uuid'], self. project_id))
                 result &= False
