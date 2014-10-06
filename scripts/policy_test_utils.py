@@ -114,8 +114,7 @@ def trim_realign_rules(rules_list):
     new_list = remove_dup_rules(rules_list)
     permit_all_rule = {'proto_l': {'max': '255', 'min': '0'}, 'src_port_l': {
         'max': '65535', 'min': '0'}, 'dst_port_l': {'max': '65535', 'min': '0'}, 'action_l': ['pass']}
-    final_list = move_matching_rule_to_bottom(
-        new_list, rule=permit_all_rule, vn='default-domain:admin:any')
+    final_list = move_matching_rule_to_bottom(new_list, rule=permit_all_rule)
     return final_list
 
 
@@ -396,7 +395,7 @@ def _create_n_policy_n_rules(self, number_of_policy, valid_rules, number_of_dumm
                                   connections=self.connections))
             else:
                 proj_fixt = self.useFixture(
-                    ProjectTestFixtureGen(self.vnc_lib, project_name='admin'))
+                    ProjectTestFixtureGen(self.vnc_lib, project_name=self.inputs.project_name))
                 policy_fixture = self.useFixture(
                     NetworkPolicyTestFixtureGen(
                         self.vnc_lib, network_policy_name=policy_name +
