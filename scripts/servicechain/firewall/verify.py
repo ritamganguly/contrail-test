@@ -175,7 +175,7 @@ class VerifySvcFirewall(VerifySvcMirror):
             sport, dport)
         assert sent and recv == sent, errmsg
 
-    def verify_svc_transparent_datapath(self, si_count=1, svc_scaling=False, max_inst=1, flavor='contrail_flavor_2cpu'):
+    def verify_svc_transparent_datapath(self, si_count=1, svc_scaling=False, max_inst=1, flavor='contrail_flavor_2cpu', proto= 'any', src_ports= [0, -1], dst_ports= [0, -1]):
         """Validate the service chaining datapath"""
         self.vn1_name= get_random_name('bridge_vn1')
         self.vn1_subnets = [get_random_cidr()]
@@ -209,11 +209,11 @@ class VerifySvcFirewall(VerifySvcMirror):
         self.rules = [
             {
                 'direction': '<>',
-                'protocol': 'any',
+                'protocol': proto,
                 'source_network': self.vn1_name,
-                'src_ports': [0, -1],
+                'src_ports': src_ports,
                 'dest_network': self.vn2_name,
-                'dst_ports': [0, -1],
+                'dst_ports': dst_ports,
                 'simple_action': None,
                 'action_list': {'apply_service': self.action_list}
             },
@@ -235,10 +235,13 @@ class VerifySvcFirewall(VerifySvcMirror):
         assert result, msg
         self.verify_si(self.si_fixtures)
 
-        # Ping from left VM to right VM
-        errmsg = "Ping to Right VM %s from Left VM failed" % self.vm2_fixture.vm_ip
-        assert self.vm1_fixture.ping_with_certainty(
-            self.vm2_fixture.vm_ip, count='3'), errmsg
+        if proto not in ['any', 'icmp']:
+            self.logger.info('Will skip Ping test')
+        else:
+            # Ping from left VM to right VM
+            errmsg = "Ping to Right VM %s from Left VM failed" % self.vm2_fixture.vm_ip
+            assert self.vm1_fixture.ping_with_certainty(
+                self.vm2_fixture.vm_ip, count='3'), errmsg
         return True
 
     def verify_svc_in_network_datapath(self, si_count=1, svc_scaling=False, max_inst=1, svc_mode='in-network', flavor='contrail_flavor_2cpu', static_route=['None', 'None', 'None'], ordered_interfaces=True, vn1_subnets = ['10.1.1.0/24'], vn2_subnets = ['20.2.2.0/24']):
