@@ -39,7 +39,7 @@ class VMFixture(fixtures.Fixture):
     '''
 
     def __init__(self, connections, vm_name, vn_obj=None,
-                 vn_objs=[], project_name='admin',
+                 vn_objs=[], project_name=None,
                  image_name='ubuntu', subnets=[],
                  flavor='contrail_flavor_small',
                  node_name=None, sg_ids=[], count=1, userdata=None,
@@ -70,7 +70,6 @@ class VMFixture(fixtures.Fixture):
             self.vn_objs = [vn_objs]
         else:
             self.vn_objs = vn_objs
-        self.project_name = project_name
         self.flavor = flavor
         self.image_name = image_name
         self.vm_name = vm_name
@@ -87,6 +86,9 @@ class VMFixture(fixtures.Fixture):
             self.vn_fq_name = self.vn_fq_names[0]
         self.inputs = self.connections.inputs
         self.logger = self.inputs.logger
+        if not project_name:
+            project_name = self.inputs.stack_tenant
+        self.project_name = project_name
         self.already_present = False
         self.verify_is_run = False
         self.analytics_obj = self.connections.analytics_obj
@@ -1739,7 +1741,7 @@ class VMFixture(fixtures.Fixture):
     def provision_static_route(
             self,
             prefix='111.1.0.0/16',
-            tenant_name='admin',
+            tenant_name=None,
             api_server_ip='127.0.0.1',
             api_server_port='8082',
             oper='add',
@@ -1748,6 +1750,8 @@ class VMFixture(fixtures.Fixture):
             user='admin',
             password='contrail123'):
 
+        if not tenant_name:
+            tenant_name = self.inputs.stack_tenant
         cmd = "python /opt/contrail/utils/provision_static_route.py --prefix %s \
                 --tenant_name %s  \
                 --api_server_ip %s \
@@ -1869,7 +1873,7 @@ class MultipleVMFixture(fixtures.Fixture):
     """
 
     def __init__(self, connections, vms=[], vn_objs=[], image_name='ubuntu',
-                 vm_count_per_vn=2, flavor='contrail_flavor_small', project_name='admin'):
+                 vm_count_per_vn=2, flavor='contrail_flavor_small', project_name=None):
         """
         vms     : List of dictionaries of VMData objects.
         or
@@ -1880,6 +1884,8 @@ class MultipleVMFixture(fixtures.Fixture):
 
         self.connections = connections
         self.nova_fixture = self.connections.nova_fixture
+        if not project_name:
+            project_name = connections.inputs.stack_tenant
         self.project_name = project_name
         self.vms = vms
         self.vm_count = vm_count_per_vn

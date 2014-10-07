@@ -124,13 +124,98 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
     def runTest(self):
         pass    
     #end runTest
-    
+ 
+    @preposttest_wrapper
+    def test_ecmp_in_pol_based_svc(self):
+        """
+           Description: Validate ECMP with Policy Based service chaining
+           Test steps:
+                1.Creating vm's - vm1 and vm2 in networks vn1 and vn2.
+                2.Creating a service instance in transparent mode with 3 instances.
+                3.Creating a service chain by applying the service instance as a service in a policy, which allows only TCP traffic between the VNs.
+                4.Ping and UDP traffic should fail, while tcp traffic should be allowed between vm1 and vm2.
+           Pass criteria: Ping and UDP Traffic between the VMs should fail, while TCP traffic should reach vm2 from vm1.
+           Maintainer : ganeshahv@juniper.net
+        """
+        self.verify_svc_transparent_datapath(
+            si_count=1, svc_scaling=True, max_inst=3, proto= 'tcp')
+        self.vm1_fixture.put_pub_key_to_vm()
+        self.vm2_fixture.put_pub_key_to_vm() 
+        #TFTP from Left VM to Right VM is expected to fail
+        errmsg1 = "TFTP to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
+        assert not self.vm1_fixture.check_file_transfer(
+                dest_vm_fixture=self.vm2_fixture, mode='tftp'), errmsg1
+        #Ping from left VM to right VM; expected to fail
+        errmsg = "Ping to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
+        assert self.vm1_fixture.ping_with_certainty(
+                self.vm2_fixture.vm_ip, expectation=False), errmsg
+        #SCP from Left VM to Right VM is expected to pass
+        errmsg2 = "SCP to right VM ip %s from left VM failed; expected to pass" % self.vm2_fixture.vm_ip
+        assert self.vm1_fixture.check_file_transfer(
+                dest_vm_fixture=self.vm2_fixture, mode='scp'), errmsg2
+        return True
+    # end test_ecmp_in_pol_based_svc
+ 
+    @preposttest_wrapper
+    def test_ecmp_in_pol_based_svc_pol_update(self):
+        """
+           Description: Validate ECMP with Policy Based service chaining
+           Test steps:
+                1.Creating vm's - vm1 and vm2 in networks vn1 and vn2.
+                2.Creating a service instance in transparent mode with 3 instances.
+                3.Creating a service chain by applying the service instance as a service in a policy, which allows only TCP traffic between the VNs.
+                4.Ping and UDP traffic should fail, while tcp traffic should be allowed between vm1 and vm2.
+                5.Dynamically update the policy to allow only UDP Traffic.
+           Pass criteria: Ping and UDP Traffic between the VMs should fail, while TCP traffic should reach vm2 from vm1.
+                          After updating the policy, TCP traffic should be blocked, while UDP should flow thru.
+           Maintainer : ganeshahv@juniper.net
+        """
+        self.verify_svc_transparent_datapath(
+            si_count=1, svc_scaling=True, max_inst=3, proto= 'tcp')
+        self.vm1_fixture.put_pub_key_to_vm()
+        self.vm2_fixture.put_pub_key_to_vm() 
+        #TFTP from Left VM to Right VM is expected to fail
+        errmsg1 = "TFTP to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
+        assert not self.vm1_fixture.check_file_transfer(
+                dest_vm_fixture=self.vm2_fixture, mode='tftp'), errmsg1
+        #Ping from left VM to right VM; expected to fail
+        errmsg = "Ping to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
+        assert self.vm1_fixture.ping_with_certainty(
+                self.vm2_fixture.vm_ip, expectation=False), errmsg
+        #SCP from Left VM to Right VM is expected to pass
+        errmsg2 = "SCP to right VM ip %s from left VM failed; expected to pass" % self.vm2_fixture.vm_ip
+        assert self.vm1_fixture.check_file_transfer(
+                dest_vm_fixture=self.vm2_fixture, mode='scp'), errmsg2
+        self.logger.info('Will update the policy to allow only udp')
+        old_data= {'policy': {'entries': self.policy_fixture.policy_obj['policy']['entries']}}
+        old_entry= self.policy_fixture.policy_obj['policy']['entries']
+        new_entry= old_entry
+        new_entry['policy_rule'][0]['protocol']= u'udp'
+        pol_id= self.policy_fixture.policy_obj['policy']['id']
+        new_data= {'policy': {'entries': new_entry}}
+        self.policy_fixture.update_policy(pol_id, new_data)
+        time.sleep(5)
+        #TFTP from Left VM to Right VM is expected to pass
+        errmsg1 = "TFTP to right VM ip %s from left VM failed; expected to pass" % self.vm2_fixture.vm_ip
+        assert self.vm1_fixture.check_file_transfer(
+                dest_vm_fixture=self.vm2_fixture, mode='tftp', size= '101'), errmsg1
+        #Ping from left VM to right VM; expected to fail
+        errmsg = "Ping to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
+        assert self.vm1_fixture.ping_with_certainty(
+                self.vm2_fixture.vm_ip, expectation=False), errmsg
+        #SCP from Left VM to Right VM is expected to fail
+        errmsg2 = "SCP to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
+        assert not self.vm1_fixture.check_file_transfer(
+                dest_vm_fixture=self.vm2_fixture, mode='scp', size= '202'), errmsg2
+        return True
+    # end test_ecmp_in_pol_based_svc_pol_update
+   
     @preposttest_wrapper
     def test_multi_SC_with_ecmp(self):
         self.verify_svc_transparent_datapath(
             si_count=3, svc_scaling=True, max_inst=3)
         return True
-    # end test_multi_SC_with_ecmpp
+    # end test_multi_SC_with_ecmp
 
     @preposttest_wrapper
     def test_ecmp_svc_in_network_nat_with_3_instance(self):

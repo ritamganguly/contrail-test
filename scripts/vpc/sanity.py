@@ -347,9 +347,9 @@ class VPCSanityTests(testtools.TestCase, ResourcedTestCase, fixtures.TestWithFix
         # create public VN for floating ip pool
 
         ec2_base = EC2Base(logger=self.inputs.logger,
-                           inputs=self.inputs, tenant='admin')
-        fip_vn_fixture = self.useFixture(VNFixture(project_name='admin',
-                                                   connections=self.connections,
+                           inputs=self.inputs,
+                           tenant=self.inputs.project_name)
+        fip_vn_fixture = self.useFixture(VNFixture(connections=self.connections,
                                                    inputs=self.inputs,
                                                    vn_name='public',
                                                    subnets=[floatingIpCidr]))
@@ -359,7 +359,6 @@ class VPCSanityTests(testtools.TestCase, ResourcedTestCase, fixtures.TestWithFix
         ), "FIP VN Fixture verification failed, Check logs"
 
         fip_vm_fixture = self.useFixture(VMFixture(
-            project_name='admin',
             connections=self.connections,
             vn_obj=fip_vn_fixture.obj,
             vm_name='fip_vm1'))

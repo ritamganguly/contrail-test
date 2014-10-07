@@ -71,7 +71,7 @@ class IsolatedCreds(fixtures.Fixture):
             self.key_stone_clients= KeystoneCommands(username= self.inputs.stack_user, password= self.inputs.stack_password,
                                                    tenant= self.inputs.project_name, auth_url= auth_url, insecure=insecure)
             try:
-                self.key_stone_clients.create_user(self.user,self.password,email='',tenant_name= 'admin',enabled=True)
+                self.key_stone_clients.create_user(self.user,self.password,email='',tenant_name=self.inputs.stack_tenant,enabled=True)
             except:
                 self.logger.info("%s user already created"%(self.user))
 

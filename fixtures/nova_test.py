@@ -99,7 +99,7 @@ class NovaFixture(fixtures.Fixture):
 #       except novaException.NotFound:
         if not got_image:
             self._install_image(image_name=image_name)
-        got_image = self.find_image(image_name)
+            got_image = self.find_image(image_name)
         return got_image
     # end get_image
 

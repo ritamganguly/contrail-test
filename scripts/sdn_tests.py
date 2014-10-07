@@ -254,7 +254,8 @@ class sdnTrafficTest(VerifySvcMirror, testtools.TestCase, fixtures.TestWithFixtu
         vms_per_compute = 2
         num_streams = 180
         flow_rate = 900
-        topo_obj = sdn_policy_traffic_test_topo.sdn_2vn_xvm_config()
+        topo_obj = sdn_policy_traffic_test_topo.sdn_2vn_xvm_config(
+                       project=self.inputs.project_name)
         topo = topo_obj.build_topo(
             num_compute=computes, num_vm_per_compute=vms_per_compute)
         planned_per_compute_num_streams = vms_per_compute * num_streams
@@ -285,7 +286,8 @@ class sdnTrafficTest(VerifySvcMirror, testtools.TestCase, fixtures.TestWithFixtu
         vms_per_compute = 2
         num_streams = 180
         flow_rate = 900
-        topo_obj = sdn_policy_traffic_test_topo.sdn_2vn_xvm_config()
+        topo_obj = sdn_policy_traffic_test_topo.sdn_2vn_xvm_config(
+                       project=self.inputs.project_name)
         topo = topo_obj.build_topo(
             num_compute=computes, num_vm_per_compute=vms_per_compute)
         planned_per_compute_num_streams = vms_per_compute * num_streams

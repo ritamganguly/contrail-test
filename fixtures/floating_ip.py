@@ -15,9 +15,11 @@ from webui_test import *
 
 class FloatingIPFixture(fixtures.Fixture):
 
-    def __init__(self, inputs, pool_name, vn_id, connections, vn_name=None, project_name='admin', option=None):
+    def __init__(self, inputs, pool_name, vn_id, connections, vn_name=None, project_name=None, option=None):
         self.connections = connections
         self.inputs = inputs
+        if not project_name:
+            project_name = self.inputs.stack_tenant
         self.api_s_inspect = self.connections.api_server_inspect
         self.quantum_fixture = self.connections.quantum_fixture
         self.agent_inspect = self.connections.agent_inspect
@@ -135,7 +137,7 @@ class FloatingIPFixture(fixtures.Fixture):
             result = result and False
         self.cs_fip_pool_id = self.cs_fip_pool_obj['floating-ip-pool']['uuid']
         self.cs_fvn_obj = self.api_s_inspect.get_cs_vn(
-            vn=self.pub_vn_obj.name, refresh=True)
+            vn=self.pub_vn_obj.name, refresh=True, project=self.project_name)
         if result:
             self.logger.info(
                 'FIP Pool verificatioin in API Server passed for Pool %s' %
@@ -176,7 +178,7 @@ class FloatingIPFixture(fixtures.Fixture):
         result = True
         for cn in self.inputs.bgp_ips:
             cn_object = self.cn_inspect[cn].get_cn_config_fip_pool(
-                vn_name=self.pub_vn_name, fip_pool_name=self.pool_name)
+                vn_name=self.pub_vn_name, fip_pool_name=self.pool_name, project=self.project_name)
             if cn_object:
                 self.logger.warn(
                     "Control-node ifmap object for FIP pool %s , VN %s is found!" %
@@ -284,11 +286,11 @@ class FloatingIPFixture(fixtures.Fixture):
     def verify_fip_in_agent(self, fip, vm_fixture, fip_vn_fixture):
         for compute_ip in self.inputs.compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
-            vn = inspect_h.get_vna_vn(vn_name=fip_vn_fixture.vn_name)
+            vn = inspect_h.get_vna_vn(vn_name=fip_vn_fixture.vn_name, project=self.project_name)
             if vn is None:
                 continue
             agent_vrf_objs = inspect_h.get_vna_vrf_objs(
-                vn_name=fip_vn_fixture.vn_name)
+                vn_name=fip_vn_fixture.vn_name, project=self.project_name)
             agent_vrf_obj = self.get_matching_vrf(
                 agent_vrf_objs['vrf_list'], fip_vn_fixture.vrf_name)
             agent_vrf_id = agent_vrf_obj['ucindex']
@@ -348,11 +350,11 @@ class FloatingIPFixture(fixtures.Fixture):
     def verify_fip_not_in_agent(self, fip, fip_vn_fixture):
         for compute_ip in self.inputs.compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
-            vn = inspect_h.get_vna_vn(vn_name=fip_vn_fixture.vn_name)
+            vn = inspect_h.get_vna_vn(vn_name=fip_vn_fixture.vn_name, project=self.project_name)
             if vn is None:
                 continue
             agent_vrf_objs = inspect_h.get_vna_vrf_objs(
-                vn_name=fip_vn_fixture.vn_name)
+                vn_name=fip_vn_fixture.vn_name, project=self.project_name)
             agent_vrf_obj = self.get_matching_vrf(
                 agent_vrf_objs['vrf_list'], fip_vn_fixture.vrf_name)
             agent_vrf_id = agent_vrf_obj['ucindex']
