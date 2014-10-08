@@ -1011,7 +1011,7 @@ class VNFixture(fixtures.Fixture):
     def update_vn_object(self):
         self.obj = self.quantum_fixture.get_vn_obj_from_id(self.vn_id)
         if not self.scale:
-            self.policy_objs = None
+            self.policy_objs = []
         if not self.policy_objs:
             for policy_fq_name in self.get_current_policies_bound():
                 self.policy_objs.append(
