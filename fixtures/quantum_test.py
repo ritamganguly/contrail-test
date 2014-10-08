@@ -114,10 +114,10 @@ class QuantumFixture(fixtures.Fixture):
                 'Quantum Exception while creating network %s' % (vn_name))
             return None
 
-    def create_subnet(self, subnet, net_id, ipam_fq_name=None):
+    def create_subnet(self, subnet, net_id, ipam_fq_name=None, ip_version = 4):
         subnet_req = subnet
         subnet_req['network_id'] = net_id
-        subnet_req['ip_version'] = 4
+        subnet_req['ip_version'] = ip_version
         subnet_req['cidr'] = unicode(subnet_req['cidr'])
         subnet_req['contrail:ipam_fq_name'] = ipam_fq_name
         try:
