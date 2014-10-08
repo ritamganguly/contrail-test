@@ -253,9 +253,9 @@ class VNFixture(fixtures.Fixture):
             self.vn_id)
     # end setUp
 
-    def create_subnet(self, vn_subnet, ipam_fq_name):
+    def create_subnet(self, vn_subnet, ipam_fq_name, ip_version = 4):
         self.quantum_fixture.create_subnet(
-            vn_subnet, self.vn_id, ipam_fq_name)
+            vn_subnet, self.vn_id, ipam_fq_name, ip_version = ip_version)
 
     def verify_on_setup_without_collector(self):
         # once api server gets restarted policy list for vn in not reflected in
@@ -1011,7 +1011,7 @@ class VNFixture(fixtures.Fixture):
     def update_vn_object(self):
         self.obj = self.quantum_fixture.get_vn_obj_from_id(self.vn_id)
         if not self.scale:
-            self.policy_objs = None
+            self.policy_objs = []
         if not self.policy_objs:
             for policy_fq_name in self.get_current_policies_bound():
                 self.policy_objs.append(

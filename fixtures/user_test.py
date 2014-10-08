@@ -175,8 +175,8 @@ class UserFixture(fixtures.Fixture):
                         self.logger.warn('User creation failed for exception %s...' % (e))
                 #if test tenant already created, associate user to tenant
                 if self.tenant:
-                    if get_tenant_dct(self.tenant):
-                        self.logger.info('Tenant %s exists, associate user %s..' % (self.teannt, self,username))
+                    if self.get_tenant_dct(self.tenant):
+                        self.logger.info('Tenant %s exists, associate user %s..' % (self.tenant, self.username))
                         self.add_user_to_tenant(self.tenant, self.username, self.role)
         except ks_exceptions.NotFound, e:
             self.logger.info('Project %s not found, skip creating user %s' % (
