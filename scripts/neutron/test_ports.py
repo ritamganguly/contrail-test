@@ -544,6 +544,10 @@ class TestPorts(BaseNeutronTest):
         vn1_fixture = self.vn1_fixture
         vn1_vm1_fixture = self.vn1_vm1_fixture
         vn1_vm2_fixture = self.vn1_vm2_fixture
+
+        vn1_vm1_fixture.wait_till_vm_is_up()
+        vn1_vm2_fixture.wait_till_vm_is_up()
+
         vm1_name = self.vn1_vm1_name
         vn1_name = self.vn1_name
         vn1_subnets = self.vn1_subnets
