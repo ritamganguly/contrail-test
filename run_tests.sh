@@ -263,6 +263,7 @@ if [[ -z $path ]] && [[ -z $testrargs ]];then
     run_tests_serial
 fi
 sleep 2
+export PYTHONPATH=$PATH:$PWD/scripts:$PWD/fixtures:$PWD
 python tools/report_gen.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE
 generate_html 
 upload_to_web_server
