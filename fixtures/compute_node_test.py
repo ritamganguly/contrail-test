@@ -264,6 +264,33 @@ class ComputeNodeFixture(fixtures.Fixture):
             "Flow count in node %s is %s" %
             (self.name, flow_count['allowed']))
         return flow_count
+
+    def get_agent_headless_mode(self):
+        result = False
+        try:
+            self.get_agent_conf_file()
+            self.config=self.read_agent_config()
+            opt = self.config.get('DEFAULT','headless_mode')
+            if opt == 'true':
+                result = True
+        except:
+            self.logger.info ('Headless mode is not set in the cofig file of agent')
+
+        return result
+    # end get_agent_headless_mode
+
+    def set_agent_headless_mode(self):
+        """ Reboot the agent to start in headless mode.
+        """
+        mode = 'true'
+        self.logger.info ('Set the agent in headless mode!!!')
+        self.get_agent_conf_file()
+        self.config.set('DEFAULT', 'headless_mode', mode)
+        file= self.write_agent_config()
+        self.put_agent_conf_file(file)
+        self.sup_vrouter_process_restart()
+    # end set_agent_headless_mode
+
     # Needs implementation
     # def get_OsVersion(self):
 

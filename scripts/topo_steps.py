@@ -289,7 +289,7 @@ def attachPolicytoVN(self, option='openstack'):
                 connections=self.project_connections,
                 vn_name=vn,
                 vn_obj=self.vn_fixture,
-                topo=self.topo,
+                vn_policys=self.topo.vn_policy[vn],
                 project_name=self.topo.project,
                 options=option,
                 policy_obj=self.conf_policy_objs))
@@ -317,7 +317,7 @@ def attachPolicytoVN(self, option='contrail'):
                 options=option,
                 policy_obj=self.conf_policy_objs,
                 vn_obj=self.vn_fixture,
-                topo=self.topo,
+                vn_policys=self.topo.vn_policy[vn],
                 project_name=self.topo.project))
     return self
 # end attachPolicytoVN
