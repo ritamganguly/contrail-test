@@ -303,6 +303,15 @@ l[0]={'protocol': '1', 'stats_bytes': '222180', 'stats_packets': '2645', 'setup_
         return p
     # end get_vna_vrf_objs
 
+    def get_vna_vrf_id(self,vn_fq_name):
+        domain = str(vn_fq_name.split(':')[0])
+        project = str(vn_fq_name.split(':')[1])
+        vn = str(vn_fq_name.split(':')[2])
+        vrf = '%s:%s:%s:%s' % (domain,
+                                project, vn, vn)
+        agent_vrf_objs = self.get_vna_vrf_objs(domain,project,vn)
+        return [x['ucindex'] for x in agent_vrf_objs['vrf_list'] if x['name'] == vrf]
+
     def get_vna_route(self, vrf_id='', ip=None, prefix=None):
         routes = {'ip': ip, 'prefix': prefix}
         path = 'Snh_Inet4UcRouteReq?x=%s' % str(vrf_id)
