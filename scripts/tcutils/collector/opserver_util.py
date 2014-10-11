@@ -61,6 +61,7 @@ class OpServerUtils(object):
     @staticmethod
     def post_url_http(url, params):
         try:
+            print 'request version : %s'%(pkg_resources.get_distribution("requests").version[0])
             if int(pkg_resources.get_distribution("requests").version[0]) == 1:
                 response = requests.post(url, stream=True,
                                          data=params,
