@@ -621,13 +621,13 @@ class QuantumFixture(fixtures.Fixture):
     # end update_lb_pool
 
     def get_lb_pool(self, pool_id):
-        ''' Returns the pool dict 
+        ''' Returns the pool dict
             If pool_id is not found , returns None'''
         try:
-            pool_obj = self.obj.show_pool(port_id)
-            return pool_obj['port']
+            pool_obj = self.obj.show_pool(pool_id)
         except CommonNetworkClientException as e:
             self.logger.debug('Get pool on %s failed' % (pool_id))
+        return pool_obj
     # end get_pool
 
     def list_lb_pools(self):
@@ -760,11 +760,21 @@ class QuantumFixture(fixtures.Fixture):
 
     def create_lb_member(self, ip_address, protocol_port, pool_id):
         '''Create lb member. Returns the created lb member as dict'''
-        pass
+        member_dict = {'address':ip_address,
+                       'protocol_port':protocol_port,
+                       'pool_id':pool_id}
+        try:
+             member_resp = self.obj.create_member({'member': member_dict})
+             return member_resp['member']
+        except CommonNetworkClientException as e:
+            self.logger.exception('Network Exception while creating LB member with address %s' % (ip_address))
+            return None
 
     def delete_lb_member(self, lb_member_id):
         '''Delete the lb member'''
-        pass
+        member_resp = self.obj.delete_member(lb_member_id)
+        self.logger.debug('Response for delete_member : ' + repr(member_resp))
+    # end delete_lb_member
 
     def update_lb_member(self, lb_member_id, lb_member_dict):
         '''Update lb member using lb_member_dict. 

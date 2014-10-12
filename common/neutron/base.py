@@ -11,6 +11,7 @@ from fabric.api import run
 from fabric.operations import get, put
 from tcutils.commands import ssh, execute_cmd, execute_cmd_out
 import ConfigParser
+import re
 
 contrail_api_conf = '/etc/contrail/contrail-api.conf'
 
@@ -420,10 +421,73 @@ class BaseNeutronTest(test.BaseTestCase):
         vip_resp = self.quantum_fixture.create_vip(
             name, protocol, protocol_port, subnet_id, pool_id)
         if vip_resp:
+            self.addCleanup(self.verify_on_vip_delete, pool_id, vip_resp['id'])
             self.addCleanup(self.quantum_fixture.delete_vip,
                             vip_resp['id'])
         return vip_resp
     # end create_vip
+
+    def verify_on_vip_delete(self, pool_id, vip_id):
+        result = True
+        result, msg = self.verify_vip_delete(vip_id)
+        assert result, msg
+        result, msg = self.verify_netns_delete(pool_id)
+        assert result, msg
+        result, msg = self.verify_haproxy_kill(pool_id)
+        assert result, msg
+    # end verify_on_vip_delete
+
+    def verify_vip_delete(self, vip_id):
+        vip = self.quantum_fixture.show_vip(vip_id)
+        if vip:
+            errmsg = "vip %s still exists after delete" % vip_id
+            self.logger.error(errmsg)
+            return (False, errmsg)
+        self.logger.debug("vip %s deleted successfully" % vip_id)
+        return (True, None)
+    #end verify_vip_delete
+
+    def verify_netns_delete(self, pool_id):
+        cmd = 'ip netns list | grep %s' % pool_id
+        pool_obj = self.quantum_fixture.get_lb_pool(pool_id)
+        for compute_ip in self.inputs.compute_ips:
+            out = self.inputs.run_cmd_on_server(
+                                       compute_ip, cmd,
+                                       self.inputs.host_data[compute_ip]['username'],
+                                       self.inputs.host_data[compute_ip]['password'])
+            if out:
+                errmsg = ("NET NS: %s still present for pool name: %s with UUID: %s"
+                             " even after VIP delete" % (out, pool_obj['pool']['name'], pool_id))
+                self.logger.error(errmsg)
+                return(False, errmsg)
+            self.logger.debug("NET NS deleted successfully for pool name: %s "
+                                    "with UUID :%s" % (pool_obj['pool']['name'],pool_id))
+            return (True, None)
+    # end verify_netns_delete
+
+    def verify_haproxy_kill(self,pool_id):
+        cmd = 'ps -aux | grep loadbalancer | grep %s' % pool_id
+        pool_obj = self.quantum_fixture.get_lb_pool(pool_id)
+        pid = []
+        for compute_ip in self.inputs.compute_ips:
+            out = self.inputs.run_cmd_on_server(
+                                       compute_ip, cmd,
+                                       self.inputs.host_data[compute_ip]['username'],
+                                       self.inputs.host_data[compute_ip]['password'])
+            output = out.split('\n')
+            for out in output:
+                match = re.search("nobody\s+(\d+)\s+",out)
+                if match:
+                    pid.append(match.group(1))
+        if pid:
+            errmsg = ("haproxy still running even after VIP delete for pool name: %s,"
+                                      " UUID: %s" % (pool_obj['pool']['name'], pool_id))
+            self.logger.error(errmsg)
+            return(False, errmsg)
+        self.logger.debug("haproxy process got killed successfully with vip delete"
+                              " for pool name: %s UUID :%s" % (pool_obj['pool']['name'], pool_id))
+        return (True, None)
+    # end verify_haproxy_kill
 
     def associate_health_monitor(self, pool_id, hm_id):
         hm_resp = self.quantum_fixture.associate_health_monitor(
