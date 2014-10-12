@@ -5,7 +5,7 @@ import time
 from collections import defaultdict
 from netaddr import *
 import pprint
-from fabric.operations import get, put
+from fabric.operations import get, put, sudo
 from fabric.api import run
 import logging as log
 import threading
@@ -17,6 +17,7 @@ import string
 import random
 from netaddr import IPNetwork
 import fcntl
+from fabric.exceptions import CommandTimeout
 
 log.basicConfig(format='%(levelname)s: %(message)s', level=log.DEBUG)
 
@@ -158,7 +159,7 @@ def remove_unwanted_output(text):
     return real_output
 
 
-def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False):
+def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False, timeout=0):
     '''
     Run fab command on a node. Usecase : as part of script running on cfgm node, can run a cmd on VM from compute node
     '''
@@ -180,7 +181,13 @@ def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False):
     tries = 5
     output = None
     while tries > 0:
-        output = run(cmd_str)
+        if timeout:
+            try:
+                output = sudo(cmd_str, timeout=timeout)
+            except CommandTimeout:
+                return output
+        else:
+            output = run(cmd_str)
         if 'Fatal error' in output:
             tries -= 1
             time.sleep(5)
