@@ -47,7 +47,7 @@ class TestQuotaUpdate(BaseNeutronTest):
                 if None in resource_dict[item]:
                     result = False
                     self.logger.error(
-                        "Error while creating resource within quota limit for %s please check logs " %
+                        "Error while creating resource within quota limit for %s.Please check logs " %
                         (item))
 
         (vn_name, vn_fix) = resource_dict['vn_fix']._vn_fixtures[1]

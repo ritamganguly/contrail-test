@@ -387,13 +387,10 @@ class FloatingIPFixture(fixtures.Fixture):
         fip_dicts = []
         for i in range(count):
             fip_resp = self.create_floatingip(fip_pool_vn_id)
-            fip_dicts.append(fip_resp['floatingip'])
+            if fip_resp:
+                fip_dicts.append(fip_resp['floatingip'])
         # end for
-
-        # list floating ips available for current project
-        fip_resp = self.quantum_fixture.list_floatingips(
-            tenant_id=self.project_obj.uuid)
-        return fip_resp
+        return fip_dicts
     # end create_floatingips
 
     def create_floatingip(self, fip_pool_vn_id, project_obj=None):
@@ -433,9 +430,9 @@ class FloatingIPFixture(fixtures.Fixture):
         ''' Removes floating ips from a pool. Need to pass a floatingIP object-list
 
         '''
-        for i in fip_obj_list['floatingips']:
-            index = fip_obj_list['floatingips'].index(i)
-            self.delete_floatingip(fip_obj_list['floatingips'][index]['id'])
+        for i in fip_obj_list:
+            index = fip_obj_list.index(i)
+            self.delete_floatingip(fip_obj_list[index]['id'])
         # end for
     # end delete_floatingips
 
