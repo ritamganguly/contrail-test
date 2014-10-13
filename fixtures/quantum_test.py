@@ -214,7 +214,7 @@ class QuantumFixture(fixtures.Fixture):
         if remote_ip_prefix:
             sg_rule_dict['remote_ip_prefix'] = remote_ip_prefix
         try:
-            self.obj.create_security_group_rule(
+            sg_rule = self.obj.create_security_group_rule(
                 {'security_group_rule': sg_rule_dict})
         except CommonNetworkClientException as e:
             self.logger.exception(
