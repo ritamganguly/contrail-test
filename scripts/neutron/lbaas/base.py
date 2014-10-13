@@ -1,4 +1,4 @@
-from neutron.base import BaseNeutronTest
+from common.neutron.base import BaseNeutronTest
 from tcutils.commands import ssh, execute_cmd, execute_cmd_out
 from fabric.context_managers import settings, hide
 from tcutils.util import run_fab_cmd_on_node
