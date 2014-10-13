@@ -125,7 +125,7 @@ function send_mail {
 function run_tests_serial {
   echo in serial_run_test
   rm -f $serial_result_xml
-  export PYTHONPATH=$PATH:$PWD/serial_scripts:$PWD/fixtures
+  export PYTHONPATH=$PATH:$PWD:$PWD/serial_scripts:$PWD/fixtures
   testr_init
   ${wrapper} find . -type f -name "*.pyc" -delete
   export OS_TEST_PATH=./serial_scripts/$1
@@ -145,6 +145,7 @@ function run_tests {
   rm -f $result_xml
   testr_init
   ${wrapper} find . -type f -name "*.pyc" -delete
+  export PYTHONPATH=$PATH:$PWD:$PWD/scripts:$PWD/fixtures
   export OS_TEST_PATH=./scripts/$1
   if [ $debug -eq 1 ]; then
       if [ "$testrargs" = "" ]; then
