@@ -726,4 +726,20 @@ class TestECMPwithSVMChange(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMP
         return True
     # end test_ecmp_with_svm_suspend_start
 
+class TestMultiInlineSVC(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffic, ECMPVerify):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestMultiInlineSVC, cls).setUpClass()
+
+    def runTest(self):
+        pass                                                                                                                                                                                                   
+    #end runTest
+
+    @preposttest_wrapper
+    def test_three_stage_SC(self):
+        self.verify_multi_inline_svc(
+                si_list= [('trans', 1), ('in-net', 1), ('nat', 1)])
+        return True
+    # end test_three_stage_SC
 
