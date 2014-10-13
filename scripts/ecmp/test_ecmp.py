@@ -735,7 +735,8 @@ class TestMultiInlineSVC(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTra
     def runTest(self):
         pass                                                                                                                                                                                                   
     #end runTest
-
+    
+    @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_three_stage_SC(self):
         self.verify_multi_inline_svc(
