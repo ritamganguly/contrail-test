@@ -10,8 +10,8 @@ from policy_test import PolicyFixture
 from floating_ip import FloatingIPFixture
 from svc_instance_fixture import SvcInstanceFixture
 from svc_template_fixture import SvcTemplateFixture
-from connections import ContrailConnections
-from policy.config import AttachPolicyFixture
+from common.connections import ContrailConnections
+from common.policy.config import AttachPolicyFixture
 from tcutils.util import retry
 
 

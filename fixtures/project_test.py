@@ -8,7 +8,7 @@ import fixtures
 from quantum_test import *
 from vnc_api_test import *
 from contrail_fixtures import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.util import retry
 from time import sleep
 from keystoneclient import exceptions as ks_exceptions

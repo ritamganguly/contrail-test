@@ -1,6 +1,6 @@
 from time import sleep
 
-from servicechain.config import ConfigSvcChain
+from common.servicechain.config import ConfigSvcChain
 from tcutils.commands import ssh, execute_cmd, execute_cmd_out
 
 

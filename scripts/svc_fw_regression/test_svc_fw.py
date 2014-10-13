@@ -6,7 +6,7 @@ import testtools
 
 from tcutils.wrappers import preposttest_wrapper
 
-from servicechain.firewall.verify import VerifySvcFirewall
+from common.servicechain.firewall.verify import VerifySvcFirewall
 from base import BaseSvc_FwTest 
 import test
 from common import isolated_creds                                                                                                                                                                                                           

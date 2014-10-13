@@ -6,7 +6,7 @@ from testtools import content, content_type
 import fixtures
 import testresources
 import testtools
-from contrail_test_init import ContrailTestInit
+from common.contrail_test_init import ContrailTestInit
 from common import log_orig as logging
 #from common import config
 import logging as std_logging

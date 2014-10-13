@@ -12,10 +12,10 @@ import time
 
 from vn_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 from testtools import skipIf
-from neutron.base import BaseNeutronTest
+from common.neutron.base import BaseNeutronTest
 import test
 from tcutils.util import *
 from floating_ip import FloatingIPFixture
@@ -44,7 +44,7 @@ class TestRouters(BaseNeutronTest):
         vn1_fixture.verify_on_setup()
         vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
                                          image_name='ubuntu')
-        vm1_fixture.verify_on_setup()
+        vm1_fixture.wait_till_vm_is_up()
 
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name)
@@ -65,7 +65,7 @@ class TestRouters(BaseNeutronTest):
         vm2_name = get_random_name('new_private_vm')
         vm2_fixture = self.create_vm(vn1_fixture, vm2_name,
                                          image_name='ubuntu')
-        assert vm2_fixture.verify_on_setup()
+        assert vm2_fixture.wait_till_vm_is_up()
         assert self.verify_snat(vm2_fixture)
 
     @skipIf(os.environ.get('MX_GW_TEST') != '1',"Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
@@ -82,10 +82,10 @@ class TestRouters(BaseNeutronTest):
         vn1_fixture.verify_on_setup()
         vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
                                          image_name='ubuntu')
-        vm1_fixture.verify_on_setup()
+        vm1_fixture.wait_till_vm_is_up()
         vm2_fixture = self.create_vm(ext_vn_fixture, vm2_name,
                                          image_name='ubuntu')
-        assert vm2_fixture.verify_on_setup()
+        assert vm2_fixture.wait_till_vm_is_up()
        
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name)
@@ -107,7 +107,7 @@ class TestRouters(BaseNeutronTest):
         vm3_fixture =  self.create_vm(vn1_fixture, vm3_name,
                                          image_name='ubuntu')
 
-        assert vm3_fixture.verify_on_setup()
+        assert vm3_fixture.wait_till_vm_is_up()
         assert self.verify_snat(vm3_fixture)
         assert self.verify_snat_with_fip(ext_vn_fixture, vm2_fixture, vm3_fixture, connections= self.connections, inputs = self.inputs)
 

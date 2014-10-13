@@ -4,7 +4,7 @@ import fixtures
 from fabric.api import local, run
 from fabric.context_managers import shell_env, settings
 
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from ec2_base import EC2Base
 
 from floating_ip import *

@@ -1,6 +1,6 @@
 import project_test
-from contrail_test_init import ContrailTestInit
-from connections import ContrailConnections
+from common.contrail_test_init import ContrailTestInit
+from common.connections import ContrailConnections
 from keystone_tests import KeystoneCommands
 import os
 import fixtures

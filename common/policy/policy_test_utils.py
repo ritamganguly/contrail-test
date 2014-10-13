@@ -3,7 +3,7 @@ import inspect
 import copy
 import json
 import fixtures
-from topo_helper import topology_helper
+from tcutils.topo.topo_helper import topology_helper
 from vnc_api import vnc_api
 from vnc_api.gen.resource_test import *
 from policy_test import *

@@ -1,8 +1,8 @@
 from time import sleep
-from servicechain.config import ConfigSvcChain
-from servicechain.verify import VerifySvcChain
-from servicechain.mirror.verify import VerifySvcMirror
-from servicechain.mirror.config import ConfigSvcMirror
+from common.servicechain.config import ConfigSvcChain
+from common.servicechain.verify import VerifySvcChain
+from common.servicechain.mirror.verify import VerifySvcMirror
+from common.servicechain.mirror.config import ConfigSvcMirror
 from tcutils.util import get_random_cidr
 from tcutils.util import get_random_name
 

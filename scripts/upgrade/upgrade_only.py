@@ -3,8 +3,8 @@ import unittest
 import fixtures
 import testtools
 import re
-from connections import ContrailConnections
-from contrail_test_init import ContrailTestInit
+from common.connections import ContrailConnections
+from common.contrail_test_init import ContrailTestInit
 from tcutils.wrappers import preposttest_wrapper
 from fabric.context_managers import settings
 from fabric.api import run

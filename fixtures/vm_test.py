@@ -1674,7 +1674,7 @@ class VMFixture(fixtures.Fixture):
         with settings(host_string='%s@%s' % (host['username'],
                       self.vm_node_ip), password=host['password'],
                       warn_only=True, abort_on_prompts=False):
-            put('scripts/tcutils/fabfile.py', '~/')
+            put('tcutils/fabfile.py', '~/')
 
         # Check if ssh from compute node to VM works(with retries)
         cmd = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running wait_for_ssh:' % (

@@ -1,6 +1,6 @@
 import test
 import os
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from vm_test import VMFixture
 from vn_test import VNFixture
 from keystoneclient.v2_0 import client as ksclient

@@ -11,11 +11,11 @@ from nova_test import *
 from vm_test import *
 from tcutils.wrappers import preposttest_wrapper
 from tcutils.commands import ssh, execute_cmd, execute_cmd_out
-from servicechain.firewall.verify import VerifySvcFirewall
-from ecmp.ecmp_traffic import ECMPTraffic
-from ecmp.ecmp_verify import ECMPVerify
+from common.servicechain.firewall.verify import VerifySvcFirewall
+from common.ecmp.ecmp_traffic import ECMPTraffic
+from common.ecmp.ecmp_verify import ECMPVerify
 from fabric.state import connections as fab_connections
-from ecmp.ecmp_test_resource import ECMPSolnSetup
+from common.ecmp.ecmp_test_resource import ECMPSolnSetup
 from base import BaseECMPRestartTest
 import test 
 from common import isolated_creds                                                                                                                                                                              

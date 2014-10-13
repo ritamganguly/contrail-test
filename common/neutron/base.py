@@ -1,6 +1,6 @@
 import time
 import test
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from common import isolated_creds
 from vn_test import VNFixture
 from vm_test import VMFixture
@@ -129,12 +129,12 @@ class BaseNeutronTest(test.BaseTestCase):
             router_id, subnet_id, port_id)
 
     def add_vn_to_router(self, router_id, vn_fixture):
-        self.add_router_interface(
+        return self.add_router_interface(
             router_id,
             vn_fixture.vn_subnet_objs[0]['id'])
 
     def delete_vn_from_router(self, router_id, vn_fixture):
-        self.delete_router_interface(
+        return self.delete_router_interface(
             router_id,
             vn_fixture.vn_subnet_objs[0]['id'])
 
@@ -271,15 +271,15 @@ class BaseNeutronTest(test.BaseTestCase):
         ext_subnets = [self.inputs.fip_pool]
         mx_rt = self.inputs.mx_rt
         ext_vn_fixture = self.useFixture(
-                VNFixture(
-                    project_name=inputs.project_name,
-                    connections=connections,
-                    vn_name=ext_vn_name,
-                    inputs=inputs,
-                    subnets=ext_subnets,
-                    router_asn=self.inputs.router_asn,
-                    rt_number=mx_rt,
-                    router_external=True))
+            VNFixture(
+                project_name=inputs.project_name,
+                connections=connections,
+                vn_name=ext_vn_name,
+                inputs=inputs,
+                subnets=ext_subnets,
+                router_asn=self.inputs.router_asn,
+                rt_number=mx_rt,
+                router_external=True))
         assert ext_vn_fixture.verify_on_setup()
         return ext_vn_fixture
 
@@ -287,36 +287,38 @@ class BaseNeutronTest(test.BaseTestCase):
 
     def allow_default_sg_to_allow_all_on_project(self, project_name):
 
-        project_fixture = self.useFixture(
-                ProjectFixture(
-                    vnc_lib_h=self.vnc_lib,
-                    project_name=self.inputs.project_name,
-                    connections=self.connections))
+        self.project_fixture = self.useFixture(
+            ProjectFixture(
+                vnc_lib_h=self.vnc_lib,
+                project_name=self.inputs.project_name,
+                connections=self.connections))
         self.logger.info(
-                'Default SG to be edited for allow all on project: %s' %
-                project_name)
-        project_fixture.set_sec_group_for_allow_all(
-                project_name, 'default')
+            'Default SG to be edited for allow all on project: %s' %
+            project_name)
+        self.project_fixture.set_sec_group_for_allow_all(
+            project_name, 'default')
 
     # end allow_default_sg_to_allow_all_on_project
 
-    def verify_snat(self, vm_fixture):
-        result= True
+    def verify_snat(self, vm_fixture, expectation=True):
+        result = True
         self.logger.info("Ping to 8.8.8.8 from vm %s" % (vm_fixture.vm_name))
-        if not vm_fixture.ping_with_certainty('8.8.8.8'):
-           self.logger.error("Ping to 8.8.8.8 from vm %s Failed" % (vm_fixture.vm_name))
-           result = result and False
-        self.logger.info('Testing FTP...Intsalling VIM In the VM via FTP')
+        if not vm_fixture.ping_with_certainty('8.8.8.8', 
+                                              expectation=expectation):
+            self.logger.error("Ping to 8.8.8.8 from vm %s Failed" %
+                              (vm_fixture.vm_name))
+            result = result and False
+        self.logger.info('Testing FTP...Copying VIM files to VM via FTP')
         run_cmd = "wget ftp://ftp.vim.org/pub/vim/unix/vim-7.3.tar.bz2"
         vm_fixture.run_cmd_on_vm(cmds=[run_cmd])
         output = vm_fixture.return_output_values_list[0]
         if 'saved' not in output:
-              self.logger.error("FTP failed from VM %s" %
-                                  (vm_fixture.vm_name))
-              result = result and False
+            self.logger.error("FTP failed from VM %s" %
+                              (vm_fixture.vm_name))
+            result = result and False
         else:
-              self.logger.info("FTP successful from VM %s via FIP" %
-                                 (vm_fixture.vm_name))
+            self.logger.info("FTP successful from VM %s via FIP" %
+                             (vm_fixture.vm_name))
         return result
     # end verify_snat
 
@@ -387,9 +389,9 @@ class BaseNeutronTest(test.BaseTestCase):
     def create_lb_pool(self, name, lb_method, protocol, subnet_id):
         lb_pool_resp = None
         lb_pool_resp = self.quantum_fixture.create_lb_pool(
-                            name, lb_method, protocol, subnet_id)
-        if lb_pool_resp :
-            self.addCleanup(self.quantum_fixture.delete_lb_pool, 
+            name, lb_method, protocol, subnet_id)
+        if lb_pool_resp:
+            self.addCleanup(self.quantum_fixture.delete_lb_pool,
                             lb_pool_resp['id'])
         return lb_pool_resp
     # end create_lb_pool
@@ -397,8 +399,8 @@ class BaseNeutronTest(test.BaseTestCase):
     def create_lb_member(self, ip_address, protocol_port, pool_id):
         lb_member_resp = None
         lb_member_resp = self.quantum_fixture.create_lb_member(
-                            ip_address, protocol_port, pool_id)
-        if lb_member_resp :
+            ip_address, protocol_port, pool_id)
+        if lb_member_resp:
             self.addCleanup(self.quantum_fixture.delete_lb_member,
                             lb_member_resp['id'])
         return lb_member_resp
@@ -407,18 +409,18 @@ class BaseNeutronTest(test.BaseTestCase):
     def create_health_monitor(self, delay, max_retries, probe_type, timeout):
         hm_resp = None
         hm_resp = self.quantum_fixture.create_health_monitor(
-                    delay, max_retries, probe_type, timeout) 
-        if hm_resp :
+            delay, max_retries, probe_type, timeout)
+        if hm_resp:
             self.addCleanup(self.quantum_fixture.delete_health_monitor,
                             hm_resp['id'])
-        return hm_resp 
+        return hm_resp
     # end create_health_monitor
 
     def create_vip(self, name, protocol, protocol_port, subnet_id, pool_id):
         vip_resp = None
         vip_resp = self.quantum_fixture.create_vip(
-                    name, protocol, protocol_port, subnet_id, pool_id)
-        if vip_resp :
+            name, protocol, protocol_port, subnet_id, pool_id)
+        if vip_resp:
             self.addCleanup(self.verify_on_vip_delete, pool_id, vip_resp['id'])
             self.addCleanup(self.quantum_fixture.delete_vip,
                             vip_resp['id'])
@@ -489,8 +491,8 @@ class BaseNeutronTest(test.BaseTestCase):
 
     def associate_health_monitor(self, pool_id, hm_id):
         hm_resp = self.quantum_fixture.associate_health_monitor(
-                    pool_id, hm_id)
+            pool_id, hm_id)
         if hm_resp:
             self.addCleanup(self.quantum_fixture.disassociate_health_monitor(
-                pool_id, hm_id)) 
+                pool_id, hm_id))
     # end associate_health_monitor

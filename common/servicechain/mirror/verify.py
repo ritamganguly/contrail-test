@@ -3,8 +3,8 @@ from time import sleep
 
 from tcutils.util import retry
 from config import ConfigSvcMirror
-from servicechain.verify import VerifySvcChain
-from floatingip.config import CreateAssociateFip
+from common.servicechain.verify import VerifySvcChain
+from common.floatingip.config import CreateAssociateFip
 from random import randint
 try:
     from quantumclient.common import exceptions

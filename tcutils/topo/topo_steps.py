@@ -5,14 +5,14 @@ from novaclient import client as mynovaclient
 from novaclient import exceptions as novaException
 import fixtures
 import topo_steps
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from vn_policy_test import *
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from floating_ip import *
 from policy_test import *
 from contrail_fixtures import *
@@ -22,7 +22,7 @@ from topo_helper import *
 from vnc_api import vnc_api
 from vnc_api.gen.resource_test import *
 from netaddr import *
-import policy_test_helper
+import common.policy.policy_test_helper
 from svc_template_fixture import SvcTemplateFixture
 from svc_instance_fixture import SvcInstanceFixture
 from security_group import SecurityGroupFixture

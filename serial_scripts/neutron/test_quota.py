@@ -1,11 +1,11 @@
 import random
 from vn_test import MultipleVNFixture
 from floating_ip import FloatingIPFixture
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 from user_test import UserFixture
 from project_test import ProjectFixture
-from base import BaseNeutronTest
+from common.neutron.base import BaseNeutronTest
 import test
 from tcutils.util import *
 
@@ -47,7 +47,7 @@ class TestQuotaUpdate(BaseNeutronTest):
                 if None in resource_dict[item]:
                     result = False
                     self.logger.error(
-                        "Error while creating resource within quota limit for %s please check logs " %
+                        "Error while creating resource within quota limit for %s.Please check logs " %
                         (item))
 
         (vn_name, vn_fix) = resource_dict['vn_fix']._vn_fixtures[1]
