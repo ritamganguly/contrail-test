@@ -244,7 +244,7 @@ class VerifySvcFirewall(VerifySvcMirror):
                 self.vm2_fixture.vm_ip, count='3'), errmsg
         return True
 
-    def verify_svc_in_network_datapath(self, si_count=1, svc_scaling=False, max_inst=1, svc_mode='in-network', flavor='contrail_flavor_2cpu', static_route=['None', 'None', 'None'], ordered_interfaces=True, vn1_subnets = ['10.1.1.0/24'], vn2_subnets = ['20.2.2.0/24']):
+    def verify_svc_in_network_datapath(self, si_count=1, svc_scaling=False, max_inst=1, svc_mode='in-network-nat', flavor='contrail_flavor_2cpu', static_route=['None', 'None', 'None'], ordered_interfaces=True, vn1_subnets = [get_random_cidr()], vn2_subnets = [get_random_cidr()]):
         """Validate the service chaining in network  datapath"""
 
         self.vn1_fq_name = "default-domain:" + self.inputs.project_name + ":" + get_random_name("in_network_vn1")
@@ -305,6 +305,88 @@ class VerifySvcFirewall(VerifySvcMirror):
         assert self.vm1_fixture.ping_with_certainty(
             self.vm2_fixture.vm_ip), errmsg
         return True
+    
+    def verify_multi_inline_svc(self, si_list= [('trans', 1), ('in-net', 1), ('nat', 1)],flavor='contrail_flavor_2cpu', ordered_interfaces=True, vn1_subnets = [get_random_cidr()], vn2_subnets = [get_random_cidr()]):
+
+        """Validate in-line multi service chaining in network  datapath"""
+
+        self.vn1_fq_name = "default-domain:" + self.inputs.project_name + ":" + get_random_name("in_network_vn1")
+        self.vn1_name = self.vn1_fq_name.split(':')[2]
+        self.vn1_subnets = vn1_subnets
+        self.vm1_name = get_random_name("in_network_vm1")
+        self.vn2_fq_name = "default-domain:" + self.inputs.project_name + ":" + get_random_name("in_network_vn2")
+        self.vn2_name = self.vn2_fq_name.split(':')[2]
+        self.vn2_subnets = vn2_subnets
+        self.vm2_name = get_random_name("in_network_vm2")
+        self.action_list = []
+        self.policy_name = get_random_name("policy_in_network")
+        self.vn1_fixture = self.config_vn(self.vn1_name, self.vn1_subnets)
+        self.vn2_fixture = self.config_vn(self.vn2_name, self.vn2_subnets)
+        for si in si_list:
+            self.if_list = [['management', False, False],
+                        ['left', True, False], ['right', True, False]]
+#            for entry in static_route:
+#                if entry != 'None':
+#                self.if_list[static_route.index(entry)][2] = True
+#            self.st_name = get_random_name("multi_sc_") + si[0] + ("st_") + si_list.index(si)        
+            svc_scaling = False
+            max_inst= 1
+            self.st_name = get_random_name(("multi_sc_") + si[0] + "_" + str(si_list.index(si)) + ("_st"))
+            si_prefix = get_random_name(("multi_sc_") + si[0] + "_" + str(si_list.index(si)) + ("_si")) + "_"
+            si_count= si[1]
+            left_vn=self.vn1_fq_name
+            right_vn=self.vn2_fq_name
+            if si_count > 1:
+                svc_scaling = True
+                max_inst= si_count
+            if si[0] == 'nat':
+                svc_mode= 'in-network-nat'
+            elif si[0] == 'in-net':
+                svc_mode= 'in-network'
+            else:
+                svc_mode='transparent' 
+                left_vn= None
+                right_vn= None
+            self.st_fixture, self.si_fixtures = self.config_st_si(
+                    self.st_name, si_prefix, si_count, svc_scaling, max_inst, left_vn=left_vn,
+                    right_vn=right_vn, svc_mode=svc_mode, flavor=flavor,
+                    ordered_interfaces=ordered_interfaces, project= self.inputs.project_name)
+            action_step= self.chain_si(si_count, si_prefix, self.inputs.project_name)
+            self.action_list += action_step
+        self.rules = [
+            {
+                'direction': '<>',
+                'protocol': 'any',
+                'source_network': self.vn1_name,
+                'src_ports': [0, -1],
+                'dest_network': self.vn2_name,
+                'dst_ports': [0, -1],
+                'simple_action': None,
+                'action_list': {'apply_service': self.action_list}
+            },
+        ]
+        self.policy_fixture = self.config_policy(self.policy_name, self.rules)
+
+        self.vn1_policy_fix = self.attach_policy_to_vn(
+            self.policy_fixture, self.vn1_fixture)
+        self.vn2_policy_fix = self.attach_policy_to_vn(
+            self.policy_fixture, self.vn2_fixture)
+        self.vm1_fixture = self.config_vm(self.vn1_fixture, self.vm1_name)
+        self.vm2_fixture = self.config_vm(self.vn2_fixture, self.vm2_name)
+        self.vm1_fixture.wait_till_vm_is_up()
+        self.vm2_fixture.wait_till_vm_is_up()
+        result, msg = self.validate_vn(self.vn1_name, project_name= self.inputs.project_name)
+        assert result, msg
+        result, msg = self.validate_vn(self.vn2_name, project_name= self.inputs.project_name)
+        assert result, msg
+        for si_fix in self.si_fixtures:
+            si_fix.verify_on_setup()
+        # Ping from left VM to right VM
+        errmsg = "Ping to right VM ip %s from left VM failed" % self.vm2_fixture.vm_ip
+        assert self.vm1_fixture.ping_with_certainty(
+            self.vm2_fixture.vm_ip), errmsg
+        return True
+    #end verify_multi_inline_svc
 
     def verify_policy_delete_add(self):
         # Delete policy

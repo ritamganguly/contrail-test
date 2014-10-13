@@ -40,10 +40,12 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
         for entry in static_route:
             if entry != 'None':
                 if_list[static_route.index(entry)][2] = True
-
+        svc_img_name = "vsrx"
         if left_vn and right_vn:
             # In network/routed mode
-            svc_img_name = "vsrx"
+            if svc_mode == 'in-network':
+                svc_img_name = 'ubuntu-in-net'
+                if_list = [['left', False, False], ['right', False, False]]
         elif left_vn:
             # Analyzer mode
             svc_img_name = "analyzer"
