@@ -171,6 +171,7 @@ class TestRouters(BaseNeutronTest):
         self.inputs.stop_service('contrail-vrouter', [active_snat_node])
         self.addCleanup(self.inputs.start_service,
                         'contrail-vrouter', [active_snat_node])
+        self.addCleanup(sleep, 10)
         sleep(10)
         if vm1_fixture.vm_node_ip != active_snat_node:
            active_snat_node = self.get_active_snat_node(vm1_fixture, vn1_fixture)
