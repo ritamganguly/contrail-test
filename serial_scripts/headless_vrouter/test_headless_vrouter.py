@@ -3,24 +3,10 @@
 # You can do 'python -m testtools.run -l tests'
 # Set the env variable PARAMS_FILE to point to your ini file. Else it will try to pick params.ini in PWD
 #
-import os
-import copy
-import traceback
-import unittest
 import fixtures
-import testtools
 from base import BaseHeadlessVrouterTest
-from testtools import skipIf
-from contrail_test_init import *
-from vn_test import *
-from vnc_api_test import *
-from vm_test import *
-from connections import ContrailConnections
-from contrail_fixtures import *
-#from vna_introspect_utils import *
 from topo_helper import *
 from tcutils.wrappers import preposttest_wrapper
-from tcutils.commands import ssh, execute_cmd, execute_cmd_out
 from sdn_topo_setup import *
 import time
 import traffic_tests
@@ -45,15 +31,12 @@ class TestHeadlessVrouter(BaseHeadlessVrouterTest):
     # end cleanUp
 
     @preposttest_wrapper
-    #@skipIf(len(cls.inputs.compute_ips) < 2,
-    #        "Minimum 2 compute nodes are needed for this test to run, skipping Test Case.")
     def test_traffic_connections_while_control_nodes_go_down(self):
         """Tests related to connections and traffic while switching from normal mode to headless and back
            i.e. control nodes go down and come online."""
 
         if len(self.inputs.compute_ips) < 2:
-            print "HI"
-            #raise unittest.SkipTest("This test needs atleast 2 compute nodes.")
+            raise unittest.SkipTest("This test needs atleast 2 compute nodes.")
         else:
             self.logger.info("Required resources are in place to run the test.")
 
@@ -272,15 +255,12 @@ class TestHeadlessVrouter(BaseHeadlessVrouterTest):
     # end test_traffic_connections_while_control_nodes_go_down
 
     @preposttest_wrapper
-    #@skipIf(len(self.inputs.compute_ips) < 2,
-    #        "Minimum 2 compute nodes are needed for this test to run, skipping Test Case.")
     def test_config_add_change_while_control_nodes_go_down(self):
         """Tests related to configuration add, change, and delete while switching from normal mode
            to headless and back i.e. control nodes go down and come online."""
 
         if len(self.inputs.compute_ips) < 2:
-            print "HI"
-            #raise unittest.SkipTest("This test needs atleast 2 compute nodes.")
+            raise unittest.SkipTest("This test needs atleast 2 compute nodes.")
         else:
             self.logger.info("Required resources are in place to run the test.")
 
