@@ -19,59 +19,6 @@ class VerificationOpsSrv (VerificationUtilBase):
     def __init__(self, ip, port=8081, logger=LOG):
         super(VerificationOpsSrv, self).__init__(ip, port, logger=logger)
 
-#    def get_ops_vm (self, vm='default-virtual-machine'):
-#        vm_dict = self.dict_get ('analytics/virtual-machine/' + vm)
-#        return OpVMResult(vm_dict)
-#
-#    def get_ops_vn (self, vn='default-virtual-network'):
-#        res = None
-#        try:
-#            vn_dict = self.dict_get ('analytics/virtual-network/' + vn)
-#            res = OpVNResult(vn_dict)
-#        except Exception as e:
-#            print e
-#        finally:
-#            return res
-#
-#    def get_ops_collector(self, col = None):
-#        if (col == None):
-#            col = socket.gethostname()
-#        res = None
-#        try:
-# import pdb; pdb.set_trace()
-#            col_dict = self.dict_get ('analytics/collector/' + col)
-#            res = OpCollectorResult(col_dict)
-#        except Exception as e:
-#            print e
-#        finally:
-#            return res
-#
-#    def get_ops_vrouter(self, vrouter = None):
-#        if (vrouter == None):
-#            vrouter = socket.gethostname()
-#        res = None
-#        try:
-# import pdb; pdb.set_trace()
-#            vrouter_dict = self.dict_get ('analytics/vrouter/' + vrouter)
-#            res = OpVRouterResult(vrouter_dict)
-#        except Exception as e:
-#            print e
-#        finally:
-#            return res
-#
-#
-#    def get_ops_bgprouter(self, bgprouter = None):
-#        if (bgprouter == None):
-#            bgprouter = socket.gethostname()
-#        res = None
-#        try:
-# import pdb; pdb.set_trace()
-#            bgprouter_dict = self.dict_get ('analytics/bgp-router/' + bgprouter)
-#            res = OpBGPRouterResult(bgprouter_dict)
-#        except Exception as e:
-#            print e
-#        finally:
-#            return res
 
     def get_ops_generator(self, generator=None, moduleid=None, node_type=None, instanceid='0'):
         '''http://nodea29:8081/analytics/generator/nodea18:Control:ControlNode:0?flat'''
@@ -291,12 +238,26 @@ class VerificationOpsSrv (VerificationUtilBase):
         finally:
             return res
 
-if __name__ == '__main__':
-    vns = VerificationOpsSrv('127.0.0.1')
+class VerificationOpsSrvIntrospect (VerificationUtilBase):
 
-    vn = vns.get_ops_vn(vn='abc-corp:vn02')
+    def __init__(self, ip, port, logger=LOG):
+        super(VerificationOpsSrvIntrospect, self).__init__(ip, port,drv=XmlDrv, logger=logger)
 
-    print "*** Verify VN Cfg ***"
+    def get_collector_connectivity(self):
+        connaction_status = dict()
+        try:
+            c_dict = self.dict_get(
+                'Snh_CollectorInfoRequest?')
+            ip = c_dict.xpath('ip')[0].text
+            port = c_dict.xpath('port')[0].text
+            status = c_dict.xpath('status')[0].text
+            connaction_status['ip']= ip
+            connaction_status['port']= port
+            connaction_status['status']= status
+        except Exception as e:
+            print e
+        finally:
+            return connaction_status
 
     print vn.get_attr('Config', 'attached_policies', 'abc-default-policy')
     '''
