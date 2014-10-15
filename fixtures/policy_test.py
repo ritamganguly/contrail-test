@@ -7,7 +7,7 @@ from vnc_api.vnc_api import *
 from contrail_fixtures import *
 import copy
 from tcutils.agent.vna_introspect_utils import *
-import common.policy.policy_test_utils
+from common.policy import policy_test_utils
 import inspect
 from webui_test import *
 
