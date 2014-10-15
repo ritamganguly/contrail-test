@@ -206,14 +206,14 @@ class BaseNeutronTest(test.BaseTestCase):
             config = ConfigParser.ConfigParser()
             config.add_section('QUOTA')
             config.set('QUOTA', 'subnet', subnet)
-            config.set('QUOTA', 'virtual-network', virtual_network)
-            config.set('QUOTA', 'floating-ip', floating_ip)
-            config.set('QUOTA', 'logical-router', logical_router)
-            config.set('QUOTA', 'security-group', security_group)
-            config.set('QUOTA', 'security-group_rule', security_group_rule)
+            config.set('QUOTA', 'virtual_network', virtual_network)
+            config.set('QUOTA', 'floating_ip', floating_ip)
+            config.set('QUOTA', 'logical_router', logical_router)
+            config.set('QUOTA', 'security_group', security_group)
+            config.set('QUOTA', 'security_group_rule', security_group_rule)
             config.set(
                 'QUOTA',
-                'virtual-machine-interface',
+                'virtual_machine_interface',
                 virtual_machine_interface)
             config.write(api_conf_h)
             api_conf_h.close()
