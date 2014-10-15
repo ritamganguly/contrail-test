@@ -38,7 +38,7 @@ class TestQuotaUpdate(BaseNeutronTest):
             vn_count=3,
             router_count=10,
             secgrp_count=4,
-            secgep_rule_count=9,
+            secgep_rule_count=5,
             fip_count=10,
             port_count=5)
 
@@ -82,7 +82,7 @@ class TestQuotaUpdate(BaseNeutronTest):
             vn_count=3,
             router_count=10,
             secgrp_count=4,
-            secgep_rule_count=9,
+            secgep_rule_count=5,
             fip_count=10,
             port_count=5)
 
