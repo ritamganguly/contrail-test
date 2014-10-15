@@ -274,6 +274,20 @@ class QuantumFixture(fixtures.Fixture):
         return result
     # end _delete_vn
 
+    def delete_quota(self, project_id):
+        result = True
+        try:
+            net_rsp = self.obj.delete_quota(project_id)
+            self.logger.debug('Response for deleting quota %s' %
+                              (str(net_rsp)))
+        except CommonNetworkClientException as e:
+            self.logger.exception(
+                'Quantum exception while quota delete for project %s' % (project_id))
+            result = False
+
+        return result
+    # end delete_quota
+
     def list_networks(self, args):
         try:
             net_rsp = self.obj.list_networks(args)

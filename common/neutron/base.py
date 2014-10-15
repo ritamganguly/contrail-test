@@ -206,14 +206,14 @@ class BaseNeutronTest(test.BaseTestCase):
             config = ConfigParser.ConfigParser()
             config.add_section('QUOTA')
             config.set('QUOTA', 'subnet', subnet)
-            config.set('QUOTA', 'virtual-network', virtual_network)
-            config.set('QUOTA', 'floating-ip', floating_ip)
-            config.set('QUOTA', 'logical-router', logical_router)
-            config.set('QUOTA', 'security-group', security_group)
-            config.set('QUOTA', 'security-group_rule', security_group_rule)
+            config.set('QUOTA', 'virtual_network', virtual_network)
+            config.set('QUOTA', 'floating_ip', floating_ip)
+            config.set('QUOTA', 'logical_router', logical_router)
+            config.set('QUOTA', 'security_group', security_group)
+            config.set('QUOTA', 'security_group_rule', security_group_rule)
             config.set(
                 'QUOTA',
-                'virtual-machine-interface',
+                'virtual_machine_interface',
                 virtual_machine_interface)
             config.write(api_conf_h)
             api_conf_h.close()
@@ -321,6 +321,21 @@ class BaseNeutronTest(test.BaseTestCase):
                              (vm_fixture.vm_name))
         return result
     # end verify_snat
+
+    def get_active_snat_node(self, vm_fixture, vn_fixture):
+        (domain, project, vn) = vn_fixture.vn_fq_name.split(':')
+        inspect_h = self.agent_inspect[vm_fixture.vm_node_ip]
+        agent_vrf_objs = inspect_h.get_vna_vrf_objs(domain, project, vn)
+        agent_vrf_obj = vm_fixture.get_matching_vrf(
+                agent_vrf_objs['vrf_list'], vn_fixture.vrf_name)
+        vn_vrf_id9 = agent_vrf_obj['ucindex']
+        next_hops = inspect_h.get_vna_active_route(
+                vrf_id=vn_vrf_id9, ip=vm_fixture.vm_ip, prefix='32')['path_list'][0]['nh']
+        if next_hops['type'] == 'interface':
+           return vm_fixture.vm_node_ip
+        else:
+           return next_hops['itf']
+    # end get_active_snat_node
 
     def config_aap(self, port1, port2, ip):
         self.logger.info('Configuring AAP on ports %s and %s'%(port1['id'], port2['id']))
