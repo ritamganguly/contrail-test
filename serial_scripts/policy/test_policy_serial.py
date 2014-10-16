@@ -6,7 +6,7 @@ from tcutils.wrappers import preposttest_wrapper
 from tcutils.topo.sdn_topo_setup import sdnTopoSetupFixture
 from common.system.system_verification import assertEqual
 import common.system.system_verification
-import common.policy.policy_test_utils
+from common.policy import policy_test_utils
 from tcutils.topo.topo_helper import topology_helper
 from traffic_tests import trafficTestFixture
 import time

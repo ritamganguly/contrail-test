@@ -16,7 +16,7 @@ from time import sleep
 from contrail_fixtures import *
 from pyvirtualdisplay import Display
 import inspect
-import common.policy.policy_test_utils
+from common.policy import policy_test_utils
 import threading
 import sys
 from webui_common import *

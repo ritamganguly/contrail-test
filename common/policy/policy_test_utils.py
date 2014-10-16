@@ -6,7 +6,6 @@ import fixtures
 from tcutils.topo.topo_helper import topology_helper
 from vnc_api import vnc_api
 from vnc_api.gen.resource_test import *
-from policy_test import *
 
 
 def update_rule_ace_id(rules_list):
