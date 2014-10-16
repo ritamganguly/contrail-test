@@ -101,7 +101,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
         #need to have code which checks svm status to be active instead of blind sleep
         sleep(90)
         #Verify ICMP traffic mirror
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         errmsg = "Ping to right VM ip %s from left VM failed" % self.vm2_fixture.vm_ip
         assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip), errmsg
         for svm_name, (session, pcap) in sessions.items():
@@ -118,7 +119,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
             return True
 
         #Verify UDP traffic mirror
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         #Install traffic package in VM
         self.vm1_fixture.install_pkg("Traffic")
         self.vm2_fixture.install_pkg("Traffic")
@@ -231,7 +233,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
               get_floating_ip_address()
 
         #Verify ICMP traffic mirror
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         errmsg = "Ping to right VM ip %s from left VM failed" % self.vm2_fixture.vm_ip
         assert self.vm1_fixture.ping_with_certainty(fip), errmsg
         svmname = 'mirror_si_' + str(random_number) + str('2_1')
@@ -248,7 +251,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
             return True
 
         #Verify UDP traffic mirror
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         #Install traffic package in VM
         self.vm1_fixture.install_pkg("Traffic")
         self.vm2_fixture.install_pkg("Traffic")
@@ -361,7 +365,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
         self.verify_si(self.si_fixtures)
 
         #Verify ICMP traffic mirror
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         errmsg = "Ping to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
         assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip, expectation=False), errmsg
         svmname = 'mirror_si_' + str(random_number) + str('2_1')
@@ -451,7 +456,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
         #Ping from left VM to right VM; expected to fail
         errmsg = "Ping to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
         assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip, expectation=False), errmsg
-        sessions = self.tcpdump_on_all_analyzer(si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         for svm_name, (session, pcap) in sessions.items():
             count = 0
             self.verify_icmp_mirror(svm_name, session, pcap, count)
@@ -463,7 +469,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
         self.verify_si(self.si_fixtures)
 
         #Verify ICMP traffic mirror
-        sessions = self.tcpdump_on_all_analyzer(si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         errmsg = "Ping to right VM ip %s from left VM failed" % self.vm2_fixture.vm_ip
         assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip), errmsg
         svmname = si_prefix + str('2_1')
@@ -551,7 +558,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
             self.verify_icmp_mirror(svm_name, session, pcap, count)
 
         #Verify UDP traffic mirror between New VN's
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         #Install traffic package in VM
         new_left_vm_fix.install_pkg("Traffic")
         new_right_vm_fix.install_pkg("Traffic")
@@ -576,7 +584,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
             return True
 
         #Verify UDP traffic mirror traffic between existing VN's
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         #Install traffic package in VM
         self.vm1_fixture.install_pkg("Traffic")
         self.vm2_fixture.install_pkg("Traffic")
@@ -597,7 +606,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
             self.verify_l4_mirror(svm_name, session, pcap, count, 'udp')
 
         #Verify ICMP traffic mirror between new VN's
-        sessions = self.tcpdump_on_all_analyzer(si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         errmsg = "Ping to right VM ip %s from left VM failed" % new_right_vm_fix.vm_ip
         assert new_left_vm_fix.ping_with_certainty(new_right_vm_fix.vm_ip), errmsg
         svmname =  si_prefix + str('1_1')
@@ -698,7 +708,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
         self.verify_si(self.si_fixtures)
 
         #Verify ICMP traffic mirror
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         ret = self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip, expectation=False)
         errmsg = "Error: Got the ping reply from right VM %s: Expected to fail" % self.vm2_fixture.vm_ip
         assert ret, errmsg
@@ -716,7 +727,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
             return True
 
         #Verify UDP traffic mirror
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         #Install traffic package in VM
         self.vm1_fixture.install_pkg("Traffic")
         self.vm2_fixture.install_pkg("Traffic")
@@ -813,7 +825,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
               get_floating_ip_address()
 
         #Verify ICMP traffic mirror
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         errmsg = "Ping to right VM ip %s from left VM failed" % self.vm1_fixture.vm_ip
         assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip), errmsg
         svmname = 'mirror_si_' + str(random_number) + str('2_1')
@@ -833,7 +846,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
         self.vn2_policy_fix = self.attach_policy_to_vn(self.policy_fixture, self.vn2_fixture)
 
         #Verify ICMP traffic mirror after attaching the policy again
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         errmsg = "Ping to right VM ip %s from left VM failed" % self.vm1_fixture.vm_ip
         assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip), errmsg
         svmname = 'mirror_si_' + str(random_number) + str('1_1')
@@ -1136,7 +1150,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
 
         #Verify ICMP traffic b/w VN1 and VN2 and mirror
         errmsg = "Ping b/w VN1 and VN2 failed in step1"
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip), errmsg
         assert self.vm2_fixture.ping_with_certainty(self.vm1_fixture.vm_ip), errmsg
         for svm_name, (session, pcap) in sessions.items():
@@ -1152,7 +1167,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
 	
         #Verify ICMP traffic b/w VN1 and VN2 but no mirror
         errmsg = "Ping b/w VN1 and VN2 failed in step2"
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip), errmsg
         assert self.vm2_fixture.ping_with_certainty(self.vm1_fixture.vm_ip), errmsg
         for svm_name, (session, pcap) in sessions.items():
@@ -1166,8 +1182,10 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
 	
         #Verify ICMP traffic b/w VN1 and VN2 and mirror
         errmsg = "Ping b/w VN1 and VN2 failed in step3 and step4"
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip), errmsg
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         assert self.vm2_fixture.ping_with_certainty(self.vm1_fixture.vm_ip), errmsg
         for svm_name, (session, pcap) in sessions.items():
             count = 20
@@ -1178,7 +1196,8 @@ class VerifySvcMirror(ConfigSvcMirror, VerifySvcChain):
 
         #Verify ICMP traffic b/w VN1 and VN2 and mirror
         errmsg = "Ping b/w VN1 and VN2 failed in step5"
-        sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        #sessions = self.tcpdump_on_all_analyzer(self.si_prefix, si_count)
+        sessions = self.tcpdump_on_all_analyzer(self.si_fixtures, self.si_prefix, si_count)
         assert self.vm1_fixture.ping_with_certainty(self.vm2_fixture.vm_ip), errmsg
         assert self.vm2_fixture.ping_with_certainty(self.vm1_fixture.vm_ip), errmsg
         for svm_name, (session, pcap) in sessions.items():
