@@ -3,7 +3,7 @@ from base import BasePolicyTest
 from vn_test import *
 from vm_test import *
 from policy_test import PolicyFixture
-import common.policy.policy_test_utils
+from common.policy import policy_test_utils
 from tcutils.wrappers import preposttest_wrapper
 from vnc_api import vnc_api
 from vnc_api.gen.resource_test import *

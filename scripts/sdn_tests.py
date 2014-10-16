@@ -24,7 +24,7 @@ from contrail_fixtures import *
 from tcutils.agent.vna_introspect_utils import *
 from random import choice
 from topo_helper import *
-import common.policy.policy_test_utils
+from common.policy import policy_test_utils
 import project_test_utils
 from tcutils.wrappers import preposttest_wrapper
 from tcutils.topo.sdn_topo_setup import *

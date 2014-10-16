@@ -3,7 +3,7 @@ from tcutils.wrappers import preposttest_wrapper
 import test
 from vn_test import VNFixture
 from policy_test import PolicyFixture, copy
-import common.policy.policy_test_utils
+from common.policy import policy_test_utils
 from vm_test import VMFixture, time
 from tcutils.topo.sdn_topo_setup import sdnTopoSetupFixture
 from tcutils.util import get_random_name
