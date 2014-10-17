@@ -1,5 +1,5 @@
-from base import BaseFlowTest
-from contrail_test_init import *
+from flow_tests.base import BaseFlowTest
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from quantum_test import *
 from vnc_api_test import *
@@ -9,12 +9,12 @@ from floating_ip import *
 from policy_test import *
 from contrail_fixtures import *
 from tcutils.agent.vna_introspect_utils import *
-from topo_helper import *
+from tcutils.topo.topo_helper import *
 from tcutils.wrappers import preposttest_wrapper
 from tcutils.commands import ssh, execute_cmd, execute_cmd_out
-from sdn_topo_setup import *
-from get_version import *
-from system_verification import verify_system_parameters
+from tcutils.topo.sdn_topo_setup import *
+from common.policy.get_version import *
+from common.system.system_verification import verify_system_parameters
 import sdn_flow_test_topo
 import traffic_tests
 import time
@@ -26,7 +26,7 @@ from compute_node_test import ComputeNodeFixture
 import system_test_topo
 import flow_test_topo
 import sdn_flow_test_topo_multiple_projects
-from test_lib.test_utils import assertEqual, get_ip_list_from_prefix
+from tcutils.test_lib.test_utils import assertEqual, get_ip_list_from_prefix
 import math
 
 

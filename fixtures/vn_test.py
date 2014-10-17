@@ -9,7 +9,7 @@ from netaddr import *
 from time import sleep
 from contrail_fixtures import *
 import inspect
-import policy_test_utils
+from common.policy import policy_test_utils
 import threading
 import sys
 from quantum_test import NetworkClientException

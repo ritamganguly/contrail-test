@@ -12,10 +12,10 @@ import time
 
 from vn_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 from testtools import skipIf
-from neutron.base import BaseNeutronTest
+from common.neutron.base import BaseNeutronTest
 import test
 from tcutils.util import *
 from floating_ip import FloatingIPFixture
@@ -44,7 +44,7 @@ class TestRouters(BaseNeutronTest):
         vn1_fixture.verify_on_setup()
         vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
                                          image_name='ubuntu')
-        vm1_fixture.verify_on_setup()
+        vm1_fixture.wait_till_vm_is_up()
 
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name)
@@ -65,7 +65,7 @@ class TestRouters(BaseNeutronTest):
         vm2_name = get_random_name('new_private_vm')
         vm2_fixture = self.create_vm(vn1_fixture, vm2_name,
                                          image_name='ubuntu')
-        assert vm2_fixture.verify_on_setup()
+        assert vm2_fixture.wait_till_vm_is_up()
         assert self.verify_snat(vm2_fixture)
 
     @skipIf(os.environ.get('MX_GW_TEST') != '1',"Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
@@ -82,10 +82,10 @@ class TestRouters(BaseNeutronTest):
         vn1_fixture.verify_on_setup()
         vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
                                          image_name='ubuntu')
-        vm1_fixture.verify_on_setup()
+        vm1_fixture.wait_till_vm_is_up()
         vm2_fixture = self.create_vm(ext_vn_fixture, vm2_name,
                                          image_name='ubuntu')
-        assert vm2_fixture.verify_on_setup()
+        assert vm2_fixture.wait_till_vm_is_up()
        
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name)
@@ -107,9 +107,81 @@ class TestRouters(BaseNeutronTest):
         vm3_fixture =  self.create_vm(vn1_fixture, vm3_name,
                                          image_name='ubuntu')
 
-        assert vm3_fixture.verify_on_setup()
+        assert vm3_fixture.wait_till_vm_is_up()
         assert self.verify_snat(vm3_fixture)
         assert self.verify_snat_with_fip(ext_vn_fixture, vm2_fixture, vm3_fixture, connections= self.connections, inputs = self.inputs)
+
+    @skipIf(os.environ.get('MX_GW_TEST') != '1',"Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
+    @preposttest_wrapper
+    def test_snat_active_standby_mode(self):
+        if len(set(self.inputs.compute_ips)) < 2:
+            self.logger.info(
+                "Skiping Test. At least 2 compute node required to run the test")
+            raise self.skipTest(
+                "Skiping Test. At least 2 compute node required to run the test")
+
+        result = True
+        host_list = []
+        for host in self.inputs.compute_ips:
+            host_list.append(self.inputs.host_data[host]['name'])
+        compute_1 = host_list[0]
+        compute_2 = host_list[0]
+        if len(host_list) > 1:
+            compute_1 = host_list[0]
+            compute_2 = host_list[1]
+
+        vm1_name = get_random_name('vm_private1')
+        vm2_name = get_random_name('vm_private2')
+        vn1_name = get_random_name('vn_private')
+        vn1_subnets = [get_random_cidr()]
+        self.allow_default_sg_to_allow_all_on_project(self.inputs.project_name)
+        ext_vn_fixture = self.create_external_network(self.connections, self.inputs)
+        ext_vn_fixture.verify_on_setup()
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        vn1_fixture.verify_on_setup()
+        router_name = get_random_name('router1')
+        router_dict = self.create_router(router_name)
+        router_rsp = self.quantum_fixture.router_gateway_set(
+                router_dict['id'],
+                ext_vn_fixture.vn_id)
+        self.add_vn_to_router(router_dict['id'], vn1_fixture)
+
+        vm1_fixture = self.useFixture(
+            VMFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                vn_obj=vn1_fixture.obj,
+                image_name='ubuntu',
+                vm_name=vm1_name,
+                node_name=compute_1))
+        vm2_fixture = self.useFixture(
+            VMFixture(
+                project_name=self.inputs.project_name,
+                connections=self.connections,
+                vn_obj=vn1_fixture.obj,
+                image_name='ubuntu',
+                vm_name=vm2_name,
+                node_name=compute_2))
+        vm1_fixture.verify_on_setup()
+        vm2_fixture.verify_on_setup()
+        assert self.verify_snat(vm1_fixture)
+        assert self.verify_snat(vm2_fixture)
+        active_snat_node = self.get_active_snat_node(vm1_fixture, vn1_fixture)
+        self.logger.info("Stop Compute Service on active snat node")
+        self.inputs.stop_service('contrail-vrouter', [active_snat_node])
+        self.addCleanup(self.inputs.start_service,
+                        'contrail-vrouter', [active_snat_node])
+        self.addCleanup(sleep, 10)
+        sleep(10)
+        if vm1_fixture.vm_node_ip != active_snat_node:
+           active_snat_node = self.get_active_snat_node(vm1_fixture, vn1_fixture)
+           self.logger.info("New active snat node is %s " %(active_snat_node))
+           assert self.verify_snat(vm1_fixture)
+
+        else:
+           active_snat_node = self.get_active_snat_node(vm2_fixture, vn1_fixture)
+           self.logger.info("New active snat node is %s " %(active_snat_node))
+           assert self.verify_snat(vm2_fixture)
 
     def verify_snat_with_fip(self, ext_vn_fixture, public_vm_fix, vm_fixture, connections, inputs):
         result = True

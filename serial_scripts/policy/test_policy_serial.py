@@ -3,11 +3,11 @@ from policy_test import PolicyFixture
 from vm_test import VMFixture
 from base import BaseSerialPolicyTest
 from tcutils.wrappers import preposttest_wrapper
-from sdn_topo_setup import sdnTopoSetupFixture
-from system_verification import assertEqual
-import system_verification
-import policy_test_utils
-from topo_helper import topology_helper
+from tcutils.topo.sdn_topo_setup import sdnTopoSetupFixture
+from common.system.system_verification import assertEqual
+import common.system.system_verification
+from common.policy import policy_test_utils
+from tcutils.topo.topo_helper import topology_helper
 from traffic_tests import trafficTestFixture
 import time
 import json
@@ -15,7 +15,7 @@ import re
 import copy
 import random
 import sdn_policy_traffic_test_topo
-import sdn_policy_topo_with_multi_project
+from common.topo import sdn_policy_topo_with_multi_project
 
 
 class TestSerialPolicy(BaseSerialPolicyTest):

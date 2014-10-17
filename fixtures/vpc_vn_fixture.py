@@ -4,7 +4,7 @@ import fixtures
 from fabric.api import local
 from fabric.context_managers import shell_env, settings
 
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from vpc_fixture_new import VPCFixture
 from ec2_base import EC2Base
 from vn_test import VNFixture

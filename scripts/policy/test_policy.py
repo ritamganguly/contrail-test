@@ -2,12 +2,13 @@ from base import BasePolicyTest
 from tcutils.wrappers import preposttest_wrapper
 import test
 from vn_test import VNFixture
-from policy_test import PolicyFixture, copy, policy_test_utils
+from policy_test import PolicyFixture, copy
+from common.policy import policy_test_utils
 from vm_test import VMFixture, time
-from sdn_topo_setup import sdnTopoSetupFixture
+from tcutils.topo.sdn_topo_setup import sdnTopoSetupFixture
 from tcutils.util import get_random_name
-from system_verification import system_vna_verify_policy
-from test_lib.test_utils import assertEqual
+from common.system.system_verification import system_vna_verify_policy
+from tcutils.test_lib.test_utils import assertEqual
 import sdn_basic_topology
 
 

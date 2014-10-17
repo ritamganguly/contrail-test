@@ -1,11 +1,11 @@
 import random
 from vn_test import MultipleVNFixture
 from floating_ip import FloatingIPFixture
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 from user_test import UserFixture
 from project_test import ProjectFixture
-from base import BaseNeutronTest
+from common.neutron.base import BaseNeutronTest
 import test
 from tcutils.util import *
 
@@ -38,7 +38,7 @@ class TestQuotaUpdate(BaseNeutronTest):
             vn_count=3,
             router_count=10,
             secgrp_count=4,
-            secgep_rule_count=9,
+            secgep_rule_count=5,
             fip_count=10,
             port_count=5)
 
@@ -47,7 +47,7 @@ class TestQuotaUpdate(BaseNeutronTest):
                 if None in resource_dict[item]:
                     result = False
                     self.logger.error(
-                        "Error while creating resource within quota limit for %s please check logs " %
+                        "Error while creating resource within quota limit for %s.Please check logs " %
                         (item))
 
         (vn_name, vn_fix) = resource_dict['vn_fix']._vn_fixtures[1]
@@ -82,7 +82,7 @@ class TestQuotaUpdate(BaseNeutronTest):
             vn_count=3,
             router_count=10,
             secgrp_count=4,
-            secgep_rule_count=9,
+            secgep_rule_count=5,
             fip_count=10,
             port_count=5)
 
@@ -108,6 +108,36 @@ class TestQuotaUpdate(BaseNeutronTest):
                 self.logger.error("Quota limit not followed for %s " % (item))
 
         assert result, 'Quota tests failed'
+
+    @preposttest_wrapper
+    def test_update_quota_for_admin_tenant(self):
+        '''Update quota for admin tenent using neutron quota_update
+        '''
+        result = True
+        quota_dict = {
+            'subnet': 3,
+            'router': 5,
+            'network': 3,
+            'floatingip': 4,
+            'port': 5,
+            'security_group': 4,
+            'security_group_rule': 6}
+        quota_rsp = self.admin_connections.quantum_fixture.update_quota(
+            self.admin_connections.project_id,
+            quota_dict)
+        
+        self.addCleanup(self.admin_connections.quantum_fixture.delete_quota, self.admin_connections.project_id)
+        quota_show_dict = self.connections.quantum_fixture.show_quota(
+            self.admin_connections.project_id)
+
+        for neutron_obj in quota_rsp['quota']:
+            if quota_rsp['quota'][neutron_obj] != quota_show_dict[
+                    'quota'][neutron_obj]:
+                self.logger.error(
+                    "Quota update unsuccessful for %s for admin tenant " %
+                    (neutron_obj))
+                result = False
+        assert result, 'Failed to update quota for admin tenant'
 
     def create_quota_test_resources(
             self,
@@ -161,7 +191,7 @@ class TestQuotaUpdate(BaseNeutronTest):
         if vn1_obj:
             self.addCleanup(
                 connections.quantum_fixture.delete_vn,
-                vn1_obj['id'])
+                vn1_obj['network']['id'])
         response_dict['network'] = vn1_obj
         subnet_cidr = get_random_cidr()
         subnet_rsp = connections.quantum_fixture.create_subnet(

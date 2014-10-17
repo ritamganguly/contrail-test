@@ -12,10 +12,10 @@ import time
 
 from vn_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 
-from base import BaseNeutronTest
+from common.neutron.base import BaseNeutronTest
 import test
 from tcutils.util import *
 from netaddr import IPNetwork, IPAddress
@@ -47,7 +47,7 @@ class TestPorts(BaseNeutronTest):
         vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
         port_obj = self.create_port(net_id=vn1_fixture.vn_id)
         vm1_fixture = self.create_vm(vn1_fixture, vn1_vm1_name,
-                                     image_name='cirros-0.3.0-x86_64-uec',
+                                     image_name='ubuntu-traffic',
                                      port_ids=[port_obj['id']])
         vm2_fixture = self.create_vm(vn1_fixture, vn1_vm2_name,
                                      image_name='cirros-0.3.0-x86_64-uec')

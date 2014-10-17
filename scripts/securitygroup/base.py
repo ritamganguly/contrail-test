@@ -5,8 +5,8 @@ from fabric.api import run, hide, settings
 from vn_test import VNFixture
 from vm_test import VMFixture
 from policy_test import PolicyFixture
-from policy.config import ConfigPolicy
-from security_group import SecurityGroupFixture,get_secgrp_id_from_name
+from common.policy.config import ConfigPolicy
+from security_group import SecurityGroupFixture, get_secgrp_id_from_name
 from common import isolated_creds
 from tcutils.util import get_random_name
 

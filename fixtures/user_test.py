@@ -4,7 +4,7 @@ from keystoneclient.v2_0 import client as ksclient
 import uuid
 import fixtures
 
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.util import retry
 from time import sleep
 from keystoneclient import exceptions as ks_exceptions

@@ -12,20 +12,16 @@ from nova_test import *
 from vm_test import *
 from tcutils.wrappers import preposttest_wrapper
 from tcutils.commands import ssh, execute_cmd, execute_cmd_out
-from servicechain.firewall.verify import VerifySvcFirewall
-from ecmp.ecmp_traffic import ECMPTraffic
-from ecmp.ecmp_verify import ECMPVerify
-sys.path.append(os.path.realpath('scripts/tcutils/pkgs/Traffic'))
+from common.servicechain.firewall.verify import VerifySvcFirewall
+from common.ecmp.ecmp_traffic import ECMPTraffic
+from common.ecmp.ecmp_verify import ECMPVerify
+sys.path.append(os.path.realpath('tcutils/pkgs/Traffic'))
 from traffic.core.stream import Stream
 from traffic.core.profile import create, ContinuousProfile, ContinuousSportRange
 from traffic.core.helpers import Host
 from traffic.core.helpers import Sender, Receiver
-#from tcutils.pkgs.Traffic.traffic.core.stream import Stream
-#from tcutils.pkgs.Traffic.traffic.core.profile import create, ContinuousProfile
-#from tcutils.pkgs.Traffic.traffic.core.helpers import Host
-#from tcutils.pkgs.Traffic.traffic.core.helpers import Sender, Receiver
 from fabric.state import connections as fab_connections
-from ecmp.ecmp_test_resource import ECMPSolnSetup
+from common.ecmp.ecmp_test_resource import ECMPSolnSetup
 from base import BaseECMPTest                                                                                                                                                                                  
 from common import isolated_creds                                                                                                                                                                              
 import inspect
@@ -730,4 +726,41 @@ class TestECMPwithSVMChange(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMP
         return True
     # end test_ecmp_with_svm_suspend_start
 
+class TestMultiInlineSVC(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffic, ECMPVerify):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestMultiInlineSVC, cls).setUpClass()
+
+    def runTest(self):
+        pass                                                                                                                                                                                                   
+    #end runTest
+    
+    @test.attr(type=['sanity'])
+    @preposttest_wrapper
+    def test_three_stage_SC(self):
+        self.verify_multi_inline_svc(
+                si_list= [('bridge', 1), ('in-net', 1), ('nat', 1)])
+        return True
+    # end test_three_stage_SC
+
+    @preposttest_wrapper
+    def test_three_stage_SC_with_ECMP(self):
+        self.verify_multi_inline_svc(
+                si_list= [('bridge', 2), ('in-net', 2), ('nat', 2)])
+        return True
+    # end test_three_stage_SC_with_ECMP
+
+    @preposttest_wrapper
+    def test_three_stage_SC(self):
+        self.verify_multi_inline_svc(
+                si_list= [('in-net', 2), ('bridge', 2), ('nat', 2)])
+        svm_ids = self.si_fixtures[0].svm_ids
+        self.get_rt_info_tap_intf_list(
+            self.vn1_fixture, self.vm1_fixture, svm_ids)
+        dst_vm_list= [self.vm2_fixture]
+        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
+
+        return True
+    # end test_three_stage_SC
 

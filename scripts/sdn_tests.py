@@ -11,23 +11,23 @@ from novaclient import exceptions as novaException
 import unittest
 import fixtures
 import testtools
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from floating_ip import *
 from policy_test import *
 from contrail_fixtures import *
 from tcutils.agent.vna_introspect_utils import *
 from random import choice
 from topo_helper import *
-import policy_test_utils
+from common.policy import policy_test_utils
 import project_test_utils
 from tcutils.wrappers import preposttest_wrapper
-from sdn_topo_setup import *
+from tcutils.topo.sdn_topo_setup import *
 import sdn_policy_traffic_test_topo
 import traffic_tests
 from flow_tests.flow_test_utils import *
@@ -81,7 +81,7 @@ class sdnTrafficTest(VerifySvcMirror, testtools.TestCase, fixtures.TestWithFixtu
 
         #
         # Get config for test from topology
-        import sdn_policy_topo_with_multi_project
+        import common.topo.sdn_policy_topo_with_multi_project
         result = True
         msg = []
         if not topology_class_name:

@@ -923,18 +923,30 @@ class VMFixture(fixtures.Fixture):
                                  "%s in agent" % (self.vm_name))
             self.verify_vm_not_in_agent_flag = self.verify_vm_not_in_agent_flag and False
             result = result and False
-        for vn_fq_name in self.vn_fq_names:
-            for compute_ip in self.inputs.compute_ips:
-                inspect_h = self.agent_inspect[compute_ip]
+        for k,v in self.vrfs.items():
+            inspect_h = self.agent_inspect[k]
+            for vn_fq_name in self.vn_fq_names:
                 if inspect_h.get_vna_active_route(
-                        vrf_id=self.agent_vrf_id[vn_fq_name],
-                        ip=self.vm_ip_dict[vn_fq_name],
-                        prefix='32') is not None:
+                                     vrf_id=v[vn_fq_name], 
+                                     ip=self.vm_ip_dict[vn_fq_name],
+                                     prefix='32') is not None:
                     self.logger.warn(
                         "Route for VM %s, IP %s is still seen in agent %s " %
-                        (self.vm_name, self.vm_ip_dict[vn_fq_name], compute_ip))
+                        (self.vm_name, self.vm_ip_dict[vn_fq_name], ip))
                     self.verify_vm_not_in_agent_flag = self.verify_vm_not_in_agent_flag and False
                     result = result and False
+        #for vn_fq_name in self.vn_fq_names:
+        #    for compute_ip in self.inputs.compute_ips:
+        #        inspect_h = self.agent_inspect[compute_ip]
+        #        if inspect_h.get_vna_active_route(
+        #                vrf_id=self.vrfs[compute_ip][vn_fq_name],
+        #                ip=self.vm_ip_dict[vn_fq_name],
+        #                prefix='32') is not None:
+        #            self.logger.warn(
+        #                "Route for VM %s, IP %s is still seen in agent %s " %
+        #                (self.vm_name, self.vm_ip_dict[vn_fq_name], compute_ip))
+        #            self.verify_vm_not_in_agent_flag = self.verify_vm_not_in_agent_flag and False
+        #            result = result and False
             if result:
                 self.logger.info(
                     "VM %s is removed in Compute, and routes are removed "
@@ -1306,6 +1318,23 @@ class VMFixture(fixtures.Fixture):
         return True
     # end tcp_data_transfer
 
+    def get_vrf_ids_accross_agents(self):
+        vrfs = dict()
+        try:
+            for ip in self.inputs.compute_ips:
+                inspect_h = self.agent_inspect[ip]
+                dct = dict()    
+                for vn_fq_name in self.vn_fq_names:
+                    vrf_id = inspect_h.get_vna_vrf_id(vn_fq_name)
+                    if vrf_id:
+                        dct.update({vn_fq_name:vrf_id[0]})
+                if dct:
+                    vrfs[ip] = dct
+        except Exception as e:
+            print 'Got exceptionas %s'%e
+        finally:
+            return vrfs
+
     def cleanUp(self):
         super(VMFixture, self).cleanUp()
         do_cleanup = True
@@ -1319,6 +1348,8 @@ class VMFixture(fixtures.Fixture):
             if self.inputs.webui_config_flag:
                 self.webui.vm_delete_in_openstack(self)
             else:
+                self.vrfs = dict()
+                self.vrfs = self.get_vrf_ids_accross_agents()
                 for vm_obj in self.vm_objs:
                     for sec_grp in self.sg_ids:
                         self.logger.info(
@@ -1643,7 +1674,7 @@ class VMFixture(fixtures.Fixture):
         with settings(host_string='%s@%s' % (host['username'],
                       self.vm_node_ip), password=host['password'],
                       warn_only=True, abort_on_prompts=False):
-            put('scripts/tcutils/fabfile.py', '~/')
+            put('tcutils/fabfile.py', '~/')
 
         # Check if ssh from compute node to VM works(with retries)
         cmd = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running wait_for_ssh:' % (

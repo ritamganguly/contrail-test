@@ -14,14 +14,14 @@ import fixtures
 import testtools
 import traceback
 import traffic_tests
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from user_test import UserFixture 
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from floating_ip import *
 from control_node import *
 from policy_test import *

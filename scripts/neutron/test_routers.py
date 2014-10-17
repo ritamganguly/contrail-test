@@ -12,14 +12,17 @@ import time
 
 from vn_test import *
 from vm_test import *
-from connections import ContrailConnections
-from tcutils.wrappers import preposttest_wrapper
 from user_test import UserFixture
-from neutron.base import BaseNeutronTest
+from control_node import CNFixture
+from common.connections import ContrailConnections
+from tcutils.wrappers import preposttest_wrapper
+
+from common.neutron.base import BaseNeutronTest
 import test
 from tcutils.util import *
 from testtools import skipIf
 from floating_ip import FloatingIPFixture
+
 
 class TestRouters(BaseNeutronTest):
 
@@ -173,7 +176,7 @@ class TestRouters(BaseNeutronTest):
             'Ping between VMs across router failed!'
     # end test_router_with_existing_ports
 
-    @skipIf(os.environ.get('MX_GW_TEST') != '1',"Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
+    @skipIf(os.environ.get('MX_GW_TEST') != '1', "Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
     @preposttest_wrapper
     def test_basic_snat_behavior(self):
         '''Create an external network, a router
@@ -190,7 +193,7 @@ class TestRouters(BaseNeutronTest):
         vn1_fixture.verify_on_setup()
         vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
                                          image_name='ubuntu')
-        vm1_fixture.verify_on_setup()
+        vm1_fixture.wait_till_vm_is_up()
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name)
         router_rsp = self.quantum_fixture.router_gateway_set(
@@ -213,10 +216,10 @@ class TestRouters(BaseNeutronTest):
         vn1_fixture.verify_on_setup()
         vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
                                          image_name='ubuntu')
-        vm1_fixture.verify_on_setup()
+        vm1_fixture.wait_till_vm_is_up()
         vm2_fixture = self.create_vm(ext_vn_fixture, vm2_name,
                                          image_name='ubuntu')
-        assert vm2_fixture.verify_on_setup()
+        vm2_fixture.wait_till_vm_is_up()
 
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name)
@@ -282,7 +285,7 @@ class TestRouters(BaseNeutronTest):
                     connections=proj_connection1,
                     vn_obj=vn1_fixture.obj,
                     vm_name=vm1_name))
-        assert vm1_fixture.verify_on_setup()
+        vm1_fixture.wait_till_vm_is_up()
 
         vn2_fixture = self.useFixture(
                 VNFixture(
@@ -298,7 +301,7 @@ class TestRouters(BaseNeutronTest):
                     connections=proj_connection,
                     vn_obj=vn2_fixture.obj,
                     vm_name=vm2_name))
-        assert vm2_fixture.verify_on_setup()
+        vm2_fixture.wait_till_vm_is_up()
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name, tenant_id=project_fixture_obj1.project_id)
         router_rsp = self.quantum_fixture.router_gateway_set(
@@ -377,7 +380,7 @@ class TestRouters(BaseNeutronTest):
                     connections=proj_connection1,
                     vn_obj=vn1_fixture.obj,
                     vm_name=vm1_name))
-        assert vm1_fixture.verify_on_setup()
+        vm1_fixture.wait_till_vm_is_up()
 
         vn2_fixture = self.useFixture(
                 VNFixture(
@@ -393,14 +396,14 @@ class TestRouters(BaseNeutronTest):
                     connections=proj_connection,
                     vn_obj=vn2_fixture.obj,
                     vm_name=vm2_name))
-        assert vm2_fixture.verify_on_setup()
+        vm2_fixture.wait_till_vm_is_up()
         vm3_fixture = self.useFixture(
                 VMFixture(
                     project_name=self.admin_inputs.project_name,
                     connections=self.admin_connections,
                     vn_obj=ext_vn_fixture.obj,
                     vm_name=vm3_name))
-        assert vm3_fixture.verify_on_setup()
+        vm3_fixture.wait_till_vm_is_up()
 
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name, tenant_id=project_fixture_obj1.project_id)
@@ -434,24 +437,29 @@ class TestRouters(BaseNeutronTest):
         vn1_fixture.verify_on_setup()
         vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
                                          image_name='ubuntu')
-        vm1_fixture.verify_on_setup()
         vm2_fixture = self.create_vm(ext_vn_fixture, vm2_name,
                                          image_name='ubuntu')
-        assert vm2_fixture.verify_on_setup()
+        vm1_fixture.wait_till_vm_is_up()
+        vm1_fixture.wait_till_vm_is_up()
+        vm2_fixture.wait_till_vm_is_up()
+        vm2_fixture.wait_till_vm_is_up()
 
         router_name = get_random_name('router1')
         router_dict = self.create_router(router_name)
         router_rsp = self.quantum_fixture.router_gateway_set(
-                router_dict['id'],
-                ext_vn_fixture.vn_id)
+            router_dict['id'],
+            ext_vn_fixture.vn_id)
         self.add_vn_to_router(router_dict['id'], vn1_fixture)
         assert self.verify_snat(vm1_fixture)
         assert self.verify_snat_with_fip(ext_vn_fixture, vm2_fixture, vm1_fixture, connections= self.connections, inputs = self.inputs)
 
         self.delete_vn_from_router(router_dict['id'], vn1_fixture)
 
-        assert not self.verify_snat(vm1_fixture)
-        assert not self.verify_snat_with_fip(ext_vn_fixture, vm2_fixture, vm1_fixture, connections= self.connections, inputs = self.inputs)
+        assert not self.verify_snat(vm1_fixture, expectation=False)
+        assert self.verify_snat_with_fip(ext_vn_fixture, vm2_fixture, 
+                                             vm1_fixture, 
+                                             connections=self.connections,
+                                             inputs = self.inputs)
 
         self.add_vn_to_router(router_dict['id'], vn1_fixture)
         assert self.verify_snat(vm1_fixture)
@@ -469,15 +477,74 @@ class TestRouters(BaseNeutronTest):
         assert fip_fixture.verify_on_setup()
         fip_id = fip_fixture.create_and_assoc_fip(
                 ext_vn_fixture.vn_id, vm_fixture.vm_id)
-        self.addCleanup(fip_fixture.disassoc_and_delete_fip, fip_id)
         fip = vm_fixture.vnc_lib_h.floating_ip_read(
             id=fip_id).get_floating_ip_address()
-        if not public_vm_fix.ping_to_ip(fip):
+
+
+        if not public_vm_fix.ping_with_certainty(fip):
             result = result and False
-            self.logger.error('Ping from %s to %s FAILED' %(public_vm_fix.vm_name, vm_fixture.vm_name))
+            self.logger.error('Ping from %s to %s failed' %(
+                              public_vm_fix.vm_name, vm_fixture.vm_name))
         public_vm_fix.put_pub_key_to_vm()
         vm_fixture.put_pub_key_to_vm()
         self.logger.info("scp files from public_vm %s to private vm %s " %(public_vm_fix.vm_name, vm_fixture.vm_name))
         result = result and public_vm_fix.check_file_transfer(dest_vm_fixture=vm_fixture, mode='scp', size='1000', fip = fip)
+        fip_fixture.disassoc_and_delete_fip(fip_id)
         return result
 
+    @preposttest_wrapper
+    def test_router_with_alloc_pool_and_gateway(self):
+        ''' Validate that with non-default alloc pool,
+            router ports are created fine
+        '''
+        vn1_name = get_random_name('vn1')
+        vn1_subnet_cidr = get_random_cidr()
+        vn1_subnets = [{'cidr': vn1_subnet_cidr,
+                        'allocation_pools': [
+                            {'start': get_an_ip(vn1_subnet_cidr, 3),
+                             'end': get_an_ip(vn1_subnet_cidr, 4)
+                             },
+                            {'start': get_an_ip(vn1_subnet_cidr, 6),
+                                'end': get_an_ip(vn1_subnet_cidr, 6)
+                             }
+                        ],
+                        }]
+        router_name = get_random_name('router1')
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        router_dict = self.create_router(router_name)
+        add_intf_result = self.add_vn_to_router(router_dict['id'], vn1_fixture)
+        assert 'port_id' in add_intf_result.keys(), \
+            'Router port not created when allocation-pool is set in Subnet'
+        router_port_ip = self.quantum_fixture.get_port_ips(
+            add_intf_result['port_id'])[0]
+        vn1_gateway_ip = vn1_fixture.vn_subnet_objs[0]['gateway_ip']
+        assert router_port_ip == vn1_gateway_ip,\
+            'Gateway IP(%s) is not the same as Router intf IP(%s)' % (
+                vn1_gateway_ip, router_port_ip)
+
+        # Now test with custom gateway and alloc pool
+        vn2_name = get_random_name('vn2')
+        vn2_subnet_cidr = get_random_cidr()
+        vn2_subnets = [{'cidr': vn1_subnet_cidr,
+                        'allocation_pools': [
+                            {'start': get_an_ip(vn1_subnet_cidr, 3),
+                             'end': get_an_ip(vn1_subnet_cidr, 4)
+                             },
+                            {'start': get_an_ip(vn1_subnet_cidr, 6),
+                                'end': get_an_ip(vn1_subnet_cidr, 6)
+                             }
+                        ],
+                        'gateway_ip': get_an_ip(vn1_subnet_cidr, 10)
+                        }]
+        router_name = get_random_name('router2')
+        vn2_fixture = self.create_vn(vn2_name, vn2_subnets)
+        router_dict = self.create_router(router_name)
+        add_intf_result = self.add_vn_to_router(router_dict['id'], vn2_fixture)
+        assert 'port_id' in add_intf_result.keys(), \
+            'Router port not created when allocation-pool is set in Subnet'
+        router_port_ip = self.quantum_fixture.get_port_ips(
+            add_intf_result['port_id'])[0]
+        vn2_gateway_ip = vn2_fixture.vn_subnet_objs[0]['gateway_ip']
+        assert router_port_ip == vn2_gateway_ip,\
+            'Gateway IP(%s) is not the same as Router intf IP(%s)' % (
+                vn2_gateway_ip, router_port_ip)

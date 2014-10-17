@@ -10,7 +10,7 @@ import os
 import time
 import unittest
 
-from contrail_test_init import ContrailTestInit
+from common.contrail_test_init import ContrailTestInit
 from tcutils.contrailtestrunner import ContrailHTMLTestRunner
 from tcutils.util import get_os_env
 from sanity import VPCSanityTests

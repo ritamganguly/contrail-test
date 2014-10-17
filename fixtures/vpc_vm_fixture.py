@@ -6,7 +6,7 @@ from fabric.context_managers import shell_env, settings, hide
 from fabric.contrib.files import exists
 from fabric.operations import get, put
 
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from vpc_fixture_new import VPCFixture
 from ec2_base import EC2Base
 from vm_test import VMFixture

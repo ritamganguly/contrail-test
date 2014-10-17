@@ -6,12 +6,12 @@ import fixtures
 import testtools
 import os
 import uuid
-from connections import ContrailConnections
-from contrail_test_init import *
+from common.connections import ContrailConnections
+from common.contrail_test_init import ContrailTestInit
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
-from sdn_topo_setup import *
+from tcutils.topo.sdn_topo_setup import *
 from webui_topology import *
 from floating_ip import *
 from policy_test import *

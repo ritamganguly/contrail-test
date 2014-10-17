@@ -15,7 +15,7 @@ from ipam_test import *
 from policy_test import *
 from project_test import *
 from security_group import *
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from tcutils.wrappers import preposttest_wrapper   
 from keystoneclient.v2_0 import client as ksclient
 from vnc_api import vnc_api
