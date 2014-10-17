@@ -30,9 +30,13 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
     def config_st_si(self, st_name, si_name_prefix, si_count,
                      svc_scaling=False, max_inst=1, domain='default-domain', project='admin', left_vn=None,
                      right_vn=None, svc_type='firewall', svc_mode='transparent', flavor='contrail_flavor_2cpu', static_route=['None', 'None', 'None'], ordered_interfaces=True):
-        if (svc_scaling == True and svc_mode != 'transparent'):
-            if_list = [['management', False, False],
-                       ['left', True, False], ['right', False, False]]
+        if svc_scaling == True:
+            if svc_mode == 'in-network-nat':
+                if_list = [['management', False, False],
+                        ['left', True, False], ['right', False, False]]
+            else:
+                if_list = [['management', False, False],
+                        ['left', True, False], ['right', True, False]]
         else:
             if_list = [['management', False, False],
                        ['left', False, False], ['right', False, False]]
@@ -45,7 +49,10 @@ class ConfigSvcChain(fixtures.TestWithFixtures):
             # In network/routed mode
             if svc_mode == 'in-network':
                 svc_img_name = 'ubuntu-in-net'
-                if_list = [['left', False, False], ['right', False, False]]
+                if svc_scaling == True:
+                    if_list = [['left', True, False], ['right', True, False]]
+                else:
+                    if_list = [['left', False, False], ['right', False, False]]
         elif left_vn:
             # Analyzer mode
             svc_img_name = "analyzer"
