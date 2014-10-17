@@ -6,7 +6,8 @@ from tcutils.wrappers import preposttest_wrapper
 from user_test import UserFixture
 from project_test import ProjectFixture
 from common.neutron.base import BaseNeutronTest
-import test
+from test import *
+from common import isolated_creds
 from tcutils.util import *
 
 
@@ -76,9 +77,29 @@ class TestQuotaUpdate(BaseNeutronTest):
             virtual_machine_interface=5,
             security_group=5)
 
+        project_name = get_random_name('Project')
+        user_fixture = self.useFixture(UserFixture(
+            connections=self.admin_connections, username='test_usr',
+            password='testusr123'))
+        project_fixture_obj = self.useFixture(ProjectFixture(
+            username=self.admin_inputs.stack_user,
+            password=self.admin_inputs.stack_password,
+            project_name=project_name,
+            vnc_lib_h=self.admin_connections.vnc_lib,
+            connections=self.admin_connections))
+        user_fixture.add_user_to_tenant(project_name, 'test_usr', 'admin')
+        assert project_fixture_obj.verify_on_setup()
+        proj_connection = project_fixture_obj.get_project_connections(
+            'test_usr',
+            'testusr123')
+        proj_inputs = self.useFixture(
+            ContrailTestInit(
+                self.ini_file, stack_user=project_fixture_obj.username,
+                stack_password=project_fixture_obj.password, project_fq_name=['default-domain', project_name],logger = self.logger))
+
         resource_dict = self.create_quota_test_resources(
-            self.inputs,
-            self.connections,
+            proj_inputs,
+            proj_connection,
             vn_count=3,
             router_count=10,
             secgrp_count=4,
@@ -98,8 +119,8 @@ class TestQuotaUpdate(BaseNeutronTest):
         sg_objs = resource_dict['sg_grps']
 
         response_dict = self.verify_quota_limit(
-            self.inputs,
-            self.connections,
+            proj_inputs,
+            proj_connection,
             vn_fix,
             sg_objs[0])
         for item in response_dict.keys():
@@ -151,8 +172,6 @@ class TestQuotaUpdate(BaseNeutronTest):
             fip_count=1,
             port_count=1):
         resource_dict = {}
-        self.inputs = inputs
-        self.connections = connections
         vn_s = self.create_random_vn_list(vn_count)
         multi_vn_fixture = self.create_multiple_vn(inputs, connections, vn_s)
         assert multi_vn_fixture.verify_on_setup()
@@ -224,7 +243,7 @@ class TestQuotaUpdate(BaseNeutronTest):
     def create_multiple_vn(self, inputs, connections, vn_s, subnet_count=1):
         multi_vn_fixture = self.useFixture(MultipleVNFixture(
             connections=connections, inputs=inputs, subnet_count=subnet_count,
-            vn_name_net=vn_s, project_name=self.inputs.project_name))
+            vn_name_net=vn_s, project_name=inputs.project_name))
         return multi_vn_fixture
 
     def create_random_vn_list(self, count):
@@ -248,36 +267,34 @@ class TestQuotaUpdate(BaseNeutronTest):
             connections,
             count,
             fvn_fixture):
-        self.inputs = inputs
-        self.connections = connections
         body = {'router:external': 'True'}
         net_dict = {'network': body}
         net_rsp = connections.quantum_fixture.update_network(
             fvn_fixture.vn_id,
             net_dict)
         assert net_rsp['network'][
-            'router:external'] == True, 'Failed to update router:external to True'      
-        self.fip_fixture = self.useFixture(
+            'router:external'] == True, 'Failed to update router:external to True'     
+        fip_fixture = self.useFixture(
             FloatingIPFixture(
-                project_name=self.inputs.project_name,
-                inputs=self.inputs,
-                connections=self.connections,
+                project_name=inputs.project_name,
+                inputs=inputs,
+                connections=connections,
                 pool_name='',
                 vn_id=fvn_fixture.vn_id, option='neutron'))
-        assert self.fip_fixture.verify_on_setup()
+        assert fip_fixture.verify_on_setup()
         if count == 1:
             fip_resp = connections.quantum_fixture.create_floatingip(
                 fvn_fixture.vn_id,
                 connections.project_id)
             if fip_resp:
                 self.addCleanup(
-                    self.fip_fixture.delete_floatingip,
+                    fip_fixture.delete_floatingip,
                     fip_resp['floatingip']['id'])
         else:
-            fip_resp = self.fip_fixture.create_floatingips(
+            fip_resp = fip_fixture.create_floatingips(
                 fvn_fixture.vn_id,
                 count)
-            self.addCleanup(self.fip_fixture.delete_floatingips, fip_resp)
+            self.addCleanup(fip_fixture.delete_floatingips, fip_resp)
         return fip_resp
 
     def create_multiple_secgrp(self, connections, count=1):
