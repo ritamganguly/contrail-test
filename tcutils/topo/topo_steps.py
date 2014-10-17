@@ -22,7 +22,7 @@ from topo_helper import *
 from vnc_api import vnc_api
 from vnc_api.gen.resource_test import *
 from netaddr import *
-import common.policy.policy_test_helper
+from common.policy import policy_test_helper
 from svc_template_fixture import SvcTemplateFixture
 from svc_instance_fixture import SvcInstanceFixture
 from security_group import SecurityGroupFixture

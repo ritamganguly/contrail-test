@@ -15,7 +15,7 @@ import re
 import copy
 import random
 import sdn_policy_traffic_test_topo
-import common.topo.sdn_policy_topo_with_multi_project
+from common.topo import sdn_policy_topo_with_multi_project
 
 
 class TestSerialPolicy(BaseSerialPolicyTest):
