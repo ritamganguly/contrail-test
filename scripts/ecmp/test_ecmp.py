@@ -740,7 +740,27 @@ class TestMultiInlineSVC(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTra
     @preposttest_wrapper
     def test_three_stage_SC(self):
         self.verify_multi_inline_svc(
-                si_list= [('trans', 1), ('in-net', 1), ('nat', 1)])
+                si_list= [('bridge', 1), ('in-net', 1), ('nat', 1)])
+        return True
+    # end test_three_stage_SC
+
+    @preposttest_wrapper
+    def test_three_stage_SC_with_ECMP(self):
+        self.verify_multi_inline_svc(
+                si_list= [('bridge', 2), ('in-net', 2), ('nat', 2)])
+        return True
+    # end test_three_stage_SC_with_ECMP
+
+    @preposttest_wrapper
+    def test_three_stage_SC(self):
+        self.verify_multi_inline_svc(
+                si_list= [('in-net', 2), ('bridge', 2), ('nat', 2)])
+        svm_ids = self.si_fixtures[0].svm_ids
+        self.get_rt_info_tap_intf_list(
+            self.vn1_fixture, self.vm1_fixture, svm_ids)
+        dst_vm_list= [self.vm2_fixture]
+        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
+
         return True
     # end test_three_stage_SC
 

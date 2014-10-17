@@ -306,7 +306,7 @@ class VerifySvcFirewall(VerifySvcMirror):
             self.vm2_fixture.vm_ip), errmsg
         return True
     
-    def verify_multi_inline_svc(self, si_list= [('trans', 1), ('in-net', 1), ('nat', 1)],flavor='contrail_flavor_2cpu', ordered_interfaces=True, vn1_subnets = [get_random_cidr()], vn2_subnets = [get_random_cidr()]):
+    def verify_multi_inline_svc(self, si_list= [('bridge', 1), ('in-net', 1), ('nat', 1)],flavor='contrail_flavor_2cpu', ordered_interfaces=True, vn1_subnets = [get_random_cidr()], vn2_subnets = [get_random_cidr()]):
 
         """Validate in-line multi service chaining in network  datapath"""
 
@@ -325,20 +325,15 @@ class VerifySvcFirewall(VerifySvcMirror):
         for si in si_list:
             self.if_list = [['management', False, False],
                         ['left', True, False], ['right', True, False]]
-#            for entry in static_route:
-#                if entry != 'None':
-#                self.if_list[static_route.index(entry)][2] = True
-#            self.st_name = get_random_name("multi_sc_") + si[0] + ("st_") + si_list.index(si)        
             svc_scaling = False
-            max_inst= 1
+            si_count= 1
             self.st_name = get_random_name(("multi_sc_") + si[0] + "_" + str(si_list.index(si)) + ("_st"))
             si_prefix = get_random_name(("multi_sc_") + si[0] + "_" + str(si_list.index(si)) + ("_si")) + "_"
-            si_count= si[1]
+            max_inst= si[1]
             left_vn=self.vn1_fq_name
             right_vn=self.vn2_fq_name
-            if si_count > 1:
+            if max_inst > 1:
                 svc_scaling = True
-                max_inst= si_count
             if si[0] == 'nat':
                 svc_mode= 'in-network-nat'
             elif si[0] == 'in-net':
