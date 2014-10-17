@@ -6,15 +6,15 @@ from policy_test import PolicyFixture
 from vn_test import MultipleVNFixture
 from vm_test import MultipleVMFixture
 from base import BaseSGTest
-from policy.config import ConfigPolicy
+from common.policy.config import ConfigPolicy
 from security_group import SecurityGroupFixture
 from vn_test import VNFixture
 from vm_test import VMFixture
-from topo_helper import *
+from tcutils.topo.topo_helper import *
 import os
 import sys
 sys.path.append(os.path.realpath('scripts/flow_tests'))
-from sdn_topo_setup import *
+from tcutils.topo.sdn_topo_setup import *
 import test
 import sdn_sg_test_topo
 from tcutils.traffic import *

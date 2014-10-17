@@ -10,13 +10,13 @@ import fixtures
 import testtools
 import uuid
 
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from floating_ip import *
 from policy_test import *
 from multiple_vn_vm_test import *
@@ -83,7 +83,7 @@ class TestPerms(testtools.TestCase, fixtures.TestWithFixtures):
         users = set([user.name for user in kc.users.list()])
         roles = set([user.name for user in kc.roles.list()])
         tenants = kc.tenants.list()
-        admin_tenant = [x for x in tenants if x.name == 'admin'][0]
+        admin_tenant = [x for x in tenants if x.name == self.inputs.stack_tenant][0]
 
         create_user_set = user_set - users
         create_role_set = role_set - roles

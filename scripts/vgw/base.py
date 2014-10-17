@@ -1,5 +1,5 @@
 import test
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from common import isolated_creds
 from project_test import *
 from vn_test import *

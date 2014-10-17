@@ -1,6 +1,6 @@
 import test
 import os
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from vm_test import VMFixture
 from vn_test import VNFixture
 from keystoneclient.v2_0 import client as ksclient
@@ -60,7 +60,7 @@ class BaseMultitenancyTest(test.BaseTestCase):
         users = set([user.name for user in kc.users.list()])
         roles = set([user.name for user in kc.roles.list()])
         tenants = kc.tenants.list()
-        admin_tenant = [x for x in tenants if x.name == 'admin'][0]
+        admin_tenant = [x for x in tenants if x.name == self.inputs.stack_tenant][0]
 
         create_user_set = user_set - users
         create_role_set = role_set - roles

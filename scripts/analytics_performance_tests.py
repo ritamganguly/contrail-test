@@ -11,14 +11,14 @@ import socket
 import unittest
 import fixtures
 import testtools
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from multiple_vn_vm_test import *
 from tcutils.wrappers import preposttest_wrapper
-from servicechain.config import ConfigSvcChain
-from servicechain.verify import VerifySvcChain
+from common.servicechain.config import ConfigSvcChain
+from common.servicechain.verify import VerifySvcChain
 import threading
 from subprocess import Popen, PIPE
 import shlex
@@ -53,11 +53,13 @@ class AnalyticsTestPerformance(testtools.TestCase, ConfigSvcChain, VerifySvcChai
 
     def provision_static_route(
         self, prefix='111.1.0.0/16', virtual_machine_id='',
-        tenant_name='admin', api_server_ip='127.0.0.1',
+        tenant_name=None, api_server_ip='127.0.0.1',
         api_server_port='8082', oper='add',
         virtual_machine_interface_ip='11.1.1.252', route_table_name='my_route_table',
             user='admin', password='contrail123'):
 
+        if not tenant_name:
+            tenant_name = self.inputs.stack_tenant
         cmd = "python /opt/contrail/utils/provision_static_route.py --prefix %s \
                 --virtual_machine_id %s \
                 --tenant_name %s  \

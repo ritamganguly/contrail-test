@@ -7,7 +7,7 @@ from policy_test import *
 from user_test import UserFixture
 from multiple_vn_vm_test import *
 from tcutils.wrappers import preposttest_wrapper
-sys.path.append(os.path.realpath('scripts/tcutils/pkgs/Traffic'))
+sys.path.append(os.path.realpath('tcutils/pkgs/Traffic'))
 from tcutils.pkgs.Traffic.traffic.core.stream import Stream
 from tcutils.pkgs.Traffic.traffic.core.profile import create, ContinuousProfile
 from tcutils.pkgs.Traffic.traffic.core.helpers import Host

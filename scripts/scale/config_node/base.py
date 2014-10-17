@@ -6,7 +6,7 @@ import platform
 from fabric.context_managers import settings
 from fabric.api import local, run
 from tcutils.util import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 
 class BaseScaleTest(test.BaseTestCase):
 
@@ -31,7 +31,9 @@ class BaseScaleTest(test.BaseTestCase):
                 return x
         return None
 
-    def get_user_dict(self, user_name='admin'):
+    def get_user_dict(self, user_name=None):
+        if not user_name:
+            user_name=self.inputs.stack_user
         all_users = self.keystone.users.list()
         for x in all_users:
             if (x.name == user_name):

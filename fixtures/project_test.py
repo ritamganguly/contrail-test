@@ -8,7 +8,7 @@ import fixtures
 from quantum_test import *
 from vnc_api_test import *
 from contrail_fixtures import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.util import retry
 from time import sleep
 from keystoneclient import exceptions as ks_exceptions
@@ -17,9 +17,11 @@ from tcutils.util import get_dashed_uuid
 
 class ProjectFixture(fixtures.Fixture):
 
-    def __init__(self, vnc_lib_h, connections, project_name='admin',
+    def __init__(self, vnc_lib_h, connections, project_name=None,
                  username=None, password=None, role='admin', scale= False):
         self.inputs = connections.inputs
+        if not project_name:
+            project_name = self.inputs.stack_tenant
         self.vnc_lib_h = vnc_lib_h
         self.connections = connections
         self.project_name = project_name
@@ -65,13 +67,22 @@ class ProjectFixture(fixtures.Fixture):
     # end _delete_project
 
     def _create_project_keystone(self):
-        if self.project_name == 'admin':
-            self.logger.info('Project admin already exist, no need to create')
+        if self.project_name == self.inputs.stack_tenant:
+            try:
+                ks_project = self.kc.tenants.find(name=self.project_name)
+                if ks_project:
+                    self.already_present = True
+                    self.project_id = get_dashed_uuid(ks_project.id)
+                    self.logger.debug(
+                        'Project %s already present.Not creating it' %
+                        self.project_fq_name)
+            except ks_exceptions.NotFound, e:
+                self.logger.info('Project %s not found' % (
+                    self.project_name))
+                raise e
+            self.project_obj = self.vnc_lib_h.project_read(id=self.project_id)
+            self.uuid = self.project_id
             return self
-
-        if not self.scale:
-            project_list_in_api_before_test = self.vnc_lib_h.projects_list()
-            print "project list before test: %s" % project_list_in_api_before_test
 
         # create project using keystone
         self.logger.info('Proceed with creation of new project.')
@@ -227,7 +238,7 @@ class ProjectFixture(fixtures.Fixture):
                 result &= False
                 return result
             if cs_project_obj['project']['uuid'] != self.project_id:
-                self.logger.warn('Project id %s got from API Server %s'
+                self.logger.warn('Project id %s got from API Server is'
                                  ' not matching expected ID %s' % (
                                      cs_project_obj['project']['uuid'], self. project_id))
                 result &= False

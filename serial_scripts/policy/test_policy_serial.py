@@ -3,17 +3,19 @@ from policy_test import PolicyFixture
 from vm_test import VMFixture
 from base import BaseSerialPolicyTest
 from tcutils.wrappers import preposttest_wrapper
-from sdn_topo_setup import sdnTopoSetupFixture
-from system_verification import assertEqual
-import system_verification
-import policy_test_utils
-from topo_helper import topology_helper
+from tcutils.topo.sdn_topo_setup import sdnTopoSetupFixture
+from common.system.system_verification import assertEqual
+import common.system.system_verification
+from common.policy import policy_test_utils
+from tcutils.topo.topo_helper import topology_helper
 from traffic_tests import trafficTestFixture
 import time
 import json
 import re
 import copy
+import random
 import sdn_policy_traffic_test_topo
+from common.topo import sdn_policy_topo_with_multi_project
 
 
 class TestSerialPolicy(BaseSerialPolicyTest):
@@ -73,7 +75,7 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         inspect_h = self.agent_inspect[compNode]
         try:
             kflows = inspect_h.get_vna_kflowresp()
-        except Exception, e:
+        except Exception as e:
             err = "Compute: %s, hit error in kernel introspect, check topology for expected result" % (
                 compNode)
             self.logger.warn(err)
@@ -84,9 +86,10 @@ class TestSerialPolicy(BaseSerialPolicyTest):
             self.logger.warn(
                 "Exception happened while collecting kernel flow, failure trace as follows:")
             self.logger.warn(fail_trace)
-        if kflows == None:
+        if kflows is None:
             msg.append(
-                "Not getting kernel flow info from agent %s..Check detailed error printed by introspect" % compNode)
+                "Not getting kernel flow info from agent %s..Check detailed error printed by introspect" %
+                compNode)
             self.logger.error(msg)
             return {'status': False, 'msg': msg}
         self.logger.info("Info on total kernel flows in compute %s: %s" %
@@ -1005,7 +1008,19 @@ class TestSerialPolicy(BaseSerialPolicyTest):
     def test_policy_replace_single_vn_modify_rules_of_live_flows(self):
         """ Call policy_test_modify_rules_of_live_flows with single VN scenario..
         """
-        topo = sdn_policy_traffic_test_topo.sdn_1vn_2vm_config()
+        topology_class_name = sdn_policy_traffic_test_topo.sdn_1vn_2vm_config
+        self.logger.info(
+            "Scenario for the test used is: %s" %
+            (topology_class_name))
+        # set project name
+        try:
+            # provided by wrapper module if run in parallel test env
+            topo = topology_class_name(
+                project=self.project.project_name,
+                username=self.project.username,
+                password=self.project.password)
+        except NameError:
+            topo = topology_class_name()
         return self.policy_test_modify_rules_of_live_flows(
             topo,
             update_mode='replace')
@@ -1271,7 +1286,8 @@ class TestSerialPolicy(BaseSerialPolicyTest):
             topo_params = "project=self.project.project_name, username=self.project.username, password=self.project.password"
         except NameError:
             topo_params = ""
-        topo_params = topo_params + "num_compute=computes, num_vm_per_compute=vms_per_compute"
+        topo_params = topo_params + \
+            "num_compute=computes, num_vm_per_compute=vms_per_compute"
         topo = topology_class_name(topo_params)
         planned_per_compute_num_streams = vms_per_compute * num_streams
         total_streams_generated = planned_per_compute_num_streams * computes
@@ -1279,9 +1295,20 @@ class TestSerialPolicy(BaseSerialPolicyTest):
                          planned_per_compute_num_streams)
         self.logger.info("Total streams to be generated : %s" %
                          total_streams_generated)
-        return self.policy_test_with_scaled_udp_flows(topo, num_udp_streams=num_streams, pps=100, wait_time_after_start_traffic=10)
+        return self.policy_test_with_scaled_udp_flows(
+            topo,
+            num_udp_streams=num_streams,
+            pps=100,
+            wait_time_after_start_traffic=10)
 
-    def policy_test_with_scaled_udp_flows(self, topo, num_udp_streams=100, pps=100, wait_time_after_start_traffic=300, vms_on_single_compute=False, setup_only=False):
+    def policy_test_with_scaled_udp_flows(
+            self,
+            topo,
+            num_udp_streams=100,
+            pps=100,
+            wait_time_after_start_traffic=300,
+            vms_on_single_compute=False,
+            setup_only=False):
         """Pick 2n VM's for testing, have rules affecting udp protocol..
         pick 2 VN's, source and destination. each VM in src will send to a unique VM in dest.
         Generate traffic streams matching policy rules - udp for now..
@@ -1300,7 +1327,7 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         #out= setup_obj.topo_setup(vm_verify='yes', skip_cleanup='yes')
         self.logger.info("Setup completed with result %s" % (out['result']))
         self.assertEqual(out['result'], True, out['msg'])
-        if out['result'] == True:
+        if out['result']:
             topo, config_topo = out['data']
         # Setup/Verify Traffic ---
         # 1. Define Traffic Params
@@ -1350,8 +1377,10 @@ class TestSerialPolicy(BaseSerialPolicyTest):
             # total_single_instance_streams= 20)
             startStatus[i] = traffic_obj[i].startTraffic(
                 tx_vm_fixture=test_vm1_fixture,
-                rx_vm_fixture=test_vm2_fixture, total_single_instance_streams=total_single_instance_streams,
-                cfg_profile='ContinuousSportRange', pps=pps)
+                rx_vm_fixture=test_vm2_fixture,
+                total_single_instance_streams=total_single_instance_streams,
+                cfg_profile='ContinuousSportRange',
+                pps=pps)
             msg1 = "Status of start traffic : %s, %s, %s" % (
                 i, test_vm1_fixture.vm_ip, startStatus[i]['status'])
             if startStatus[i]['status'] == False:
@@ -1405,4 +1434,861 @@ class TestSerialPolicy(BaseSerialPolicyTest):
         # end checking flows
         return result
     # end policy_test_with_scaled_udp_flows
+
+    @preposttest_wrapper
+    def test_policy_verify_flows_unaffected_by_policy_update(self):
+        """
+        Configure 2 traffic streams, of same proto but to different vm's in 2 different vn's
+        vn0 policy: one allow udp to vn1, other deny udp to vn2
+        vn1, vn2 policy- allow any
+        validate live traffic for both streams
+        modify policy of vn0 to allow udp to vn2
+        validate live traffic for both streams
+        stop traffic and validate total recd for unaffected, should be same as sent
+        """
+        topology_class_name = sdn_policy_traffic_test_topo.sdn_3vn_3vm_config
+        self.logger.info(
+            "Scenario for the test used is: %s" %
+            (topology_class_name))
+        # set project name
+        try:
+            # provided by wrapper module if run in parallel test env
+            topo = topology_class_name(
+                project=self.project.project_name,
+                username=self.project.username,
+                password=self.project.password)
+        except NameError:
+            topo = topology_class_name()
+        return self.policy_test_verify_flows_unaffected_by_policy_update(topo)
+
+    def policy_test_verify_flows_unaffected_by_policy_update(self, topo):
+        """Pick 2 VM's for testing, have rules affecting udp protocol..
+        Generate traffic streams matching policy rules - udp for now..
+        assert if traffic failure is seen as no disruptive trigger is applied here..
+        """
+        result = True
+        msg = []
+        #
+        # Test setup: Configure policy, VN, & VM
+        setup_obj = self.useFixture(
+            sdnTopoSetupFixture(self.connections, topo))
+        out = setup_obj.topo_setup(flavor='contrail_flavor_small')
+        #out= setup_obj.topo_setup(vm_verify='yes', skip_cleanup='yes')
+        self.logger.info("Setup completed with result %s" % (out['result']))
+        self.assertEqual(out['result'], True, out['msg'])
+        if out['result']:
+            topo, config_topo = out['data']
+        # Setup/Verify Traffic ---
+        # 1. Define Traffic Params
+        # Traffic streams: vnet0<-->vnet1, vnet0<-->vnet2
+        # vnet0 to vnet1 to be unaffected and stats to be checked after stopping traffic
+        # vnet0 to vnet2 to be affected and stats to be ignored after stopping
+        # traffic
+        topo.vnet_list = sorted(topo.vnet_list)
+        test_vn = topo.vnet_list[0]
+        vm_vn_to_check = 'vnet1'
+        topo_helper_obj = topology_helper(topo)
+        vms_in_vn = topo_helper_obj.get_vm_of_vn()
+        test_vm1 = vms_in_vn['vnet0'][0]
+        test_vm2 = vms_in_vn['vnet1'][0]
+        test_vm3 = vms_in_vn['vnet2'][0]
+        test_vm1_fixture = config_topo['vm'][test_vm1]
+        test_vm2_fixture = config_topo['vm'][test_vm2]
+        test_vm3_fixture = config_topo['vm'][test_vm3]
+        test_vn_fix = config_topo['vn'][test_vn]
+        test_vn_id = test_vn_fix.vn_id
+        dest_vn_vm_dict = {topo.vn_of_vm[test_vm2]: test_vm2_fixture,
+                           topo.vn_of_vm[test_vm3]: test_vm3_fixture}
+        # 2. set expectation to verify..
+        matching_rule_action = {}
+        # Assumption made here: test_vn, which is traffic source, has one
+        # policy, with one rule for each dest vn..
+        policy = topo.vn_policy[test_vn][0]
+        policy_info = "policy in effect is : " + str(topo.rules[policy])
+        num_rules = len(topo.rules[policy])
+        for dest_vn, dest_vm_fixture in dest_vn_vm_dict.items():
+            matching_rule_action[dest_vn] = 'deny'  # init to deny
+            for i in range(num_rules):
+                vn = topo.rules[policy][i]['dest_network']
+                if vn == dest_vn:
+                    matching_rule_action[dest_vn] = topo.rules[
+                        policy][i]['simple_action']
+                    break
+        self.logger.info("matching_rule_action: %s" % matching_rule_action)
+        # 3. Start Traffic
+        traffic_obj = {}
+        startStatus = {
+        }
+        stopStatus = {}
+        expectedResult = {}
+        for dest_vn, dest_vm_fixture in dest_vn_vm_dict.items():
+            expectedResult[dest_vn] = True if matching_rule_action[
+                dest_vn] == 'pass' else False
+            traffic_obj[dest_vn] = self.useFixture(
+                trafficTestFixture(self.connections))
+            startStatus[dest_vn] = traffic_obj[dest_vn].startTraffic(
+                name=dest_vn,
+                tx_vm_fixture=test_vm1_fixture,
+                rx_vm_fixture=dest_vm_fixture,
+                cfg_profile='ContinuousSportRange')
+            msg1 = "Status of start traffic : %s, %s, %s" % (
+                dest_vn, test_vm1_fixture.vm_ip, startStatus[dest_vn]['status'])
+            if startStatus[dest_vn]['status'] == False:
+                self.logger.error(msg1)
+                msg.extend(
+                    [msg1, 'More info on failure: ', startStatus[dest_vn]['msg']])
+            else:
+                self.logger.info(msg1)
+            self.assertEqual(startStatus[dest_vn]['status'], True, msg)
+        self.logger.info("-" * 80)
+        self.logger.info("TEST STEP -4: modify policy")
+        starting_policy_name = policy
+        starting_policy_fixture = config_topo['policy'][policy]
+        starting_policy_id = starting_policy_fixture.policy_obj['policy']['id']
+        for policy in topo.policy_test_order:
+            # set new policy for test_vn to rules of policy
+            new_policy_entries = config_topo['policy'][
+                policy].policy_obj['policy']['entries']
+            data = {'policy': {'entries': new_policy_entries}}
+            update_status = starting_policy_fixture.update_policy(
+                starting_policy_id, data)
+            new_rules = topo.rules[policy]
+            # policy= current_policy_name     #policy name is still old one
+            # update new rules in reference topology
+            topo.rules[starting_policy_name] = copy.copy(new_rules)
+            state = "policy for " + test_vn + " updated to rules of " + policy
+            # wait for tables update before checking after making changes to
+            # system
+            time.sleep(5)
+            policy_info = "policy in effect is : %s" % (topo.rules[policy])
+            self.logger.info(policy_info)
+        # Done with policy updates..
+        # 5. Stop Traffic & validate received packets..
+        self.logger.info("Proceed to stop traffic..")
+        self.logger.info("-" * 80)
+        for dest_vn, dest_vm_fixture in dest_vn_vm_dict.items():
+            stopStatus[dest_vn] = traffic_obj[dest_vn].stopTraffic()
+            # Check the status only if the stream is unaffected by policy
+            # change
+            if dest_vn == vm_vn_to_check:
+                self.logger.info(
+                    "Status of stop traffic for dest_vn %s is %s" %
+                    (dest_vn, stopStatus[dest_vn]))
+                status = True if stopStatus[dest_vn] == [] else False
+                if not status:
+                    msg.append(stopStatus[dest_vn])
+                    result = False
+        self.assertEqual(result, True, msg)
+        self.logger.info("-" * 80)
+        return result
+    # end policy_test_verify_flows_unaffected_by_policy_update
+
+    @preposttest_wrapper
+    def test_policy_across_projects(self):
+        '''
+         Traffic test with policy applied across multiple projects
+        '''
+        #
+        # Get config for test from topology
+        result = True
+        msg = []
+        topology_class_name = sdn_policy_topo_with_multi_project.sdn_basic_policy_topo_with_3_project
+
+        self.logger.info("Scenario for the test used is: %s" %
+                         (topology_class_name))
+        topo_obj = topology_class_name()
+        #
+        # Test setup: Configure policy, VN, & VM
+        # return {'result':result, 'msg': err_msg, 'data': [self.topo, config_topo]}
+        # Returned topo is of following format:
+        # config_topo= {'policy': policy_fixt, 'vn': vn_fixture, 'vm': vm_fixture}
+        topo = {}
+        topo_objs = {}
+        config_topo = {}
+        for project in topo_obj.project_list:
+            setup_obj = {}
+            topo[project] = eval("topo_obj.build_topo_" + project + "()")
+            setup_obj[project] = self.useFixture(
+                sdnTopoSetupFixture(self.connections, topo[project]))
+            out = setup_obj[project].topo_setup()
+            self.assertEqual(out['result'], True, out['msg'])
+            if out['result']:
+                topo_objs[project], config_topo[project] = out['data']
+            try:
+                for pp in topo_obj.project_list:
+                    self.logger.info('topo of %s is %s' %(pp, topo_objs[pp].project))
+            except:
+                pass
+            self.logger.info("Setup completed for project %s with result %s" %
+                             (project, out['result']))
+        exit
+        p_lst = topo_obj.project_list  # projects
+        p1vm1 = topo_objs[p_lst[0]].vmc_list[0]  # 'vmc1'
+        p2vm2 = topo_objs[p_lst[1]].vmc_list[0]  # 'vmc2'
+        p3vm3 = topo_objs[p_lst[2]].vmc_list[0]  # 'vmc3'
+        adminvm = topo_objs[p_lst[3]].vmc_list[0]  # 'vmc-admin'
+
+        result = True
+        msg = []
+        traffic_obj = {}
+        startStatus = {}
+        stopStatus = {}
+        traffic_proto_l = ['tcp', 'icmp']
+        total_streams = {}
+        total_streams['icmp'] = 1
+        total_streams['udp'] = 1
+        total_streams['tcp'] = 1
+        dpi = 9100
+        expectedResult = {}
+        for proto in traffic_proto_l:
+            expectedResult[proto] = True
+            traffic_obj[proto] = {}
+            startStatus[proto] = {}
+            if proto == 'icmp':
+                tx_vm_fixt = config_topo[p_lst[0]]['vm'][p1vm1]
+                rx_vm_fixt = config_topo[p_lst[1]]['vm'][p2vm2]
+            else:
+                tx_vm_fixt = config_topo[p_lst[0]]['vm'][p1vm1]
+                rx_vm_fixt = config_topo[p_lst[2]]['vm'][p3vm3]
+
+            traffic_obj[proto] = self.useFixture(
+                trafficTestFixture(self.connections))
+            # def startTraffic (self, name, num_streams= 1, start_port= 9100, tx_vm_fixture= None, rx_vm_fixture= None, stream_proto= 'udp', \
+            # packet_size= 100, start_sport= 8000,
+            # total_single_instance_streams= 20):
+            startStatus[proto] = traffic_obj[proto].startTraffic(
+                num_streams=total_streams[proto],
+                start_port=dpi,
+                tx_vm_fixture=tx_vm_fixt,
+                rx_vm_fixture=rx_vm_fixt,
+                stream_proto=proto)
+            msg1 = "Status of start traffic : %s, %s, %s" % (
+                proto, tx_vm_fixt.vm_ip, startStatus[proto]['status'])
+            if startStatus[proto]['status'] == False:
+                self.logger.error(msg1)
+                msg.extend(
+                    [msg1, 'More info on failure: ', startStatus[proto]['msg']])
+            else:
+                self.logger.info(msg1)
+            self.assertEqual(startStatus[proto]['status'], True, msg)
+        self.logger.info("-" * 80)
+        # Poll live traffic
+        traffic_stats = {}
+        err_msg = []
+        self.logger.info("Poll live traffic and get status..")
+        for proto in traffic_proto_l:
+            self.logger.info("Poll live traffic %s and get status.." %
+                             (proto))
+            traffic_stats = traffic_obj[proto].getLiveTrafficStats()
+            if not traffic_stats['status']:
+                err_msg.extend(
+                    ["Traffic disruption is seen:", traffic_stats['msg']])
+        self.assertEqual(traffic_stats['status'],
+                         expectedResult[proto], err_msg)
+        self.logger.info("-" * 80)
+
+        # Stop Traffic
+        self.logger.info("Proceed to stop traffic..")
+        self.logger.info("-" * 80)
+        for proto in traffic_proto_l:
+            stopStatus[proto] = traffic_obj[proto].stopTraffic()
+            status = True if stopStatus[proto] == [] else False
+            if status != expectedResult[proto]:
+                msg.append(stopStatus[proto])
+                result = False
+            self.logger.info("Status of stop traffic for proto %s is %s" %
+                             (proto, stopStatus[proto]))
+        self.logger.info("-" * 80)
+        self.assertEqual(result, True, msg)
+
+        result = True
+        msg = []
+        dst_vm = p3vm3  # 'vmc3'
+        dst_vm_fixture = config_topo[p_lst[2]]['vm'][p3vm3]
+        dst_vm_ip = dst_vm_fixture.vm_ip
+        src_vm = p1vm1  # 'vmc1'
+        src_vm_fixture = config_topo[p_lst[0]]['vm'][p1vm1]
+        self.logger.info(
+            "With proto tcp allowed between %s and %s, trying to send icmp traffic" %
+            (p1vm1, p3vm3))
+        expectedResult = False
+        self.logger.info(
+            "Verify ping to vm %s from vm %s, expecting it to fail" %
+            (dst_vm, src_vm))
+        ret = src_vm_fixture.ping_with_certainty(
+            dst_vm_ip, expectation=expectedResult)
+        result_msg = "vm ping test result to vm %s is: %s" % (dst_vm, ret)
+        self.logger.info(result_msg)
+        if not ret:
+            result = False
+            msg.extend(
+                ["icmp traffic passed with deny rule:", result_msg])
+        self.assertEqual(result, True, msg)
+
+        result = True
+        msg = []
+        expectedResult = True
+        dst_vm = p2vm2  # 'vmc2'
+        dst_vm_fixture = config_topo[p_lst[1]]['vm'][p2vm2]
+        dst_vm_ip = dst_vm_fixture.vm_ip
+        src_vm_fixture = config_topo[p_lst[3]]['vm'][adminvm]  # 'vmc-admin'
+        self.logger.info(
+            "Now will test ICMP traffic between admin VM %s and non-default project VM %s" %
+            (adminvm, p2vm2))
+        ret = src_vm_fixture.ping_with_certainty(
+            dst_vm_ip, expectation=expectedResult)
+        result_msg = "vm ping test result to vm %s is: %s" % (dst_vm, ret)
+        self.logger.info(result_msg)
+        if not ret:
+            result = False
+            msg.extend(
+                ["ICMP traffic failed between default and non-default project with policy:", result_msg])
+        self.assertEqual(result, True, msg)
+        return True
+    # end test_policy_across_projects
+
+    def traffic_generator_for_proto_list(self, proto_list, source_fixture, dest_fixture, dpi, policy_info, topo):
+        # 1. Start Traffic
+        result = True
+        msg = []
+        traffic_obj = {}
+        startStatus = {}
+        stopStatus = {}
+        total_streams = {}
+        total_streams['icmp'] = 1
+        total_streams['udp'] = 1
+        total_streams['tcp'] = 1
+        traffic_proto_l = proto_list.keys()
+        expectedResult = {}
+        start_time = self.analytics_obj.getstarttime(
+            self.inputs.compute_ips[0])
+        for proto in traffic_proto_l:
+            expectedResult[proto] = True if proto_list[
+                proto] == 'pass' else False
+            traffic_obj[proto] = {}
+            startStatus[proto] = {}
+            traffic_obj[proto] = self.useFixture(
+                trafficTestFixture(self.connections))
+            # def startTraffic (self, name, num_streams= 1, start_port= 9100, tx_vm_fixture= None, rx_vm_fixture= None, stream_proto= 'udp', \
+            # packet_size= 100, start_sport= 8000,
+            # total_single_instance_streams= 20):
+            startStatus[proto] = traffic_obj[proto].startTraffic(
+                num_streams=total_streams[proto], start_port=dpi,
+                tx_vm_fixture=source_fixture, rx_vm_fixture=dest_fixture, stream_proto=proto)
+            msg1 = "Status of start traffic : %s, %s, %s" % (
+                proto, source_fixture.vm_ip, startStatus[proto]['status'])
+            if startStatus[proto]['status'] == False:
+                self.logger.error(msg1)
+                msg.extend(
+                    [msg1, 'More info on failure: ', startStatus[proto]['msg']])
+            else:
+                self.logger.info(msg1)
+                self.assertEqual(startStatus[proto]['status'], True, msg)
+        self.logger.info("-" * 80)
+        # 2. Poll live traffic
+        # poll traffic and get status - traffic_stats['msg'],
+        # traffic_stats['status']
+        self.logger.info("Poll live traffic and get status..")
+        for proto in traffic_proto_l:
+            traffic_stats = traffic_obj[proto].getLiveTrafficStats()
+            err_msg = [policy_info] + traffic_stats['msg']
+            self.logger.info(" --> , flow proto: %s, expected: %s, got: %s" %
+                             (proto, expectedResult[proto], traffic_stats['status']))
+            self.assertEqual(traffic_stats['status'],
+                             expectedResult[proto], err_msg)
+        self.logger.info("-" * 80)
+        # 3. Stop Traffic
+        self.logger.info("Proceed to stop traffic..")
+        self.logger.info("-" * 80)
+        traffic_stats = {}
+        for proto in traffic_proto_l:
+            stopStatus[proto] = traffic_obj[proto].stopTraffic()
+            status = True if stopStatus[proto] == [] else False
+            if status != expectedResult[proto]:
+                msg.append(stopStatus[proto])
+                result = False
+                self.logger.info("Status of stop traffic for proto %s is %s" %
+                                 (proto, stopStatus[proto]))
+                # Get the traffic Stats for each protocol sent
+                traffic_stats[proto] = traffic_obj[proto].returnStats()
+                time.sleep(5)
+        return (self.assertEqual(result, True, msg))
+        # End of traffic_generator_for_proto_list
+
+    def parse_and_build_implicit_rule(self, policy, topo):
+        # 1 Get the implicit rule for both same and different network from the
+        # policy
+        chk_policy = topo.rules[policy]
+        num_rules = len(chk_policy)
+        intra_vn_explicit_proto = {}
+        inter_vn_explicit_proto = {}
+        intra_vn_ntw = {'dst_port': 9100, 'src_port': 9100}
+        inter_vn_ntw = {'dst_port': 9100, 'src_port': 9100}
+        new_port = 9100
+        min = 1
+        max = 65535
+        # Getting the explicit protocol list and port number for selected
+        # explicit rule.
+        for i in range(num_rules):
+            if (chk_policy[i]['dest_network'] ==
+                    chk_policy[i]['source_network']):
+                if ((chk_policy[i]['src_ports'] != chk_policy[i]['dst_ports']) and (
+                        chk_policy[i]['protocol'] == 'tcp' or 'udp'or 'any')):
+                    if (chk_policy[i]['src_ports'] != 'any'):
+                        port_range = chk_policy[i]['src_ports']
+                        start_port = port_range[0]
+                        end_port = port_range[1]
+                        num = range(min, start_port) + range(end_port, max)
+                        new_port = random.choice(num)
+                        intra_vn_ntw['src_port'] = new_port
+                        intra_vn_ntw['src_ntw'] = chk_policy[
+                            i]['source_network']
+                        intra_vn_ntw[
+                            'dst_ntw'] = chk_policy[i]['dest_network']
+                    else:
+                        port_range = chk_policy[i]['dst_ports']
+                        start_port = port_range[0]
+                        end_port = port_range[1]
+                        num = range(min, start_port) + range(end_port, max)
+                        new_port = random.choice(num)
+                        intra_vn_ntw['dst_port'] = new_port
+                        intra_vn_ntw['src_ntw'] = chk_policy[
+                            i]['source_network']
+                        intra_vn_ntw[
+                            'dst_ntw'] = chk_policy[i]['dest_network']
+                elif ((chk_policy[i]['src_ports'] == chk_policy[i]['dst_ports']) and (chk_policy[i]['protocol'] == 'any')):
+                    intra_vn_explicit_proto[
+                        chk_policy[i]['protocol']] = chk_policy[i]['simple_action']
+                    intra_vn_ntw['dst_ntw'] = chk_policy[i]['dest_network']
+                    intra_vn_ntw[
+                        'src_ntw'] = chk_policy[i]['source_network']
+                    intra_vn_ntw['src_port'] = new_port
+                    intra_vn_ntw[
+                        'dst_port'] = new_port
+                    self.logger.info(
+                        "Defined Explicit rule#:%d  for same network :src_net= %s, dst_net=%s, src_port= %s, dst_port=%s, protocol:%s,action= %s " %
+                        (i,
+                         chk_policy[i]['source_network'],
+                            chk_policy[i]['dest_network'],
+                            chk_policy[i]['src_ports'],
+                            chk_policy[i]['dst_ports'],
+                            chk_policy[i]['protocol'],
+                            chk_policy[i]['simple_action']))
+                    break
+                elif ((chk_policy[i]['src_ports'] == chk_policy[i]['dst_ports']) and (chk_policy[i]['protocol'] == 'tcp' or 'udp' or 'icmp')):
+                    intra_vn_explicit_proto[
+                        chk_policy[i]['protocol']] = chk_policy[i]['simple_action']
+                    intra_vn_ntw['dst_ntw'] = chk_policy[i]['dest_network']
+                    intra_vn_ntw[
+                        'src_ntw'] = chk_policy[i]['source_network']
+                    intra_vn_ntw['src_port'] = new_port
+                    intra_vn_ntw[
+                        'dst_port'] = new_port
+                self.logger.info(
+                    "Defined Explicit rule#:%d  for same network :src_net= %s, dst_net=%s, src_port= %s, dst_port=%s, protocol:%s,action= %s " %
+                    (i,
+                     chk_policy[i]['source_network'],
+                        chk_policy[i]['dest_network'],
+                        chk_policy[i]['src_ports'],
+                        chk_policy[i]['dst_ports'],
+                        chk_policy[i]['protocol'],
+                        chk_policy[i]['simple_action']))
+            elif (chk_policy[i]['dest_network'] != chk_policy[i]['source_network']):
+                if ((chk_policy[i]['src_ports'] != chk_policy[i]['dst_ports']) and (
+                        chk_policy[i]['protocol'] == 'tcp' or 'udp' or 'any')):
+                    if (chk_policy[i]['src_ports'] != 'any'):
+                        port_range = chk_policy[i]['src_ports']
+                        start_port = port_range[0]
+                        end_port = port_range[1]
+                        num = range(min, start_port) + range(end_port, max)
+                        new_port = random.choice(num)
+                        inter_vn_ntw['src_port'] = new_port
+                        inter_vn_ntw['src_ntw'] = chk_policy[
+                            i]['source_network']
+                        inter_vn_ntw[
+                            'dst_ntw'] = chk_policy[i]['dest_network']
+                    else:
+                        port_range = chk_policy[i]['dst_ports']
+                        start_port = port_range[0]
+                        end_port = port_range[1]
+                        num = range(min, start_port) + range(end_port, max)
+                        new_port = random.choice(num)
+                        inter_vn_ntw['dst_port'] = new_port
+                        inter_vn_ntw['src_ntw'] = chk_policy[
+                            i]['source_network']
+                        inter_vn_ntw[
+                            'dst_ntw'] = chk_policy[i]['dest_network']
+                elif ((chk_policy[i]['src_ports'] == chk_policy[i]['dst_ports']) and (chk_policy[i]['protocol'] == 'any')):
+                    inter_vn_explicit_proto[
+                        chk_policy[i]['protocol']] = chk_policy[i]['simple_action']
+                    inter_vn_ntw['dst_ntw'] = chk_policy[i]['dest_network']
+                    inter_vn_ntw[
+                        'src_ntw'] = chk_policy[i]['source_network']
+                    inter_vn_ntw['src_port'] = new_port
+                    inter_vn_ntw[
+                        'dst_port'] = new_port
+                    self.logger.info(
+                        "Defined Explicit rule#:%d for two different network  :src_net= %s, dst_net=%s, src_port= %s, dst_port=%s, protocol:%s,action= %s " %
+                        (i,
+                         chk_policy[i]['source_network'],
+                            chk_policy[i]['dest_network'],
+                            chk_policy[i]['src_ports'],
+                            chk_policy[i]['dst_ports'],
+                            chk_policy[i]['protocol'],
+                            chk_policy[i]['simple_action']))
+                    break
+                elif ((chk_policy[i]['src_ports'] == chk_policy[i]['dst_ports']) and (chk_policy[i]['protocol'] == 'tcp' or 'udp' or 'icmp')):
+                    inter_vn_explicit_proto[
+                        chk_policy[i]['protocol']] = chk_policy[i]['simple_action']
+                    inter_vn_ntw['dst_ntw'] = chk_policy[i]['dest_network']
+                    inter_vn_ntw[
+                        'src_ntw'] = chk_policy[i]['source_network']
+                    inter_vn_ntw['src_port'] = new_port
+                    inter_vn_ntw[
+                        'dst_port'] = new_port
+                self.logger.info(
+                    "Defined Explicit rule#:%d for two different network  :src_net= %s, dst_net=%s, src_port= %s, dst_port=%s, protocol:%s,action= %s " %
+                    (i,
+                     chk_policy[i]['source_network'],
+                        chk_policy[i]['dest_network'],
+                        chk_policy[i]['src_ports'],
+                        chk_policy[i]['dst_ports'],
+                        chk_policy[i]['protocol'],
+                        chk_policy[i]['simple_action']))
+        # 2 Building the implicit rule based selected explicit protocols and
+        # Insert the remaing implicit protocols
+        final_intra_vn_implicit_rule = {}
+        final_inter_vn_implicit_rule = {}
+        proto_intra_vn_len = len(intra_vn_explicit_proto)
+        proto_inter_vn_len = len(inter_vn_explicit_proto)
+        if proto_intra_vn_len == 1:
+            if 'tcp' in intra_vn_explicit_proto:
+                final_intra_vn_implicit_rule = {'udp': 'pass', 'icmp': 'pass'}
+            elif 'udp' in intra_vn_explicit_proto:
+                final_intra_vn_implicit_rule = {'tcp': 'pass', 'icmp': 'pass'}
+            elif 'icmp' in intra_vn_explicit_proto:
+                final_intra_vn_implicit_rule = {'udp': 'pass', 'tcp': 'pass'}
+            elif 'any' in intra_vn_explicit_proto:
+                final_intra_vn_implicit_rule = {
+                    'tcp': intra_vn_explicit_proto['any'],
+                    'udp': intra_vn_explicit_proto['any'],
+                    'icmp': intra_vn_explicit_proto['any']}
+            else:
+                self.logger.error(
+                    "Only TCP,UDP and ICMP protocols are applicable for same network, Please define the proper protocol rules in policy")
+                sys.exit(0)
+        elif (proto_intra_vn_len == 0 and (intra_vn_ntw['dst_port'] != 9100 or intra_vn_ntw['src_port'] != 9100)):
+            final_intra_vn_implicit_rule = {
+                'udp': 'pass', 'icmp': 'pass', 'tcp': 'pass'}
+        elif proto_intra_vn_len == 2:
+            if ('tcp' in intra_vn_explicit_proto and 'udp' in intra_vn_explicit_proto):
+                final_intra_vn_implicit_rule = {'icmp': 'pass'}
+            elif ('tcp' in intra_vn_explicit_proto and 'icmp' in intra_vn_explicit_proto):
+                final_intra_vn_implicit_rule = {'udp': 'pass'}
+            elif ('udp' in intra_vn_explicit_proto and 'icmp' in intra_vn_explicit_proto):
+                final_intra_vn_implicit_rule = {'tcp': 'pass'}
+            elif ('any' in intra_vn_explicit_proto and 'tcp' in intra_vn_explicit_proto):
+                final_intra_vn_implicit_rule = {
+                    'udp': intra_vn_explicit_proto['any'],
+                    'icmp': intra_vn_explicit_proto['any']}
+            elif ('any' in intra_vn_explicit_proto and 'udp' in intra_vn_explicit_proto):
+                final_intra_vn_implicit_rule = {
+                    'tcp': intra_vn_explicit_proto['any'],
+                    'icmp': intra_vn_explicit_proto['any']}
+            elif ('any' in intra_vn_explicit_proto and 'icmp' in intra_vn_explicit_proto):
+                final_intra_vn_implicit_rule = {
+                    'tcp': intra_vn_explicit_proto['any'],
+                    'udp': intra_vn_explicit_proto['any']}
+            else:
+                self.logger.error(
+                    "Only TCP,UDP and ICMP protocols are applicable for same network, Please define the proper protocol rules in policy")
+                sys.exit(0)
+        elif proto_intra_vn_len == 3:
+            if (
+                    'tcp' in intra_vn_explicit_proto and 'udp' in intra_vn_explicit_proto and 'icmp' in intra_vn_explicit_proto):
+                self.logger.error(
+                    ("No need to run the implicit rule for defined explicit rules "))
+            elif ('tcp' in intra_vn_explicit_proto and 'udp' in intra_vn_explicit_proto and 'any' in intra_vn_explicit_proto):
+                final_intra_vn_implicit_rule = {
+                    'icmp': intra_vn_explicit_proto['any']}
+            elif ('tcp' in intra_vn_explicit_proto and 'icmp' in intra_vn_explicit_proto and 'any' in intra_vn_explicit_proto):
+                final_intra_vn_implicit_rule = {
+                    'udp': intra_vn_explicit_proto['any']}
+            elif ('icmp' in intra_vn_explicit_proto and 'udp' in intra_vn_explicit_proto and 'any' in intra_vn_explicit_proto):
+                final_intra_vn_implicit_rule = {
+                    'tcp': intra_vn_explicit_proto['any']}
+            else:
+                self.logger.error(
+                    "Only TCP,UDP and ICMP protocols are applicable for same network, Please define the proper protocol rules in policy")
+                sys.exit(0)
+        elif proto_intra_vn_len == 4:
+            if ('tcp' in intra_vn_explicit_proto and 'udp' in intra_vn_explicit_proto and 'icmp' in intra_vn_explicit_proto and
+                    'any' in intra_vn_explicit_proto):
+                self.logger.error(
+                    ("No need to run the implicit rule for defined explicit rules "))
+            else:
+                self.logger.error(
+                    "All three protocols are not defined properly in policy for same network combination.")
+                sys.exit(0)
+        elif proto_intra_vn_len > 4:
+            self.logger.error(
+                "Only TCP,UDP and ICMP protocols are applicable for same network, Please define the proper protocol rules in policy")
+            sys.exit(0)
+        else:
+            pass
+
+        if proto_inter_vn_len == 1:
+            if 'tcp' in inter_vn_explicit_proto:
+                final_inter_vn_implicit_rule = {'udp': 'deny', 'icmp': 'deny'}
+            elif 'udp' in inter_vn_explicit_proto:
+                final_inter_vn_implicit_rule = {'tcp': 'deny', 'icmp': 'deny'}
+            elif 'icmp' in inter_vn_explicit_proto:
+                final_inter_vn_implicit_rule = {'udp': 'deny', 'tcp': 'deny'}
+            elif 'any' in inter_vn_explicit_proto:
+                final_inter_vn_implicit_rule = {
+                    'tcp': inter_vn_explicit_proto['any'],
+                    'udp': inter_vn_explicit_proto['any'],
+                    'icmp': inter_vn_explicit_proto['any']}
+            else:
+                self.logger.error(
+                    "Only TCP,UDP and ICMP protocols are applicable for different network, Please define the proper protocol rules in policy")
+                sys.exit(0)
+        elif (proto_inter_vn_len == 0 and (inter_vn_ntw['dst_port'] != 9100 or inter_vn_ntw['src_port'] != 9100)):
+            final_inter_vn_implicit_rule = {
+                'udp': 'deny', 'icmp': 'deny', 'tcp': 'deny'}
+        elif proto_inter_vn_len == 2:
+            if ('tcp' in inter_vn_explicit_proto and 'udp' in inter_vn_explicit_proto):
+                final_inter_vn_explicit_rule = {'icmp': 'deny'}
+            elif ('tcp' in inter_vn_explicit_proto and 'icmp' in inter_vn_explicit_proto):
+                final_inter_vn_implicit_rule = {'udp': 'deny'}
+            elif ('udp' in inter_vn_explicit_proto and 'icmp' in inter_vn_explicit_proto):
+                final_inter_vn_implicit_rule = {'tcp': 'deny'}
+            elif ('any' in inter_vn_explicit_proto and 'tcp' in inter_vn_explicit_proto):
+                final_inter_vn_implicit_rule = {
+                    'udp': inter_vn_explicit_proto['any'],
+                    'icmp': inter_vn_explicit_proto['any']}
+            elif ('any' in inter_vn_explicit_proto and 'udp' in inter_vn_explicit_proto):
+                final_inter_vn_implicit_rule = {
+                    'tcp': inter_vn_explicit_proto['any'],
+                    'icmp': inter_vn_explicit_proto['any']}
+            elif ('any' in inter_vn_explicit_proto and 'icmp' in inter_vn_explicit_proto):
+                final_inter_vn_implicit_rule = {
+                    'tcp': inter_vn_explicit_proto['any'],
+                    'udp': inter_vn_explicit_proto['any']}
+            else:
+                self.logger.error(
+                    "Only TCP,UDP and ICMP protocols are applicable for different network, Please define the proper protocol rules in policy")
+                sys.exit(0)
+        elif proto_inter_vn_len == 3:
+            if (
+                    'tcp' in inter_vn_explicit_proto and 'udp' in inter_vn_explicit_proto and 'icmp' in inter_vn_explicit_proto):
+                self.logger.info(
+                    "No need to run the implicit rule for defined explicit rules ")
+            elif ('tcp' in inter_vn_explicit_proto and 'udp' in inter_vn_explicit_proto and 'any' in inter_vn_explicit_proto):
+                final_inter_vn_implicit_rule = {
+                    'icmp': inter_vn_explicit_proto['any']}
+            elif ('tcp' in inter_vn_explicit_proto and 'icmp' in inter_vn_explicit_proto and 'any' in inter_vn_explicit_proto):
+                final_inter_vn_implicit_rule = {
+                    'udp': inter_vn_explicit_proto['any']}
+            elif ('icmp' in inter_vn_explicit_proto and 'udp' in inter_vn_explicit_proto and 'any' in inter_vn_explicit_proto):
+                final_inter_vn_implicit_rule = {
+                    'tcp': inter_vn_explicit_proto['any']}
+            else:
+                self.logger.error(
+                    "Only TCP,UDP and ICMP protocols are applicable for different network, Please define the proper protocol rules in policy")
+                sys.exit(0)
+        elif proto_inter_vn_len == 4:
+            if ('tcp' in inter_vn_explicit_proto and 'udp' in inter_vn_explicit_proto and 'icmp' in inter_vn_explicit_proto and
+                    'any' in inter_vn_explicit_proto):
+                self.logger.info(
+                    "No need to run the implicit rule for defined explicit rules ")
+            else:
+                self.logger.error(
+                    "All three protocols are not defined properly in policy for different network combination.")
+        elif proto_inter_vn_len > 4:
+            self.logger.error(
+                "Only TCP,UDP and ICMP protocols are applicable for different network, Please define the proper protocol rules in policy")
+            sys.exit(0)
+        else:
+            pass
+        final_intra_vn_implicit_rule = dict(
+            final_intra_vn_implicit_rule, **intra_vn_ntw)
+        final_inter_vn_implicit_rule = dict(
+            final_inter_vn_implicit_rule, **inter_vn_ntw)
+        # sending the 5 tuple list of same and different network implicit rules
+        # like implicit proto_list,src/dst ntws and ports
+        return (final_intra_vn_implicit_rule, final_inter_vn_implicit_rule)
+    # End parse_and_build_implicit_rule
+
+    def translate_of_implicit_rule_into_flow_params(
+            self,
+            all_implicit_rule,
+            config_topo,
+            topo):
+        # Defining the source network ,destination network ,src/dst ports and
+        # protocol list to run the traffic
+        if all_implicit_rule:
+            dpi = 9100
+            parse_im_rule = all_implicit_rule
+            src_ntw = parse_im_rule['src_ntw']
+            dst_ntw = parse_im_rule['dst_ntw']
+            topo_helper_obj = topology_helper(topo)
+            vms_from_vn = topo_helper_obj.get_vm_of_vn()
+            if src_ntw == dst_ntw:
+                source_vms = vms_from_vn[src_ntw]
+                test_vm = source_vms[0]
+                dst_vm = source_vms[1]
+                source_fixture = config_topo['vm'][test_vm]
+                dest_fixture = config_topo['vm'][dst_vm]
+                source_ntw = src_ntw
+                dest_ntw = dst_ntw
+            else:
+                source_vms = vms_from_vn[src_ntw]
+                dest_vms = vms_from_vn[dst_ntw]
+                test_vm = source_vms[0]
+                dst_vm = dest_vms[0]
+                source_fixture = config_topo['vm'][test_vm]
+                dest_fixture = config_topo['vm'][dst_vm]
+                source_ntw = src_ntw
+                dest_ntw = dst_ntw
+            if parse_im_rule['src_port'] != 9100:
+                dpi = parse_im_rule['src_port']
+            elif parse_im_rule['dst_port'] != 9100:
+                dpi = parse_im_rule['src_port']
+            if (
+                    'tcp' in parse_im_rule and 'udp' in parse_im_rule and 'icmp' in parse_im_rule):
+                proto_list = {
+                    'tcp': parse_im_rule['tcp'],
+                    'udp': parse_im_rule['udp'],
+                    'icmp': parse_im_rule['icmp']}
+            elif ('tcp' in parse_im_rule and 'udp' in parse_im_rule):
+                proto_list = {
+                    'tcp': parse_im_rule['tcp'],
+                    'udp': parse_im_rule['udp']}
+            elif ('tcp' in parse_im_rule and 'icmp' in parse_im_rule):
+                proto_list = {
+                    'tcp': parse_im_rule['tcp'],
+                    'icmp': parse_im_rule['icmp']}
+            elif ('udp' in parse_im_rule and 'icmp' in parse_im_rule):
+                proto_list = {
+                    'udp': parse_im_rule['udp'],
+                    'icmp': parse_im_rule['icmp']}
+            elif ('tcp' in parse_im_rule):
+                proto_list = {'tcp': parse_im_rule['tcp']}
+            elif ('icmp' in parse_im_rule):
+                proto_list = {'icmp': parse_im_rule['icmp']}
+            elif ('udp' in parse_im_rule):
+                proto_list = {'udp': parse_im_rule['udp']}
+        else:
+            self.logger.error(
+                "Implicit rules are not exist for defined policy")
+        return (proto_list, source_fixture, dest_fixture, dpi)
+        # End traslation_of_implicit_flow_params
+
+    @preposttest_wrapper
+    def test_policy_with_implict_rule_proto_traffic(self):
+        """ Call policy_test_for_implicit_rule_proto_traffic with multi VN scenario.
+        """
+        topo = sdn_policy_traffic_test_topo.sdn_3vn_4vm_config()
+        return self.policy_test_with_implicit_rule_proto_traffic(topo)
+
+    def policy_test_with_implicit_rule_proto_traffic(self, topo):
+        """ Pick 4 VM's for testing implicit rule for each policy and ...
+        test VM will be same for both same  and different network.
+        Generate traffic streams matching policy for  implicit rules - tcp,udp & icmp for now..
+        assert if traffic failure is seen as no disruptive trigger is applied here..
+        steps followed to generate and run the traffic for implicit rule
+        1.Parsing the policy and Building the implicit rule for selected policy
+        2.Translation of implicit rules into flow parameters for generating the traffic
+        3.Generating the traffic for defined implicit rules either for same or different network.
+        """
+        result = True
+        msg = []
+        #
+        # Test setup: Configure policy, VN, & VM
+        setup_obj = self.useFixture(
+            sdnTopoSetupFixture(self.connections, topo))
+        out = setup_obj.topo_setup()
+        #out= setup_obj.topo_setup(skip_verify='yes')
+        self.logger.info("Setup completed with result %s" % (out['result']))
+        self.assertEqual(out['result'], True, out['msg'])
+        if out['result']:
+            topo, config_topo = out['data']
+        # Setup/Verify Traffic ---
+        # 1. Define the Test VM params
+        topo.vmc_list = sorted(topo.vmc_list)
+        test_vm = topo.vmc_list[0]  # 'vmc0'
+        test_vn = topo.vn_of_vm[test_vm]  # 'vnet0'
+        test_vn_fix = config_topo['vn'][test_vn]
+        test_vn_id = test_vn_fix.vn_id
+        for policy in topo.policy_test_order:
+            # 2. set new policy for test_vn to policy
+            test_policy_fq_names = []
+            name = config_topo['policy'][
+                policy].policy_obj['policy']['fq_name']
+            test_policy_fq_names.append(name)
+            state = "policy for " + test_vn + " updated to " + policy
+            test_vn_fix.bind_policies(test_policy_fq_names, test_vn_id)
+            # wait for tables update before checking after making changes to
+            # system
+            time.sleep(5)
+            self.logger.info("new policy list of vn %s is %s" %
+                             (test_vn, policy))
+            # update expected topology with this new info for verification
+            updated_topo = policy_test_utils.update_topo(topo, test_vn, policy)
+            self.logger.info("Starting Verifications after %s" % (state))
+            policy_info = "policy in effect is : %s" % (topo.rules[policy])
+            self.logger.info(policy_info)
+            same_ntw_im_rule = {}
+            diff_ntw_im_rule = {}
+            # 3. Parsing  and Building the implicit rule for selected policy.
+            same_ntw_im_rule, diff_ntw_im_rule = self.parse_and_build_implicit_rule(
+                policy, topo)
+            # 4. Traslation of flow parameters (5-tuples) and run the traffic
+            # for same network implicit rule
+            if (
+                    'tcp' in same_ntw_im_rule or 'udp' in same_ntw_im_rule or 'icmp' in same_ntw_im_rule):
+                proto_list, source_fixture, dest_fixture, dpi = self.translate_of_implicit_rule_into_flow_params(
+                    same_ntw_im_rule, config_topo, topo)
+                self.logger.info(
+                    "For applied policy :%s ,Generated implicit rule for same network :%s" %
+                    (policy, same_ntw_im_rule))
+                self.logger.info(
+                    "Generating the traffic flow for same network with combination of protocol list: %s ,source ip :%s , dest-ip:%s,port-id:%d" %
+                    (proto_list, source_fixture.vm_ip, dest_fixture.vm_ip, dpi))
+                im_flow_result = self.traffic_generator_for_proto_list(
+                    proto_list,
+                    source_fixture,
+                    dest_fixture,
+                    dpi,
+                    policy_info,
+                    topo)
+                self.logger.info(
+                    "Traffic flow generation is done for same network implicit rule :%s",
+                    same_ntw_im_rule)
+            # 5.Translation of implicit rule into flow parameters(5-tuples) and
+            # run the traffic for different network implicit rule
+            if (
+                    'tcp' in diff_ntw_im_rule or 'udp' in diff_ntw_im_rule or 'icmp' in diff_ntw_im_rule):
+                proto_list, source_fixture, dest_fixture, dpi = self.translate_of_implicit_rule_into_flow_params(
+                    diff_ntw_im_rule, config_topo, topo)
+                self.logger.info(
+                    "For applied policy :%s ,Generated implicit rule for differnt network :%s" %
+                    (policy, diff_ntw_im_rule))
+                self.logger.info(
+                    "Genarating the traffic flow for different network with combination of protocol list: %s ,source ip :%s , dest-ip:%s,port-id:%d" %
+                    (proto_list, source_fixture.vm_ip, dest_fixture.vm_ip, dpi))
+                im_flow_result = self.traffic_generator_for_proto_list(
+                    proto_list,
+                    source_fixture,
+                    dest_fixture,
+                    dpi,
+                    policy_info,
+                    topo)
+                self.logger.info(
+                    "Traffic flow generation is done for different network implicit rule :%s",
+                    diff_ntw_im_rule)
+        return result
+        # end test_policy_with_implicit_proto_traffic
+
 # end of class TestSerialPolicy

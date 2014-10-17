@@ -39,7 +39,7 @@ class VMFixture(fixtures.Fixture):
     '''
 
     def __init__(self, connections, vm_name, vn_obj=None,
-                 vn_objs=[], project_name='admin',
+                 vn_objs=[], project_name=None,
                  image_name='ubuntu', subnets=[],
                  flavor='contrail_flavor_small',
                  node_name=None, sg_ids=[], count=1, userdata=None,
@@ -70,7 +70,6 @@ class VMFixture(fixtures.Fixture):
             self.vn_objs = [vn_objs]
         else:
             self.vn_objs = vn_objs
-        self.project_name = project_name
         self.flavor = flavor
         self.image_name = image_name
         self.vm_name = vm_name
@@ -87,6 +86,9 @@ class VMFixture(fixtures.Fixture):
             self.vn_fq_name = self.vn_fq_names[0]
         self.inputs = self.connections.inputs
         self.logger = self.inputs.logger
+        if not project_name:
+            project_name = self.inputs.stack_tenant
+        self.project_name = project_name
         self.already_present = False
         self.verify_is_run = False
         self.analytics_obj = self.connections.analytics_obj
@@ -921,6 +923,43 @@ class VMFixture(fixtures.Fixture):
                                  "%s in agent" % (self.vm_name))
             self.verify_vm_not_in_agent_flag = self.verify_vm_not_in_agent_flag and False
             result = result and False
+        for k,v in self.vrfs.items():
+            inspect_h = self.agent_inspect[k]
+            for vn_fq_name in self.vn_fq_names:
+                if inspect_h.get_vna_active_route(
+                                     vrf_id=v[vn_fq_name], 
+                                     ip=self.vm_ip_dict[vn_fq_name],
+                                     prefix='32') is not None:
+                    self.logger.warn(
+                        "Route for VM %s, IP %s is still seen in agent %s " %
+                        (self.vm_name, self.vm_ip_dict[vn_fq_name], ip))
+                    self.verify_vm_not_in_agent_flag = self.verify_vm_not_in_agent_flag and False
+                    result = result and False
+        #for vn_fq_name in self.vn_fq_names:
+        #    for compute_ip in self.inputs.compute_ips:
+        #        inspect_h = self.agent_inspect[compute_ip]
+        #        if inspect_h.get_vna_active_route(
+        #                vrf_id=self.vrfs[compute_ip][vn_fq_name],
+        #                ip=self.vm_ip_dict[vn_fq_name],
+        #                prefix='32') is not None:
+        #            self.logger.warn(
+        #                "Route for VM %s, IP %s is still seen in agent %s " %
+        #                (self.vm_name, self.vm_ip_dict[vn_fq_name], compute_ip))
+        #            self.verify_vm_not_in_agent_flag = self.verify_vm_not_in_agent_flag and False
+        #            result = result and False
+            if result:
+                self.logger.info(
+                    "VM %s is removed in Compute, and routes are removed "
+                    "in all agent nodes" % (self.vm_name))
+        return result
+    # end verify_vm_not_in_agent
+
+    @retry(delay=2, tries=20)
+    def verify_vm_routes_not_in_agent(self):
+        '''Verify that the VM routes is fully removed in all Agents. This will specfically address the scenario where VM interface is down ir shutoff
+        '''
+        result = True
+        inspect_h = self.agent_inspect[self.vm_node_ip]
         for vn_fq_name in self.vn_fq_names:
             for compute_ip in self.inputs.compute_ips:
                 inspect_h = self.agent_inspect[compute_ip]
@@ -935,10 +974,10 @@ class VMFixture(fixtures.Fixture):
                     result = result and False
             if result:
                 self.logger.info(
-                    "VM %s is removed in Compute, and routes are removed "
+                    "VM %s routes are removed "
                     "in all agent nodes" % (self.vm_name))
         return result
-    # end verify_vm_not_in_agent
+
 
     def get_control_nodes(self):
         bgp_ips = {}
@@ -1279,6 +1318,23 @@ class VMFixture(fixtures.Fixture):
         return True
     # end tcp_data_transfer
 
+    def get_vrf_ids_accross_agents(self):
+        vrfs = dict()
+        try:
+            for ip in self.inputs.compute_ips:
+                inspect_h = self.agent_inspect[ip]
+                dct = dict()    
+                for vn_fq_name in self.vn_fq_names:
+                    vrf_id = inspect_h.get_vna_vrf_id(vn_fq_name)
+                    if vrf_id:
+                        dct.update({vn_fq_name:vrf_id[0]})
+                if dct:
+                    vrfs[ip] = dct
+        except Exception as e:
+            print 'Got exceptionas %s'%e
+        finally:
+            return vrfs
+
     def cleanUp(self):
         super(VMFixture, self).cleanUp()
         do_cleanup = True
@@ -1292,6 +1348,8 @@ class VMFixture(fixtures.Fixture):
             if self.inputs.webui_config_flag:
                 self.webui.vm_delete_in_openstack(self)
             else:
+                self.vrfs = dict()
+                self.vrfs = self.get_vrf_ids_accross_agents()
                 for vm_obj in self.vm_objs:
                     for sec_grp in self.sg_ids:
                         self.logger.info(
@@ -1415,12 +1473,15 @@ class VMFixture(fixtures.Fixture):
         self.run_cmd_on_vm(cmds, as_sudo=True)
 
     @retry(delay=10, tries=5)
-    def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100'):
+    def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100', fip=None):
         '''
         Creates a file of "size" bytes and transfers to the VM in dest_vm_fixture using mode scp/tftp
         '''
         filename = 'testfile'
-        dest_vm_ip = dest_vm_fixture.vm_ip
+        if fip:
+           dest_vm_ip = fip
+        else:
+           dest_vm_ip = dest_vm_fixture.vm_ip
 
         # Create file
         cmd = 'dd bs=%s count=1 if=/dev/zero of=%s' % (size, filename)
@@ -1436,7 +1497,7 @@ class VMFixture(fixtures.Fixture):
             dest_vm_fixture.run_cmd_on_vm(
                 cmds=['sudo touch /var/lib/tftpboot/%s' % (filename),
                       'sudo chmod 777 /var/lib/tftpboot/%s' % (filename)])
-            self.tftp_file_to_vm(filename, vm_ip=dest_vm_fixture.vm_ip)
+            self.tftp_file_to_vm(filename, vm_ip=dest_vm_ip)
         else:
             self.logger.error('No transfer mode specified!!')
             return False
@@ -1613,7 +1674,7 @@ class VMFixture(fixtures.Fixture):
         with settings(host_string='%s@%s' % (host['username'],
                       self.vm_node_ip), password=host['password'],
                       warn_only=True, abort_on_prompts=False):
-            put('scripts/tcutils/fabfile.py', '~/')
+            put('tcutils/fabfile.py', '~/')
 
         # Check if ssh from compute node to VM works(with retries)
         cmd = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running wait_for_ssh:' % (
@@ -1711,7 +1772,7 @@ class VMFixture(fixtures.Fixture):
     def provision_static_route(
             self,
             prefix='111.1.0.0/16',
-            tenant_name='admin',
+            tenant_name=None,
             api_server_ip='127.0.0.1',
             api_server_port='8082',
             oper='add',
@@ -1720,6 +1781,8 @@ class VMFixture(fixtures.Fixture):
             user='admin',
             password='contrail123'):
 
+        if not tenant_name:
+            tenant_name = self.inputs.stack_tenant
         cmd = "python /opt/contrail/utils/provision_static_route.py --prefix %s \
                 --tenant_name %s  \
                 --api_server_ip %s \
@@ -1841,7 +1904,7 @@ class MultipleVMFixture(fixtures.Fixture):
     """
 
     def __init__(self, connections, vms=[], vn_objs=[], image_name='ubuntu',
-                 vm_count_per_vn=2, flavor='contrail_flavor_small', project_name='admin'):
+                 vm_count_per_vn=2, flavor='contrail_flavor_small', project_name=None):
         """
         vms     : List of dictionaries of VMData objects.
         or
@@ -1852,6 +1915,8 @@ class MultipleVMFixture(fixtures.Fixture):
 
         self.connections = connections
         self.nova_fixture = self.connections.nova_fixture
+        if not project_name:
+            project_name = connections.inputs.stack_tenant
         self.project_name = project_name
         self.vms = vms
         self.vm_count = vm_count_per_vn

@@ -689,11 +689,11 @@ class VerifyEvpnCases():
         # Explictly check that l3 routes are removed
         for compute_ip in self.inputs.compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
-            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name)
+            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             if vn is None:
                 continue
             agent_vrf_objs = inspect_h.get_vna_vrf_objs(
-                vn_name=self.vn1_fixture.vn_name)
+                vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             agent_vrf_obj = self.get_matching_vrf(
                 agent_vrf_objs['vrf_list'], self.vn1_fixture.vrf_name)
             agent_vrf_id = agent_vrf_obj['ucindex']
@@ -821,11 +821,11 @@ class VerifyEvpnCases():
         # Verify that configured vxlan_id shows up in agent introspect
         for compute_ip in self.inputs.compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
-            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name)
+            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             if vn is None:
                 continue
             agent_vrf_objs = inspect_h.get_vna_vrf_objs(
-                vn_name=self.vn1_fixture.vn_name)
+                vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             agent_vrf_obj = self.get_matching_vrf(
                 agent_vrf_objs['vrf_list'], self.vn1_fixture.vrf_name)
             agent_vrf_id = agent_vrf_obj['ucindex']
@@ -966,11 +966,11 @@ class VerifyEvpnCases():
         # Verify that configured vxlan_id shows up in agent introspect
         for compute_ip in self.inputs.compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
-            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name)
+            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             if vn is None:
                 continue
             agent_vrf_objs = inspect_h.get_vna_vrf_objs(
-                vn_name=self.vn1_fixture.vn_name)
+                vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             agent_vrf_obj = self.get_matching_vrf(
                 agent_vrf_objs['vrf_list'], self.vn1_fixture.vrf_name)
             agent_vrf_id = agent_vrf_obj['ucindex']
@@ -1132,11 +1132,11 @@ class VerifyEvpnCases():
         # Explictly check that l3 routes are removed
         for compute_ip in self.inputs.compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
-            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name)
+            vn = inspect_h.get_vna_vn(vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             if vn is None:
                 continue
             agent_vrf_objs = inspect_h.get_vna_vrf_objs(
-                vn_name=self.vn1_fixture.vn_name)
+                vn_name=self.vn1_fixture.vn_name, project=self.inputs.project_name)
             agent_vrf_obj = self.get_matching_vrf(
                 agent_vrf_objs['vrf_list'], self.vn1_fixture.vrf_name)
             agent_vrf_id = agent_vrf_obj['ucindex']
@@ -2343,16 +2343,20 @@ class VerifyEvpnCases():
         assert vn1_vm2_fixture.verify_on_setup()
         assert vn1_vm1_fixture.wait_till_vm_is_up()
         assert vn1_vm2_fixture.wait_till_vm_is_up()
-        for i in range(0, 20):
-            vm2_ipv6 = vn1_vm2_fixture.get_vm_ipv6_addr_from_vm()
-            if vm2_ipv6 is not None:
-                break
-        if vm2_ipv6 is None:
-            self.logger.error('Not able to get VM link local address')
-            return False
-        self.logger.info(
-            'Checking the communication between 2 VM using ping6 to VM link local address from other VM')
-        assert vn1_vm1_fixture.ping_to_ipv6(vm2_ipv6.split("/")[0])
+   
+        # Bug 1374192: Removing all traffic test from this case.
+        # This test case will only veirfy L2 route after vrouter restart
+        # Will add new test case for L2 fallback
+        #for i in range(0, 20):
+        #    vm2_ipv6 = vn1_vm2_fixture.get_vm_ipv6_addr_from_vm()
+        #    if vm2_ipv6 is not None:
+        #        break
+        #if vm2_ipv6 is None:
+        #    self.logger.error('Not able to get VM link local address')
+        #    return False
+        #self.logger.info(
+        #    'Checking the communication between 2 VM using ping6 to VM link local address from other VM')
+        #assert vn1_vm1_fixture.ping_to_ipv6(vm2_ipv6.split("/")[0])
         self.logger.info('Will restart compute  services now')
         for compute_ip in self.inputs.compute_ips:
             self.inputs.restart_service('contrail-vrouter', [compute_ip])
@@ -2361,22 +2365,22 @@ class VerifyEvpnCases():
             'Verifying L2 route and other VM verification after restart')
         assert vn1_vm1_fixture.verify_on_setup(force=True)
         assert vn1_vm2_fixture.verify_on_setup(force=True)
-        for i in range(0, 20):
-            vm2_ipv6 = vn1_vm2_fixture.get_vm_ipv6_addr_from_vm()
-            if vm2_ipv6 is not None:
-                break
-        if vm2_ipv6 is None:
-            self.logger.error('Not able to get VM link local address')
-            return False
-        self.logger.info(
-            'Checking the communication between 2 VM after vrouter restart')
-        self.tcpdump_start_on_all_compute()
-        assert vn1_vm1_fixture.ping_to_ipv6(
-            vm2_ipv6.split("/")[0], count='15')
-        comp_vm2_ip = vn1_vm2_fixture.vm_node_ip
-        if len(set(self.inputs.compute_ips)) >= 2:
-            self.tcpdump_analyze_on_compute(comp_vm2_ip, encap.upper())
-        self.tcpdump_stop_on_all_compute()
+        #for i in range(0, 20):
+        #    vm2_ipv6 = vn1_vm2_fixture.get_vm_ipv6_addr_from_vm()
+        #    if vm2_ipv6 is not None:
+        #        break
+        #if vm2_ipv6 is None:
+        #    self.logger.error('Not able to get VM link local address')
+        #    return False
+        #self.logger.info(
+        #    'Checking the communication between 2 VM after vrouter restart')
+        #self.tcpdump_start_on_all_compute()
+        #assert vn1_vm1_fixture.ping_to_ipv6(
+        #    vm2_ipv6.split("/")[0], count='15')
+        #comp_vm2_ip = vn1_vm2_fixture.vm_node_ip
+        #if len(set(self.inputs.compute_ips)) >= 2:
+        #    self.tcpdump_analyze_on_compute(comp_vm2_ip, encap.upper())
+        #self.tcpdump_stop_on_all_compute()
 
         return True
     # End test_epvn_with_agent_restart

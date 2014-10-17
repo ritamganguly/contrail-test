@@ -1,10 +1,10 @@
 import sys
 import os
 import fixtures
-#from contrail_test_init import *
+#from common.contrail_test_init import ContrailTestInit
 from nova_test import *
-from connections import ContrailConnections
-sys.path.append(os.path.realpath('scripts/tcutils/pkgs/Traffic'))
+from common.connections import ContrailConnections
+sys.path.append(os.path.realpath('tcutils/pkgs/Traffic'))
 from traffic.core.stream import Stream
 from traffic.core.profile import create, ContinuousProfile, ContinuousSportRange
 from traffic.core.helpers import Host
@@ -13,10 +13,6 @@ from traffic.core.helpers import Sender, Receiver
 class trafficTestFixture(fixtures.Fixture):
 
     def __init__(self, connections):
-        if 'PARAMS_FILE' in os.environ:
-            self.ini_file = os.environ.get('PARAMS_FILE')
-        else:
-            self.ini_file = 'params.ini'
         self.connections = connections
         self.inputs = self.connections.inputs
         self.nova_fixture = self.connections.nova_fixture

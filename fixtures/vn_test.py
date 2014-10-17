@@ -9,7 +9,7 @@ from netaddr import *
 from time import sleep
 from contrail_fixtures import *
 import inspect
-import policy_test_utils
+from common.policy import policy_test_utils
 import threading
 import sys
 from quantum_test import NetworkClientException
@@ -42,7 +42,7 @@ class VNFixture(fixtures.Fixture):
 # subnets=[], project_name= 'admin', router_asn='64512', rt_number=None,
 # ipam_fq_name=None, option = 'api'):
 
-    def __init__(self, connections, vn_name, inputs, policy_objs=[], subnets=[], project_name='admin', router_asn='64512', rt_number=None, ipam_fq_name=None, option='quantum', forwarding_mode=None, vxlan_id=None, shared=False, router_external=False, clean_up=True, project_obj= None):
+    def __init__(self, connections, vn_name, inputs, policy_objs=[], subnets=[], project_name=None, router_asn='64512', rt_number=None, ipam_fq_name=None, option='quantum', forwarding_mode=None, vxlan_id=None, shared=False, router_external=False, clean_up=True, project_obj= None):
         self.connections = connections
         self.inputs = inputs
         self.quantum_fixture = self.connections.quantum_fixture
@@ -56,6 +56,8 @@ class VNFixture(fixtures.Fixture):
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
+        if not project_name:
+            project_name = self.inputs.stack_tenant
         self.project_name = project_name
         self.project_obj = None
         self.project_id = None
@@ -251,9 +253,9 @@ class VNFixture(fixtures.Fixture):
             self.vn_id)
     # end setUp
 
-    def create_subnet(self, vn_subnet, ipam_fq_name):
+    def create_subnet(self, vn_subnet, ipam_fq_name, ip_version = 4):
         self.quantum_fixture.create_subnet(
-            vn_subnet, self.vn_id, ipam_fq_name)
+            vn_subnet, self.vn_id, ipam_fq_name, ip_version = ip_version)
 
     def verify_on_setup_without_collector(self):
         # once api server gets restarted policy list for vn in not reflected in
@@ -1011,6 +1013,8 @@ class VNFixture(fixtures.Fixture):
 
     def update_vn_object(self):
         self.obj = self.quantum_fixture.get_vn_obj_from_id(self.vn_id)
+        if not self.scale:
+            self.policy_objs = []
         if not self.policy_objs:
             for policy_fq_name in self.get_current_policies_bound():
                 self.policy_objs.append(
@@ -1058,7 +1062,7 @@ class MultipleVNFixture(fixtures.Fixture):
     """
 
     def __init__(self, connections, inputs, vn_count=1, subnet_count=1,
-                 vn_name_net={},  project_name='admin'):
+                 vn_name_net={},  project_name=None):
         """
         vn_count     : Number of VN's to be created.
         subnet_count : Subnet per each VN's
@@ -1080,6 +1084,8 @@ class MultipleVNFixture(fixtures.Fixture):
         """
         self.inputs = inputs
         self.connections = connections
+        if not project_name:
+            project_name = self.inputs.stack_tenant
         self.project_name = project_name
         self.vn_count = vn_count
         self.subnet_count = subnet_count

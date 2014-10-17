@@ -5,8 +5,8 @@ import unittest
 
 from testresources import ResourcedTestCase
 
-from connections import ContrailConnections
-from securitygroup.config import ConfigSecGroup
+from common.connections import ContrailConnections
+from common.securitygroup.config import ConfigSecGroup
 from tcutils.wrappers import preposttest_wrapper
 from securitygroup.setup import SecurityGroupSetupResource
 from verify import VerifySecGroup

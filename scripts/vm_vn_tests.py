@@ -14,14 +14,14 @@ import fixtures
 import testtools
 import traceback
 import traffic_tests
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from user_test import UserFixture 
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from floating_ip import *
 from control_node import *
 from policy_test import *
@@ -786,7 +786,7 @@ class TestVMVN(testtools.TestCase, fixtures.TestWithFixtures):
             '+++++ Will add a static route with the VM1 as the next-hop and verify the route entry in the agent ++++++')
         vm1_vmi_id = vm1_fixture.cs_vmi_obj[vn1_fixture.vn_fq_name][
             'virtual-machine-interface']['uuid']
-        add_static_route_cmd = 'python provision_static_route.py --prefix 1.2.3.4/32 --virtual_machine_interface_id ' + vm1_vmi_id + ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 \
+        add_static_route_cmd = 'python provision_static_route.py --prefix 1.2.3.4/32 --virtual_machine_interface_id ' + vm1_vmi_id + ' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 \
                 --oper add --route_table_name my_route_table'
         with settings(host_string='%s@%s' % (
                 self.inputs.host_data[self.inputs.cfgm_ip]['username'],
@@ -839,7 +839,7 @@ class TestVMVN(testtools.TestCase, fixtures.TestWithFixtures):
 
         self.logger.info(
             '-------------------------Will delete the static route now------------------')
-        del_static_route_cmd = 'python provision_static_route.py --prefix 1.2.3.4/32 --virtual_machine_interface_id ' + vm1_vmi_id + ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 \
+        del_static_route_cmd = 'python provision_static_route.py --prefix 1.2.3.4/32 --virtual_machine_interface_id ' + vm1_vmi_id + ' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 \
                 --oper del --route_table_name my_route_table'
         with settings(host_string='%s@%s' % (
                 self.inputs.host_data[self.inputs.cfgm_ip]['username'],

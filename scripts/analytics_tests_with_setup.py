@@ -15,13 +15,13 @@ import unittest
 import re
 import socket
 
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from floating_ip import *
 from policy_test import *
 from multiple_vn_vm_test import *
@@ -35,8 +35,8 @@ from traffic.core.stream import Stream
 from traffic.core.profile import create, ContinuousProfile, StandardProfile, BurstProfile, ContinuousSportRange
 from traffic.core.helpers import Host
 from traffic.core.helpers import Sender, Receiver
-from servicechain.config import ConfigSvcChain
-from servicechain.verify import VerifySvcChain
+from common.servicechain.config import ConfigSvcChain
+from common.servicechain.verify import VerifySvcChain
 from fabric.api import run, local
 
 # class AnalyticsTestSanity(testtools.TestCase, fixtures.TestWithFixtures,

@@ -15,13 +15,13 @@ import testtools
 import socket
 import test
 import base
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from floating_ip import *
 from policy_test import *
 from contrail_fixtures import *
@@ -78,7 +78,7 @@ class TestSanity_MX(base.FloatingIpBaseTest):
                 self.inputs.project_name, 'default')
             fvn_fixture = self.useFixture(
                 VNFixture(
-                    project_name='admin',
+                    project_name=self.inputs.stack_tenant,
                     connections= self.admin_connections,
                     vn_name=fvn_name,
                     inputs= self.admin_inputs,
@@ -104,7 +104,7 @@ class TestSanity_MX(base.FloatingIpBaseTest):
 
             fip_fixture = self.useFixture(
                 FloatingIPFixture(
-                    project_name='admin',
+                    project_name=self.inputs.stack_tenant,
                     inputs=self.admin_inputs,
                     connections=self.admin_connections,
                     pool_name=fip_pool_name,
@@ -215,7 +215,7 @@ class TestSanity_MX(base.FloatingIpBaseTest):
 
             fvn_fixture = self.useFixture(
                 VNFixture(
-                    project_name='admin',
+                    project_name=self.inputs.stack_tenant,
                     connections=self.admin_connections,
                     vn_name=fvn_name,
                     inputs=self.admin_inputs,
@@ -241,7 +241,7 @@ class TestSanity_MX(base.FloatingIpBaseTest):
 
             fip_fixture = self.useFixture(
                 FloatingIPFixture(
-                    project_name='admin',
+                    project_name=self.inputs.stack_tenant,
                     inputs=self.admin_inputs,
                     connections=self.admin_connections,
                     pool_name=fip_pool_name,

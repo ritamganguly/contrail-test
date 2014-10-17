@@ -23,6 +23,7 @@ from subprocess import Popen, PIPE
 import shlex
 from netaddr import *
 import random
+from tcutils.collector.opserver_introspect_utils import VerificationOpsSrvIntrospect
 
 months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun':
           6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
@@ -47,6 +48,22 @@ uve_dict = {
 uve_list = ['xmpp-peer/', 'config-node/', 'control-node/',
             'analytics-node/', 'generator/', 'bgp-peer/', 'dns-node/', 'vrouter/']
 
+
+http_introspect_ports = {'HttpPortConfigNodemgr' : 8100,
+                             'HttpPortControlNodemgr' : 8101,
+                             'HttpPortVRouterNodemgr' : 8102,
+                             'HttpPortDatabaseNodemgr' : 8103,
+                             'HttpPortAnalyticsNodemgr' : 8104,
+                             'HttpPortStorageStatsmgr' : 8105,
+                             'HttpPortControl' : 8083,
+                             'HttpPortApiServer' : 8084,
+                             'HttpPortAgent' : 8085,
+                             'HttpPortSchemaTransformer' : 8087,
+                             'HttpPortSvcMonitor' : 8088,
+                             'HttpPortCollector' : 8089,
+                             'HttpPortOpserver' : 8090,
+                             'HttpPortQueryEngine' : 8091,
+                             'HttpPortDns' : 8092}
 
 class AnalyticsVerification(fixtures.Fixture):
 
@@ -252,6 +269,18 @@ class AnalyticsVerification(fixtures.Fixture):
         # Verify module-ids correctly shown in the  collector uve for respective generators
          # verify module-id for bgp node in collector uve - should be
          # 'ControlNode'
+        for ip in self.inputs.bgp_ips:
+            assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortControl'])
+        for ip in self.inputs.cfgm_ips:
+            assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortApiServer'])
+        for ip in self.inputs.cfgm_ips:
+            assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortSchemaTransformer'])
+        for ip in self.inputs.cfgm_ips:
+            assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortSvcMonitor'])
+        for ip in self.inputs.collector_ips:
+            assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortOpserver'])
+        for ip in self.inputs.collector_ips:
+            assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortQueryEngine'])
         for ip in self.inputs.collector_ips:
             self.logger.info("Verifying through opserver in %s" % (ip))
             expected_module_id = ['ControlNode', 'DnsAgent']
@@ -730,9 +759,11 @@ class AnalyticsVerification(fixtures.Fixture):
                 return self.opsobj.get_ops_vn(vn_fq_name=vn_fq_name)
         return None
 
-    def verify_vn_uve_tiers(self, vn_fq_name='default-domain:admin:default-virtual-network'):
+    def verify_vn_uve_tiers(self, vn_fq_name=None):
         '''Verify that when vn is created , vn uve should show info from UveVirtualNetworkConfig and UveVirtualNetworkAgent'''
         result = False
+        if not vn_fq_name:
+            vn_fq_name='default-domain:%s:default-virtual-network'%self.inputs.stack_tenant
         for ip in self.inputs.collector_ips:
             self.logger.info("Verifying through opserver in  %s" % (ip))
             self.opsobj = self.ops_inspect[ip]
@@ -757,10 +788,11 @@ class AnalyticsVerification(fixtures.Fixture):
         return result
 
     @retry(delay=5, tries=6)
-    def verify_vn_uve_ri(self, vn_fq_name='default-domain:admin:default-virtual-network', ri_name=None):
+    def verify_vn_uve_ri(self, vn_fq_name=None, ri_name=None):
         '''Verify  routing instance element when vn  is created by apiserver'''
-
         result = True
+        if not vn_fq_name:
+            vn_fq_name='default-domain:%s:default-virtual-network'%self.inputs.stack_tenant
         for ip in self.inputs.collector_ips:
             self.logger.info("Verifying through opserver in %s" % (ip))
             self.opsobj = self.ops_inspect[ip]
@@ -792,10 +824,11 @@ class AnalyticsVerification(fixtures.Fixture):
         return result
 
     @retry(delay=5, tries=6)
-    def verify_ri_not_in_vn_uve(self, vn_fq_name='default-domain:admin:default-virtual-network', ri_name=None):
+    def verify_ri_not_in_vn_uve(self, vn_fq_name=None, ri_name=None):
         '''Verify  routing instance element when vn  is created by apiserver'''
-
         result = True
+        if not vn_fq_name:
+            vn_fq_name='default-domain:%s:default-virtual-network'%self.inputs.stack_tenant
         for ip in self.inputs.collector_ips:
             self.logger.info("Verifying through opserver in %s" % (ip))
             self.opsobj = self.ops_inspect[ip]
@@ -1444,8 +1477,10 @@ class AnalyticsVerification(fixtures.Fixture):
         return result
 # service instance uve functions
 
-    def get_svc_instance(self, collector, project='admin', instance=None):
+    def get_svc_instance(self, collector, project=None, instance=None):
         '''get the svc insance uve our put'''
+        if not project:
+            project = self.inputs.stack_tenant
         self.svc_obj = self.ops_inspect[
             collector].get_ops_svc_instance(svc_instance=instance)
         return self.svc_obj.get_attr('Config')
@@ -2681,11 +2716,13 @@ class AnalyticsVerification(fixtures.Fixture):
 
     def provision_static_route(
         self, prefix='111.1.0.0/16', virtual_machine_id='',
-        tenant_name='admin', api_server_ip='127.0.0.1',
+        tenant_name=None, api_server_ip='127.0.0.1',
         api_server_port='8082', oper='add',
         virtual_machine_interface_ip='11.1.1.252', route_table_name='my_route_table',
             user='admin', password='contrail123'):
 
+        if not tenant_name:
+            tenant_name = self.inputs.stack_tenant
         cmd = "python /opt/contrail/utils/provision_static_route.py --prefix %s \
                 --virtual_machine_id %s \
                 --tenant_name %s  \
@@ -2774,6 +2811,21 @@ class AnalyticsVerification(fixtures.Fixture):
                 self.logger.exception("Got exception as %s" % (e))
                 result = result and False
         return result
+
+    @retry(delay=5, tries=4)
+    def verify_collector_connection_introspect(self,ip,port):
+        conn=None
+        ops_inspect= VerificationOpsSrvIntrospect(ip,port)
+        conn=ops_inspect.get_collector_connectivity()
+        try:
+           if (conn['status'] =='Established'):
+               self.logger.info("ip %s port %s connected to collector %s "%(ip,port,conn['ip']))
+               return True
+           else:
+               self.logger.info("ip %s NOT connected to collector"%(ip))
+               return False
+        except Exception as e:
+           return False            
 
 #    @classmethod
     def setUp(self):

@@ -13,13 +13,13 @@ import fixtures
 import testtools
 import unittest
 
-from contrail_test_init import *
+from common.contrail_test_init import ContrailTestInit
 from vn_test import *
 from quantum_test import *
 from vnc_api_test import *
 from nova_test import *
 from vm_test import *
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from floating_ip import *
 from policy_test import *
 from multiple_vn_vm_test import *
@@ -2094,7 +2094,7 @@ import test
             'virtual-machine-interface']['uuid']
 
         add_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' + vm2_vmi_id + \
-            ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
+            ' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
         self.logger.info("Create static IP for 2.2.2.0/24 pointing to vm2 ")
         with settings(
             host_string='%s@%s' % (
@@ -2156,7 +2156,7 @@ import test
                 'Route with longest prefix match is followed as expected')
 
         del_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' + vm2_vmi_id + \
-            ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table'
+            ' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table'
         self.logger.info("Delete static IP for 2.2.2.0/24 pointing to vm2 ")
         with settings(
             host_string='%s@%s' % (
@@ -2371,7 +2371,7 @@ import test
         vm3_vmi_id = vm3_fixture.cs_vmi_obj[vn3_fixture.vn_fq_name]['virtual-machine-interface']['uuid']
         vm2_vmi_id = vm2_fixture.cs_vmi_obj[vn1_fixture.vn_fq_name]['virtual-machine-interface']['uuid']
 
-        add_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' +vm3_vmi_id+' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
+        add_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' +vm3_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
         self.logger.info("Create static route 2.2.2.0/24 pointing to vm3 \n")
         with settings(host_string= '%s@%s' %(self.inputs.username, self.inputs.cfgm_ips[0]),
                         password= self.inputs.password,warn_only=True,abort_on_prompts=False,debug=True):
@@ -2412,7 +2412,7 @@ import test
 
         static_route_vm2= vm2_fixture.vm_ips[1] + '/' + '32'
 
-        add_static_route_cmd = 'python provision_static_route.py --prefix ' + static_route_vm2 + ' --virtual_machine_interface_id ' +vm2_vmi_id+' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
+        add_static_route_cmd = 'python provision_static_route.py --prefix ' + static_route_vm2 + ' --virtual_machine_interface_id ' +vm2_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
         self.logger.info("Create static route %s pointing to vm111 eth0 interface \n"%static_route_vm2)
         with settings(host_string= '%s@%s' %(self.inputs.username, self.inputs.cfgm_ips[0]),
                         password= self.inputs.password,warn_only=True,abort_on_prompts=False,debug=True):
@@ -2435,8 +2435,8 @@ import test
         else:
            self.logger.info('Ping not going to vm333  as expected \n')
 
-        del_static_route_cmd1 = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' +vm3_vmi_id+' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table'
-        del_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm2 + ' --virtual_machine_interface_id ' +vm2_vmi_id+' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table'
+        del_static_route_cmd1 = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' +vm3_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table'
+        del_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm2 + ' --virtual_machine_interface_id ' +vm2_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table'
 
         self.logger.info("Delete static IP for 2.2.2.0/24 pointing to vm333 \n")
         self.logger.info("Delete static IP for %s pointing to vm111 \n"%static_route_vm2)
@@ -2516,8 +2516,8 @@ import test
         vm1_eth2_vmi_id = vm1_fixture.cs_vmi_obj[vn3_fixture.vn_fq_name]['virtual-machine-interface']['uuid']
 
         static_route_vm1_eth0 = vm1_fixture.vm_ip + '/' + '32'
-        add_static_route_cmd1 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0 + ' --virtual_machine_interface_id ' +vm1_eth1_vmi_id+' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table1'
-        add_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0 + ' --virtual_machine_interface_id ' +vm1_eth2_vmi_id+' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table2'
+        add_static_route_cmd1 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0 + ' --virtual_machine_interface_id ' +vm1_eth1_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table1'
+        add_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0 + ' --virtual_machine_interface_id ' +vm1_eth2_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table2'
         self.logger.info("Create static route %s pointing to eth0 of vm1 \n"%static_route_vm1_eth0)
         with settings(host_string= '%s@%s' %(self.inputs.username, self.inputs.cfgm_ips[0]),
                         password= self.inputs.password,warn_only=True,abort_on_prompts=False,debug=True):
@@ -2586,8 +2586,8 @@ import test
         else:
            self.logger.info('Traffic is not going through vm111 eth2 interface since associated vn name (vnbbb) is greater than vnaaa, longest prefix match followed \n')
 
-        del_static_route_cmd1 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0  + ' --virtual_machine_interface_id ' +vm1_eth1_vmi_id+' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table1'
-        del_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0  + ' --virtual_machine_interface_id ' +vm1_eth2_vmi_id+' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table2'
+        del_static_route_cmd1 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0  + ' --virtual_machine_interface_id ' +vm1_eth1_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table1'
+        del_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0  + ' --virtual_machine_interface_id ' +vm1_eth2_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table2'
         self.logger.info("Delete static route %s pointing to eth0 of vm1 \n"%static_route_vm1_eth0)
 
         with settings(host_string= '%s@%s' %(self.inputs.username, self.inputs.cfgm_ips[0]),

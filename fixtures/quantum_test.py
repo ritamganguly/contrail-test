@@ -85,8 +85,8 @@ class QuantumFixture(fixtures.Fixture):
     def create_network(
             self,
             vn_name,
-            vn_subnets,
-            ipam_fq_name,
+            vn_subnets=None,
+            ipam_fq_name=None,
             shared=False,
             router_external=False):
         """Create network given a name and a list of subnets.
@@ -114,10 +114,10 @@ class QuantumFixture(fixtures.Fixture):
                 'Quantum Exception while creating network %s' % (vn_name))
             return None
 
-    def create_subnet(self, subnet, net_id, ipam_fq_name=None):
+    def create_subnet(self, subnet, net_id, ipam_fq_name=None, ip_version = 4):
         subnet_req = subnet
         subnet_req['network_id'] = net_id
-        subnet_req['ip_version'] = 4
+        subnet_req['ip_version'] = ip_version
         subnet_req['cidr'] = unicode(subnet_req['cidr'])
         subnet_req['contrail:ipam_fq_name'] = ipam_fq_name
         try:
@@ -131,15 +131,6 @@ class QuantumFixture(fixtures.Fixture):
                 'Quantum Exception while creating subnet for vn with id %s' %
                 (net_id))
             return None
-
-        subnet_req = {'network_id': net_id,
-                      'cidr': cidr,
-                      'ip_version': 4,
-                      'contrail:ipam_fq_name': ipam_fq_name,
-                      }
-        subnet_rsp = self.obj.create_subnet({'subnet': subnet_req})
-        self.logger.debug('Response for create_subnet : ' + repr(subnet_rsp))
-        return subnet_rsp
     # end _create_subnet
 
     def create_port(self, net_id, subnet_id=None, ip_address=None,
@@ -183,6 +174,10 @@ class QuantumFixture(fixtures.Fixture):
             self.logger.debug('Get port on %s failed' % (port_id))
     # end get_port
 
+    def get_port_ips(self, port_id):
+        port_obj = self.get_port(port_id)
+        return [x['ip_address'] for x in port_obj['fixed_ips']]
+
     def create_security_group(self, name):
         sg_dict = {'name': name, 'description': 'SG-' + name}
         try:
@@ -219,7 +214,7 @@ class QuantumFixture(fixtures.Fixture):
         if remote_ip_prefix:
             sg_rule_dict['remote_ip_prefix'] = remote_ip_prefix
         try:
-            self.obj.create_security_group_rule(
+            sg_rule = self.obj.create_security_group_rule(
                 {'security_group_rule': sg_rule_dict})
         except CommonNetworkClientException as e:
             self.logger.exception(
@@ -278,6 +273,20 @@ class QuantumFixture(fixtures.Fixture):
 
         return result
     # end _delete_vn
+
+    def delete_quota(self, project_id):
+        result = True
+        try:
+            net_rsp = self.obj.delete_quota(project_id)
+            self.logger.debug('Response for deleting quota %s' %
+                              (str(net_rsp)))
+        except CommonNetworkClientException as e:
+            self.logger.exception(
+                'Quantum exception while quota delete for project %s' % (project_id))
+            result = False
+
+        return result
+    # end delete_quota
 
     def list_networks(self, args):
         try:
@@ -594,5 +603,204 @@ class QuantumFixture(fixtures.Fixture):
                 "Quantum Exception while running  quota update " + str(e))
         return quota_rsp
     # end update_quota
+
+    def create_lb_pool(self, name, lb_method, protocol, subnet_id):
+        '''Create lb pool. Returns the lb object created'''
+        pool_dict = {'name': name, 'lb_method': lb_method,
+                     'protocol': protocol, 'subnet_id': subnet_id}
+        try:
+            pool_resp = self.obj.create_pool(
+                {'pool': pool_dict})
+            return pool_resp['pool']
+        except CommonNetworkClientException as e:
+            self.logger.exception(
+                'Network Exception while creating LB Pool %s' % (name))
+            return None
+    # end create_lb_pool
+
+    def delete_lb_pool(self, pool_id):
+        '''Delete the lb'''
+        pool_rsp = self.obj.delete_pool(pool_id)
+        self.logger.debug('Response for delete_pool : ' + repr(pool_rsp))
+    # end delete_lb_pool
+
+    def update_lb_pool(self, pool_id, pool_dict):
+        pool_rsp = None
+        try:
+            pool_rsp = self.obj.update_pool(pool_id, pool_dict)
+        except CommonNetworkClientException as e:
+            self.logger.error(
+                "NetworkClient Exception while updating pool" + str(e))
+        return pool_rsp
+    # end update_lb_pool
+
+    def get_lb_pool(self, pool_id):
+        ''' Returns the pool dict
+            If pool_id is not found , returns None'''
+        try:
+            pool_obj = self.obj.show_pool(pool_id)
+        except CommonNetworkClientException as e:
+            self.logger.debug('Get pool on %s failed' % (pool_id))
+        return pool_obj
+    # end get_pool
+
+    def list_lb_pools(self):
+        ''' Returns the LB pools in this tenant'''
+        try:
+            pools_list = self.obj.list_pools()
+        except CommonNetworkClientException as e:
+            self.logger.debug('List pools failed')
+            return None
+        return pools_list['pools']
+
+    def create_health_monitor(self, delay, max_retries, probe_type, timeout):
+        '''Returns the neutron health monitor dict created '''
+        hm_dict = {'delay': delay, 'max_retries': max_retries,
+                   'type': probe_type, 'timeout': timeout}
+        try:
+            hm_resp = self.obj.create_health_monitor(
+                {'health_monitor': hm_dict})
+            return hm_resp['health_monitor']
+        except CommonNetworkClientException as e:
+            self.logger.exception(
+                'Network Exception while creating Health monitor')
+            return None
+    # end create_health_monitor
+
+    def delete_health_monitor(self, hm_id):
+        ''' Delete the Health monitor '''
+        hm_rsp = self.obj.delete_health_monitor(hm_id)
+        self.logger.debug(
+            'Response for delete_health_monitor : %s' + repr(hm_rsp))
+
+    def update_health_monitor(self, hm_id, hm_dict):
+        '''Update Health monitor object'''
+        hm_rsp = None
+        try:
+            hm_rsp = self.obj.update_health_monitor(hm_id, hm_dict)
+        except CommonNetworkClientException as e:
+            self.logger.error(
+                "NetworkClient Exception while updating Health monitr" + str(e))
+        return hm_rsp
+    # end update_health_monitor
+
+    def get_health_monitor(self, hm_id):
+        ''' Returns Health monitor object as dict. 
+            If not found, returns None
+        '''
+        try:
+            hm_obj = self.obj.show_health_monitor(hm_id)
+            return hm_obj['port']
+        except CommonNetworkClientException as e:
+            self.logger.debug('Get health-monitor on %s failed' % (hm_id))
+
+    def list_health_monitors(self):
+        ''' Returns a list of health monitor objects(dicts) in a tenant '''
+        try:
+            hm_list = self.obj.list_health_monitors()
+        except CommonNetworkClientException as e:
+            self.logger.error('List health-monitors failed')
+            return None
+        return hm_list['health_monitors']
+
+    def associate_health_monitor(self, pool_id, hm_id):
+        ''' Associate Health monitor to the pool. Returns True on success.
+            Returns False if it fails
+        '''
+        body = {'health_monitors': [hm_id]}
+        try:
+            hm_list = self.obj.associate_health_monitor(pool_id, body)
+        except CommonNetworkClientException as e:
+            self.logger.error('Associating HM %s to Pool %s failed' % (
+                              hm_id, pool_id))
+            return None
+        return hm_list['health_monitors']
+
+    def disassociate_health_monitor(pool_id, hm_id):
+        '''Disassociate health monitor from the pool
+        '''
+        self.obj.disassociate_health_monitor(pool_id, hm_id)
+
+    def create_vip(self, name, protocol, protocol_port, subnet_id, pool_id):
+        ''' Create vip in the pool. Returns the vip object as dict
+        '''
+        vip_dict = {'name': name,
+                    'protocol': protocol,
+                    'protocol_port': protocol_port,
+                    'subnet_id': subnet_id,
+                    'pool_id': pool_id}
+        try:
+            vip_resp = self.obj.create_vip(
+                {'vip': vip_dict})
+            return vip_resp['vip']
+        except CommonNetworkClientException as e:
+            self.logger.exception(
+                'Network Exception while creating vip %s' % (name))
+            return None
+    # end create_vip
+
+    def delete_vip(self, vip_id):
+        '''Delete the vip'''
+        self.obj.delete_vip(vip_id)
+
+    def update_vip(self, vip_id, vip_dict):
+        '''Update vip usign vip_dict. Returns the updated object as dict'''
+        vip_resp = None
+        try:
+            vip_resp = self.obj.update_vip(hm_id, vip_dict)
+        except CommonNetworkClientException as e:
+            self.logger.error(
+                "NetworkClient Exception while updating vip" + str(e))
+        return vip_resp
+    # end update_vip_resp
+
+    def show_vip(self, vip_id):
+        '''Returns the vip object using id. If not found, returns None'''
+        try:
+            vip_obj = self.obj.show_vip(vip_id)
+            return vip_obj['vip']
+        except CommonNetworkClientException as e:
+            self.logger.debug('Get vip on %s failed' % (vip_id))
+    # end show_vip
+
+    def list_vips(self):
+        '''List the vips in this tenant'''
+        try:
+            vip_list = self.obj.list_vips()
+        except CommonNetworkClientException as e:
+            self.logger.error('List vips failed')
+            return None
+        return vip_list['vips']
+
+    def create_lb_member(self, ip_address, protocol_port, pool_id):
+        '''Create lb member. Returns the created lb member as dict'''
+        member_dict = {'address':ip_address,
+                       'protocol_port':protocol_port,
+                       'pool_id':pool_id}
+        try:
+             member_resp = self.obj.create_member({'member': member_dict})
+             return member_resp['member']
+        except CommonNetworkClientException as e:
+            self.logger.exception('Network Exception while creating LB member with address %s' % (ip_address))
+            return None
+
+    def delete_lb_member(self, lb_member_id):
+        '''Delete the lb member'''
+        member_resp = self.obj.delete_member(lb_member_id)
+        self.logger.debug('Response for delete_member : ' + repr(member_resp))
+    # end delete_lb_member
+
+    def update_lb_member(self, lb_member_id, lb_member_dict):
+        '''Update lb member using lb_member_dict. 
+           Returns the updated object '''
+        pass
+
+    def list_lb_members(self):
+        '''Returns a list of lb member objects in the tenant'''
+        pass
+
+    def show_lb_member(self, lb_member_id):
+        '''Returns the lb member dict '''
+        pass
 
 # end QuantumFixture

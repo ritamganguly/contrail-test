@@ -38,13 +38,11 @@ class NovaFixture(fixtures.Fixture):
         self.logger = inputs.logger
         self.images_info = parse_cfg_file('configs/images.cfg')
         self.flavor_info = parse_cfg_file('configs/flavors.cfg')
-        self.logger.info("Inside nova client")
     # end __init__
 
     def setUp(self):
         super(NovaFixture, self).setUp()
         insecure = bool(os.getenv('OS_INSECURE',True)) 
-        self.logger.info("Inside nova client - before nova client object")
         self.obj = mynovaclient.Client('2',
                                        username=self.username,
                                        project_id=self.project_name,
@@ -52,7 +50,6 @@ class NovaFixture(fixtures.Fixture):
                                        auth_url=self.auth_url,
                                        insecure=insecure)
 
-        self.logger.info("Inside nova client - after nova client object")
         try:
             f = '/tmp/%s'%self.key
             lock = Lock(f)
@@ -60,9 +57,7 @@ class NovaFixture(fixtures.Fixture):
             self._create_keypair(self.key)
         finally:
             lock.release()
-        self.logger.info("Inside nova client - after nova client object compute nodes")
         self.compute_nodes = self.get_compute_host()
-        self.logger.info("Exit client - after nova client object compute nodes")
     # end setUp
 
     def cleanUp(self):
@@ -104,7 +99,7 @@ class NovaFixture(fixtures.Fixture):
 #       except novaException.NotFound:
         if not got_image:
             self._install_image(image_name=image_name)
-        got_image = self.find_image(image_name)
+            got_image = self.find_image(image_name)
         return got_image
     # end get_image
 
@@ -254,7 +249,6 @@ class NovaFixture(fixtures.Fixture):
                 self.logger.debug('Reading publick key')
                 pub_key = open('/tmp/id_rsa.pub', 'r').read()
                 self.obj.keypairs.create(key_name, public_key=pub_key)
-                self.logger.debug('Exit create_keypair')
     # end _create_keypair
 
     def get_nova_services(self, **kwargs):

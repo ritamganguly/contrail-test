@@ -6,7 +6,7 @@ import time
 from vn_test import *
 from vm_test import *
 from user_test import UserFixture
-from connections import ContrailConnections
+from common.connections import ContrailConnections
 from tcutils.wrappers import preposttest_wrapper
 
 from project.base import BaseProjectTest
