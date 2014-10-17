@@ -5,11 +5,18 @@
 #
 import fixtures
 from base import BaseHeadlessVrouterTest
-from topo_helper import *
+from tcutils.topo import topo_helper
 from tcutils.wrappers import preposttest_wrapper
-from sdn_topo_setup import *
+from tcutils.topo.sdn_topo_setup import sdnTopoSetupFixture
+from vn_test import VNFixture
+from vm_test import VMFixture
+from ipam_test import IPAMFixture
+from policy_test import PolicyFixture
+from vn_policy_test import VN_Policy_Fixture
 import time
 import traffic_tests
+import os
+import sys
 sys.path.append(os.path.realpath('tcutils/pkgs/Traffic'))
 from traffic.core.stream import Stream
 from traffic.core.profile import create, ContinuousProfile
@@ -542,27 +549,6 @@ class TestHeadlessVrouter(BaseHeadlessVrouterTest):
                 "Verification of VM41 FAILED while control nodes down.")
             test_flag = 1
 
-        # check ping failure between the two VM's
-        try:
-            if (config_topo['project1']['vm']['VM11'].ping_with_certainty(
-                    VM22_fixture.vm_ip, expectation=False)):
-                self.logger.info(
-                    "Ping failed as expected between VM11 and VM22.")
-            else:
-                self.logger.error(
-                    "Ping passed unexpectedly between VM11 and VM22.")
-                test_flag = 1
-        except:
-            self.logger.error("Ping exception between VM11 and VM22.")
-            test_flag = 1
-
-        try:
-            VM31_fixture.ping_with_certainty(
-                VM41_fixture.vm_ip,
-                expectation=False)
-        except:
-            self.logger.info("Ping failed as expected between VM31 and VM41.")
-
         # start all control services.
         headless_vr_utils.start_all_control_services(self)
 
@@ -575,19 +561,6 @@ class TestHeadlessVrouter(BaseHeadlessVrouterTest):
         # wait for 3 to 5 sec for configuration sync from control nodes to the
         # agents.
         time.sleep(5)
-
-        # get the vm node ips where vms have been launched.
-        VM22_fixture.vm_node_ip = self.inputs.host_data[
-            self.nova_fixture.get_nova_host_of_vm(
-                VM22_fixture.vm_obj)]['host_ip']
-
-        VM31_fixture.vm_node_ip = self.inputs.host_data[
-            self.nova_fixture.get_nova_host_of_vm(
-                VM41_fixture.vm_obj)]['host_ip']
-
-        VM41_fixture.vm_node_ip = self.inputs.host_data[
-            self.nova_fixture.get_nova_host_of_vm(
-                VM41_fixture.vm_obj)]['host_ip']
 
         # wait till VM's are up.
         VM22_fixture.wait_till_vm_is_up()

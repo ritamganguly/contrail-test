@@ -285,9 +285,11 @@ class ComputeNodeFixture(fixtures.Fixture):
         mode = 'true'
         self.logger.info ('Set the agent in headless mode!!!')
         self.get_agent_conf_file()
+        self.read_agent_config()
         self.config.set('DEFAULT', 'headless_mode', mode)
         file= self.write_agent_config()
-        self.put_agent_conf_file(file)
+        self.write_agent_config()
+        self.put_agent_conf_file()
         self.sup_vrouter_process_restart()
     # end set_agent_headless_mode
 
