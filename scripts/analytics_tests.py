@@ -273,10 +273,14 @@ class AnalyticsVerification(fixtures.Fixture):
             assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortControl'])
         for ip in self.inputs.cfgm_ips:
             assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortApiServer'])
+        result = False
         for ip in self.inputs.cfgm_ips:
-            assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortSchemaTransformer'])
+            result= result or self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortSchemaTransformer'])
+        assert result
+        result = False
         for ip in self.inputs.cfgm_ips:
-            assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortSvcMonitor'])
+            result = result or self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortSvcMonitor'])
+        assert result
         for ip in self.inputs.collector_ips:
             assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortOpserver'])
         for ip in self.inputs.collector_ips:
