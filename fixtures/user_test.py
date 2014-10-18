@@ -1,3 +1,4 @@
+import os
 import fixtures
 from keystoneclient.v2_0 import client as ksclient
 import uuid
@@ -16,7 +17,9 @@ class UserFixture(fixtures.Fixture):
         self.inputs= connections.inputs
         self.connections= connections
         self.logger = self.inputs.logger
-        self.auth_url = 'http://%s:5000/v2.0' % (self.inputs.openstack_ip)
+        self.auth_url = os.getenv('OS_AUTH_URL') or \
+                                'http://' + self.inputs.openstack_ip + ':5000/v2.0'
+        insecure = bool(os.getenv('OS_INSECURE', True))
         self.already_present = False
         self.username = username 
         self.password = password 
@@ -31,7 +34,9 @@ class UserFixture(fixtures.Fixture):
                 token=self.token, endpoint=self.endpoint)
         else:
             self.keystone = ksclient.Client(
-                username=self.inputs.stack_user, password=self.inputs.stack_password, tenant_name=self.inputs.project_name, auth_url=self.auth_url)
+                username=self.inputs.stack_user, password=self.inputs.stack_password,
+                tenant_name=self.inputs.project_name, auth_url=self.auth_url,
+                insecure=insecure)
     # end __init__
 
     def get_role_dct(self, role_name):

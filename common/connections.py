@@ -33,13 +33,14 @@ class ContrailConnections():
         password = password or self.inputs.stack_password
         self.keystone_ip = self.inputs.keystone_ip
 
+        insecure = bool(os.getenv('OS_INSECURE', True))
         self.ks_client = ks_client.Client(
             username=username,
             password=password,
             tenant_name=project_name,
             auth_url = os.getenv('OS_AUTH_URL') or \
-                                 'http://' + self.keystone_ip + ':5000/v2.0'
-        )
+                                 'http://' + self.keystone_ip + ':5000/v2.0',
+                                 insecure=insecure)
         self.project_id = get_dashed_uuid(self.ks_client.tenant_id)
 
         if self.inputs.webui_verification_flag:

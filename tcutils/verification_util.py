@@ -24,7 +24,7 @@ class JsonDrv (object):
     def _auth(self):
         if self._args:
             if os.getenv('OS_AUTH_URL'):
-                url = os.getenv('OS_AUTH_URL') + 'tokens'
+                url = os.getenv('OS_AUTH_URL') + '/tokens'
             else:
                 url = "http://%s:%s%s" % (self._args.openstack_ip,
                                          self._authn_port, 
