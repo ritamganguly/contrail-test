@@ -278,18 +278,21 @@ class VPCVMFixture(fixtures.Fixture):
         with hide('everything'):
             with settings(
                 host_string='%s@%s' % (username, self.cfgm_ip),
-                    password=password, warn_only=True, abort_on_prompts=False):
-                rsa_pub_file = os.environ.get('HOME') + '/.ssh/id_rsa.pub'
-                rsa_pub_arg = os.environ.get('HOME') + '/.ssh/id_rsa'
+                    password=password, warn_only=True, abort_on_prompts=True):
+                rsa_pub_arg = '.ssh/id_rsa'
+                self.logger.debug('Creating keypair')
                 if exists('.ssh/id_rsa.pub'):  # If file exists on remote m/c
-                    get('.ssh/id_rsa.pub', '/tmp/')
+                    self.logger.debug('Public key exists. Getting public key')
                 else:
-                    run('rm -f .ssh/id_rsa.pub')
+                    self.logger.debug('Making .ssh dir')
+                    run('mkdir -p .ssh')
+                    self.logger.debug('Removing id_rsa*')
+                    run('rm -f .ssh/id_rsa*')
+                    self.logger.debug('Creating key using : ssh-keygen -f -t rsa -N')
                     run('ssh-keygen -f %s -t rsa -N \'\'' % (rsa_pub_arg))
-                    get('.ssh/id_rsa.pub', '/tmp/')
+                    self.logger.debug('Getting the created keypair')
+                get('.ssh/id_rsa.pub', '/tmp/')
                 self.ec2_base._shell_with_ec2_env(
                     'euca-import-keypair -f /tmp/id_rsa.pub %s' % (self.key), True)
-                local('rm /tmp/id_rsa.pub')
-    # end _create_keypair
 
 # end VPCVMFixture
