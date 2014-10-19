@@ -74,6 +74,7 @@ class TestCRUD(BaseNeutronTest):
             try:
                 response = self.neutron_h.create_network(body)
                 self.log.info("Network Create Response : %s" % (response))
+                self.addCleanup(self._delete_network, response['network']['id'])
             except NeutronClientException, e:
                 assert False, "NeutronClientException %s with neutron "\
                               "create network : %s" % (e, body)
@@ -82,7 +83,6 @@ class TestCRUD(BaseNeutronTest):
                 " Body : %s, Response : %s" % (body, response)
             self.log.info("Network create request PASSED , Body : "
                           "%s" % (body))
-            self.addCleanup(self._delete_network, response['network']['id'])
             # Do read tests
             self.read_network_tests(response['network'])
             # Do update tests
@@ -190,6 +190,7 @@ class TestCRUD(BaseNeutronTest):
             try:
                 response = self.neutron_h.create_subnet(body)
                 self.log.info("Subnet create Response : %s" % (response))
+                self.addCleanup(self._delete_subnet, response['subnet']['id'])
             except NeutronClientException, e:
                 assert False, "NeutronClientException %s with create \
                                 subnet : %s" % (e, body)
@@ -198,7 +199,6 @@ class TestCRUD(BaseNeutronTest):
                     body, response)
             self.log.info("Subnet create request PASSED , Body : %s" % (
                 body))
-            self.addCleanup(self._delete_subnet, response['subnet']['id'])
             subnet_id = response['subnet']['id']
             # Do read tests
             self.read_subnet_tests(response['subnet'])
@@ -330,6 +330,7 @@ class TestCRUD(BaseNeutronTest):
             try:
                 response = self.neutron_h.create_port(body)
                 self.log.info("Port create Response : %s" % (response))
+                self.addCleanup(self._delete_port, response['port']['id'])
             except NeutronClientException, e:
                 assert False, "NeutronClientException %s with create port:"\
                     "%s" % (e, body)
@@ -337,71 +338,70 @@ class TestCRUD(BaseNeutronTest):
                 "Port Create request FAILED!!, Body : %s, Response : %s"\
                 % (body, response)
             self.log.info("Port create request PASSED ,Body : %s" % (body))
-            self.addCleanup(self._delete_port, response['port']['id'])
             port_id = response['port']['id']
             port_obj = response['port']
             # Do read tests
             self.read_port_tests(port_obj)
             # Do update tests
             self.update_port_tests(port_obj, network_obj, subnet_obj)
-            self._delete_port(port_id)
+            self._delete_port(response['port']['id'])
             self.log.info(self.newline)
     # end
 
     def _delete_port(self, port_id):
-        self._remove_from_cleanup(self._delete_port, port_id)
-        self.log.info('Deleting port %s' % (port_id))
-        try:
-            result = self.neutron_h.delete_port(port_id)
-            if result != "":
-                self.log.error('Result of delete port %s: %s' % (router_id,
-                                                                 result))
+        if self._remove_from_cleanup(self._delete_port, (port_id)):
+            self.log.info('Deleting port %s' % (port_id))
+            try:
+                result = self.neutron_h.delete_port(port_id)
+                if result != "":
+                    self.log.error('Result of delete port %s: %s' % (port_id,
+                                                                     result))
+                    return False
+            except NeutronClientException, e:
+                self.log.exception(e)
                 return False
-        except NeutronClientException, e:
-            self.log.exception(e)
-            return False
         return True
 
     def _delete_network(self, network_id):
-        self._remove_from_cleanup(self._delete_network, network_id)
-        self.log.info('Deleting network %s' % (network_id))
-        try:
-            result = self.neutron_h.delete_network(network_id)
-            if result != "":
-                self.log.error('Result of delete network %s: %s' % (router_id,
-                                                                    result))
+        if self._remove_from_cleanup(self._delete_network, (network_id)):
+            self.log.info('Deleting network %s' % (network_id))
+            try:
+                result = self.neutron_h.delete_network(network_id)
+                if result != "":
+                    self.log.error('Result of delete network %s: %s' % (
+                                    network_id, result))
+                    return False
+            except NeutronClientException, e:
+                self.log.exception(e)
                 return False
-        except NeutronClientException, e:
-            self.log.exception(e)
-            return False
         return True
 
     def _delete_subnet(self, subnet_id):
-        self._remove_from_cleanup(self._delete_subnet, subnet_id)
-        self.log.info('Deleting subnet %s' % (subnet_id))
-        try:
-            result = self.neutron_h.delete_subnet(subnet_id)
-            if result != "":
-                self.log.error('Result of delete subnet %s: %s' % (router_id,
-                                                                   result))
+        if self._remove_from_cleanup(self._delete_subnet, (subnet_id)):
+            self.log.info('Deleting subnet %s' % (subnet_id))
+            try:
+                result = self.neutron_h.delete_subnet(subnet_id)
+                if result != "":
+                    self.log.error('Result of delete subnet %s: %s' % (
+                                    subnet_id, result))
+                    return False
+            except NeutronClientException, e:
+                self.log.exception(e)
                 return False
-        except NeutronClientException, e:
-            self.log.exception(e)
-            return False
         return False
 
     def _delete_router(self, router_id):
-        self._remove_from_cleanup(self._delete_router, router_id)
-        self.log.info('Deleting router %s' % (router_id))
-        try:
-            result = self.neutron_h.delete_router(router_id)
-            if result != "":
-                self.log.error('Result of delete router %s: %s' % (router_id,
-                                                                   result))
+        if self._remove_from_cleanup(self._delete_router, (router_id)):
+            self.log.info('Deleting router %s' % (router_id))
+            try:
+                result = self.neutron_h.delete_router(router_id)
+                if result != "":
+                    self.log.error('Result of delete router %s: %s' % (
+                                    router_id, result))
+                    return False
+            except NeutronClientException, e:
+                self.log.exception(e)
                 return False
-        except NeutronClientException, e:
-            self.log.exception(e)
-            return False
         return True
 
     @run_once
@@ -507,6 +507,7 @@ class TestCRUD(BaseNeutronTest):
             try:
                 response = self.neutron_h.create_router(body)
                 self.log.info("Router create Response : %s" % (response))
+                self.addCleanup(self._delete_router, response['router']['id'])
             except NeutronClientException, e:
                 assert False, "NeutronClientException %s with neutron create "\
                               "router : %s" % (e, body)
@@ -514,7 +515,6 @@ class TestCRUD(BaseNeutronTest):
                 "Router Create request FAILED!!, Body : %s, Response : %s" % (
                     body, response)
             self.log.info("Router create PASSED ,Body : %s" % (body))
-            self.addCleanup(self._delete_router, response['router']['id'])
             # Do read tests
             self.read_router_tests(response['router'])
             # Do update tests
