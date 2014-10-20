@@ -7,7 +7,7 @@ from user_test import UserFixture
 from project_test import ProjectFixture
 from common.neutron.base import BaseNeutronTest
 from test import *
-from common import isolated_creds
+from common.isolated_creds import IsolatedCreds
 from tcutils.util import *
 
 
@@ -77,26 +77,17 @@ class TestQuotaUpdate(BaseNeutronTest):
             virtual_machine_interface=5,
             security_group=5)
 
-        project_name = get_random_name('Project')
-        user_fixture = self.useFixture(UserFixture(
-            connections=self.admin_connections, username='test_usr',
-            password='testusr123'))
-        project_fixture_obj = self.useFixture(ProjectFixture(
-            username=self.admin_inputs.stack_user,
-            password=self.admin_inputs.stack_password,
-            project_name=project_name,
-            vnc_lib_h=self.admin_connections.vnc_lib,
-            connections=self.admin_connections))
-        user_fixture.add_user_to_tenant(project_name, 'test_usr', 'admin')
-        assert project_fixture_obj.verify_on_setup()
-        proj_connection = project_fixture_obj.get_project_connections(
-            'test_usr',
-            'testusr123')
-        proj_inputs = self.useFixture(
-            ContrailTestInit(
-                self.ini_file, stack_user=project_fixture_obj.username,
-                stack_password=project_fixture_obj.password, project_fq_name=['default-domain', project_name],logger = self.logger))
-
+        project_name = 'Project'
+        isolated_creds = IsolatedCreds(
+            project_name,
+            self.admin_inputs,
+            ini_file=self.ini_file,
+            logger=self.logger)
+        isolated_creds.setUp()
+        project_obj = isolated_creds.create_tenant()
+        isolated_creds.create_and_attach_user_to_tenant()
+        proj_inputs = isolated_creds.get_inputs()
+        proj_connection = isolated_creds.get_conections()
         resource_dict = self.create_quota_test_resources(
             proj_inputs,
             proj_connection,
