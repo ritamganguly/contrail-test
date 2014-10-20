@@ -498,16 +498,16 @@ class TestRouters(BaseNeutronTest):
             ext_vn_fixture.vn_id)
         self.add_vn_to_router(router_dict['id'], vn1_fixture)
         self.add_vn_to_router(router_dict['id'], vn2_fixture)
-        assert self.verify_snat(vm1_fixture)
-        assert self.verify_snat(vm2_fixture)
+        assert self.verify_snat(vm1_fixture), "snat verification failed"
+        assert self.verify_snat(vm2_fixture), "snat verification failed"
 
         self.delete_vn_from_router(router_dict['id'], vn1_fixture)
 
-        assert not self.verify_snat(vm1_fixture, expectation=False)
-        assert self.verify_snat(vm2_fixture)
+        assert not self.verify_snat(vm1_fixture, expectation=False), "snat verification expexted to fail since vn %s is deleted from router %s " % (vn1_name, router_name)
+        assert self.verify_snat(vm2_fixture), "snat verification failed"
         self.add_vn_to_router(router_dict['id'], vn1_fixture)
-        assert self.verify_snat(vm1_fixture)
-        assert self.verify_snat(vm2_fixture)
+        assert self.verify_snat(vm1_fixture), "snat verification failed"
+        assert self.verify_snat(vm2_fixture), "snat verification failed"
 
     def verify_snat_with_fip(self, ext_vn_fixture, public_vm_fix, vm_fixture, connections, inputs):
         result = True
