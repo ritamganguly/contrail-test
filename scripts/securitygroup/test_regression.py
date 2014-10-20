@@ -949,7 +949,7 @@ class SecurityGroupRegressionTests7(BaseSGTest, VerifySecGroup, ConfigPolicy):
         self.logger.info("copying traceroute pkg to the compute node.")
         with settings(host_string='%s@%s' % (self.inputs.username, self.inputs.cfgm_ips[0]),
                       password=self.inputs.password, warn_only=True, abort_on_prompts=False):
-            path = self.inputs.test_repo_dir + '/scripts/tcutils/pkgs/' + pkg
+            path = self.inputs.test_repo_dir + '/tcutils/pkgs/' + pkg
             output = fab_put_file_to_vm(
                 host_string='%s@%s' %
                 (self.inputs.username,
