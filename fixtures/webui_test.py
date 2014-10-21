@@ -597,7 +597,7 @@ class WebuiTest:
                     analytics_nodes_ops_data.get('ModuleCpuState').get('module_cpu_info'))
                 for i in range(module_cpu_info_len):
                     if analytics_nodes_ops_data.get('ModuleCpuState').get('module_cpu_info')[i][
-                            'module_id'] == 'Collector':
+                            'module_id'] == 'Contrail-Collector':
                         cpu_mem_info_dict = analytics_nodes_ops_data.get(
                             'ModuleCpuState').get('module_cpu_info')[i]
                         break
@@ -777,7 +777,7 @@ class WebuiTest:
                 cpu_mem_info_dict = {}
                 for i in range(module_cpu_info_len):
                     if config_nodes_ops_data.get('ModuleCpuState').get('module_cpu_info')[i][
-                            'module_id'] == 'ApiServer':
+                            'module_id'] == 'Contrail-Api':
                         cpu_mem_info_dict = config_nodes_ops_data.get(
                             'ModuleCpuState').get('module_cpu_info')[i]
                         break
@@ -965,7 +965,7 @@ class WebuiTest:
 
                 generator_list = self.webui_common.get_generators_list_ops()
                 for element in generator_list:
-                    if element['name'] == ops_vrouter_name + ':Compute:VRouterAgent:0':
+                    if element['name'] == ops_vrouter_name + ':Compute:Contrail-Vrouter-Agent:0':
                         analytics_data = element['href']
                         break
                 generators_vrouters_data = self.webui_common.get_details(
@@ -1179,7 +1179,7 @@ class WebuiTest:
                     memory = self.webui_common.get_memory_string(memory)
                 generator_list = self.webui_common.get_generators_list_ops()
                 for element in generator_list:
-                    if element['name'] == ops_bgp_routers_name + ':Control:ControlNode:0':
+                    if element['name'] == ops_bgp_routers_name + ':Control:Contrail-Control:0':
                         analytics_data = element['href']
                         generators_vrouters_data = self.webui_common.get_details(
                             element['href'])
