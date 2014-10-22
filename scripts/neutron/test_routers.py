@@ -440,8 +440,6 @@ class TestRouters(BaseNeutronTest):
         vm2_fixture = self.create_vm(ext_vn_fixture, vm2_name,
                                          image_name='ubuntu')
         vm1_fixture.wait_till_vm_is_up()
-        vm1_fixture.wait_till_vm_is_up()
-        vm2_fixture.wait_till_vm_is_up()
         vm2_fixture.wait_till_vm_is_up()
 
         router_name = get_random_name('router1')
@@ -464,6 +462,52 @@ class TestRouters(BaseNeutronTest):
         self.add_vn_to_router(router_dict['id'], vn1_fixture)
         assert self.verify_snat(vm1_fixture)
         assert self.verify_snat_with_fip(ext_vn_fixture, vm2_fixture, vm1_fixture, connections= self.connections, inputs = self.inputs)
+
+    @skipIf(os.environ.get('MX_GW_TEST') != '1',"Skiping Test. Env variable MX_GW_TEST is not set. Skiping the test")
+    @preposttest_wrapper
+    def test_basic_snat_behavior_with_different_vns(self):
+        '''Create 2 private vns attached to external router
+           detaching one vn from router should not effect snat for other vn
+        '''
+        vm1_name = get_random_name('vm1_private')
+        vm2_name = get_random_name('vm2_private')
+        vn1_name = get_random_name('vn1_private')
+        vn1_subnets = [get_random_cidr()]
+        vn2_name = get_random_name('vn2_private')
+        vn2_subnets = [get_random_cidr()]
+
+        self.allow_default_sg_to_allow_all_on_project(self.inputs.project_name)
+        ext_vn_fixture = self.create_external_network(self.connections, self.inputs)
+        ext_vn_fixture.verify_on_setup()
+        vn1_fixture = self.create_vn(vn1_name, vn1_subnets)
+        vn1_fixture.verify_on_setup()
+        vn2_fixture = self.create_vn(vn2_name, vn2_subnets)
+        vn2_fixture.verify_on_setup()
+
+        vm1_fixture = self.create_vm(vn1_fixture, vm1_name,
+                                         image_name='ubuntu')
+        vm2_fixture = self.create_vm(vn2_fixture, vm2_name,
+                                         image_name='ubuntu')
+        vm1_fixture.wait_till_vm_is_up()
+        vm2_fixture.wait_till_vm_is_up()
+
+        router_name = get_random_name('router1')
+        router_dict = self.create_router(router_name)
+        router_rsp = self.quantum_fixture.router_gateway_set(
+            router_dict['id'],
+            ext_vn_fixture.vn_id)
+        self.add_vn_to_router(router_dict['id'], vn1_fixture)
+        self.add_vn_to_router(router_dict['id'], vn2_fixture)
+        assert self.verify_snat(vm1_fixture), "snat verification failed"
+        assert self.verify_snat(vm2_fixture), "snat verification failed"
+
+        self.delete_vn_from_router(router_dict['id'], vn1_fixture)
+
+        assert not self.verify_snat(vm1_fixture, expectation=False), "snat verification expexted to fail since vn %s is deleted from router %s " % (vn1_name, router_name)
+        assert self.verify_snat(vm2_fixture), "snat verification failed"
+        self.add_vn_to_router(router_dict['id'], vn1_fixture)
+        assert self.verify_snat(vm1_fixture), "snat verification failed"
+        assert self.verify_snat(vm2_fixture), "snat verification failed"
 
     def verify_snat_with_fip(self, ext_vn_fixture, public_vm_fix, vm_fixture, connections, inputs):
         result = True
