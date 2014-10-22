@@ -40,8 +40,7 @@ class QuantumFixture(fixtures.Fixture):
         self.quantum_port = '9696'
         self.username = username
         self.password = password
-        self.project_id = None
-        self.project_id = project_id
+        self.project_id = get_plain_uuid(project_id)
         self.cfgm_ip = cfgm_ip
         self.openstack_ip = openstack_ip
         self.inputs = inputs
@@ -53,30 +52,35 @@ class QuantumFixture(fixtures.Fixture):
 
     def setUp(self):
         super(QuantumFixture, self).setUp()
-        project_id = get_plain_uuid(self.project_id)
         insecure = bool(os.getenv('OS_INSECURE', True))
-        try:
-            httpclient = HTTPClient(username=self.username,
-                                    tenant_id=project_id,
-                                    password=self.password,
-                                    auth_url=self.auth_url,
-                                    insecure=insecure)
-            httpclient.authenticate()
-        except CommonNetworkClientException as e:
-            self.logger.exception('Exception while connection to Quantum')
-            raise e
-        OS_URL = httpclient.endpoint_url
-        OS_TOKEN = httpclient.auth_token
-        self.obj = client.Client(
-            '2.0',
-            endpoint_url=OS_URL,
-            token=OS_TOKEN,
-            insecure=insecure)
-        self.project_id = httpclient.auth_tenant_id
+        # Quantum Client class does not have tenant_id as argument
+        # So, do quantum auth differently
+        if 'quantum' in client.__name__:
+            self._do_quantum_authentication()
+        else:
+            self.obj = client.Client('2.0', username=self.username,
+                                     password=self.password,
+                                     tenant_id=self.project_id,
+                                     auth_url=self.auth_url)
     # end setUp
 
     def cleanUp(self):
         super(QuantumFixture, self).cleanUp()
+
+    def _do_quantum_authentication(self):
+        try:
+            httpclient = HTTPClient(username=self.username,
+                                    tenant_id= self.project_id,
+                                    password=self.password,
+                                    auth_url=self.auth_url)
+            httpclient.authenticate()
+        except CommonNetworkClientException, e:
+            self.logger.exception('Exception while connection to Quantum')
+            raise e
+        OS_URL = 'http://%s:%s/' % (self.cfgm_ip, self.quantum_port)
+        OS_TOKEN = httpclient.auth_token
+        self.obj = client.Client('2.0', endpoint_url=OS_URL, token=OS_TOKEN)
+    # end _do_quantum_authentication
 
     def get_handle(self):
         return self.obj

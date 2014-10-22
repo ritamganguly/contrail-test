@@ -15,7 +15,7 @@ from email.mime.text import MIMEText
 import datetime
 
 import fixtures
-from fabric.api import env, run , local
+from fabric.api import env, run , local, cd
 from fabric.operations import get, put
 from fabric.context_managers import settings, hide
 from fabric.exceptions import NetworkError
@@ -25,6 +25,7 @@ from tcutils.util import *
 from tcutils.custom_filehandler import *
 
 import subprocess
+CORE_DIR = '/var/crashes'
 
 #monkey patch subprocess.check_output cos its not supported in 2.6
 if "check_output" not in dir( subprocess ): # duck punch it in!
@@ -325,6 +326,7 @@ class ContrailTestInit:
         config.set('Test', 'timestamp', self.ts)
         config.set('Test', 'Report', self.html_log_link)
         config.set('Test', 'LogsLocation', self.log_link)
+        config.set('Test', 'Cores', self.get_cores())
         config.set('Test', 'Topology', phy_topology)
         #config.write(details_h)
 
@@ -413,12 +415,38 @@ class ContrailTestInit:
 	    return False
         return True
 
+    def get_cores(self):
+        '''Get the list of cores in all the nodes in the test setup
+        '''
+        self.cores = {}
+        for host in self.host_ips:
+            username = self.host_data[host]['username']
+            password = self.host_data[host]['password']
+            core = self.get_cores_node(host, username, password)
+            if core:
+                self.cores.update({host: core.split()})
+        # end for
+        return self.cores
+
+    def get_cores_node(self,node_ip, user, password):
+        """Get the list of cores in one of the nodes in the test setup.
+        """
+        cores = {}
+        with hide('everything'):
+            with settings(
+                host_string='%s@%s' % (user, node_ip), password=password,
+                    warn_only=True, abort_on_prompts=False):
+                with cd(CORE_DIR):
+                    core = run("ls core.* 2>/dev/null")
+        return core
+
 # end 
 
 # accept sanity_params.ini, report_details.ini, result.xml
-def main(arg1,arg2):
+def main(arg1):
     obj = ContrailTestInit(arg1)
     obj.setUp()
     #obj.upload_to_webserver(arg2)
+    obj.get_cores()
 if __name__ == "__main__":
-    main(sys.argv[1],sys.argv[2])
+    main(sys.argv[1])
