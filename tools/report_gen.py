@@ -91,6 +91,7 @@ class ContrailTestInit:
         self.os_type = {}
 
         self.report_details_file='report_details.ini'
+        self.distro = None
 
     # end __init__
 
@@ -100,6 +101,7 @@ class ContrailTestInit:
         else:
             self.prov_data = self._read_prov_file()
         self.build_id = self.get_build_id()
+        self.setup_detail = '%s %s' % (self.get_distro(), self.build_id)
         self.build_folder = self.build_id + '_' + self.ts
         self.log_path = os.environ.get('PWD') + '/logs/' + self.build_folder
         self.html_report = self.log_path + '/junit-noframes.html'
@@ -321,7 +323,7 @@ class ContrailTestInit:
         details_h = open(self.report_details_file, 'w')
         config = ConfigParser.ConfigParser()
         config.add_section('Test')
-        config.set('Test', 'Build', self.build_id)
+        config.set('Test', 'Build', self.setup_detail)
         config.set('Test', 'timestamp', self.ts)
         config.set('Test', 'Report', self.html_log_link)
         config.set('Test', 'LogsLocation', self.log_link)
@@ -343,7 +345,7 @@ class ContrailTestInit:
         if self.build_id:
             return self.build_id
         build_id = None
-        cmd = 'contrail-version|grep contrail | head -1 | awk \'{print $2}\''
+        cmd = 'contrail-version|grep contrail-install | head -1 | awk \'{print $2}\''
         tries = 50
         while not build_id and tries:
             try:
@@ -354,6 +356,22 @@ class ContrailTestInit:
                 pass
             
         return build_id.rstrip('\n')
+
+    def get_distro(self):
+        if self.distro:
+            return self.distro
+        cmd = '''
+            if [ -f /etc/lsb-release ]; then (cat /etc/lsb-release | grep DISTRIB_DESCRIPTION | cut -d "=" -f2 )
+            else
+                cat /etc/redhat-release | sed s/\(Final\)//
+            fi
+            '''
+        try:
+            self.distro = self.run_cmd_on_server(self.cfgm_ips[0], cmd)
+        except NetworkError,e:
+            self.distro = ''
+        return self.distro
+    # end get_distro
 
     def run_cmd_on_server(self, server_ip, issue_cmd, username=None,password=None, pty=True):
         if server_ip in self.host_data.keys():
