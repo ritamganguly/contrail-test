@@ -33,7 +33,7 @@ def update_xml(config_file, xmlfile):
         properties_elem.append(prop_elem)
     except ConfigParser.NoOptionError,e:
         pass
-        
+    
     prop_elem = ET.Element('property')
     prop_elem.set('name','Build') 
     prop_elem.set('value', build_id) 
@@ -50,6 +50,15 @@ def update_xml(config_file, xmlfile):
     properties_elem.append(prop_elem)
    
     ts_root.append(properties_elem)
+
+    try:
+        cores = config.get('Test', 'cores')
+        prop_elem = ET.Element('property')
+        prop_elem.set('name','cores')
+        prop_elem.set('value', cores)
+        properties_elem.append(prop_elem)
+    except ConfigParser.NoOptionError,e:
+        pass
     result_tree.write(xmlfile)
 # end 
     

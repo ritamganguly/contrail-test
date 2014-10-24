@@ -951,8 +951,10 @@ class TestBasicVMVN2(BaseVnVmTest):
         assert vm2_fixture.verify_on_setup()
         vm1_fixture.wait_till_vm_is_up()
         vm2_fixture.wait_till_vm_is_up()
-        assert vm1_fixture.ping_to_ip(vm2_fixture.vm_ip)
-        assert vm2_fixture.ping_to_ip(vm1_fixture.vm_ip)
+        assert vm1_fixture.ping_with_certainty(vm2_fixture.vm_ip),\
+            "Ping from %s to %s failed" % (vm1_fixture.vm_ip, vm2_fixture.vm_ip)
+        assert vm2_fixture.ping_with_certainty(vm1_fixture.vm_ip),\
+            "Ping from %s to %s failed" % (vm2_fixture.vm_ip, vm1_fixture.vm_ip)
         return True
     # end test_ping_within_vn
 

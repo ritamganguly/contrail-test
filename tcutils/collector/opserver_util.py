@@ -84,7 +84,7 @@ class OpServerUtils(object):
     def get_url_http(url):
         data = {}
         try:
-            if int(pkg_resources.get_distribution("requests").version[0]) == 1:
+            if int(pkg_resources.get_distribution("requests").version[0]) >= 1:
                 data = requests.get(url, stream=True)
             else:
                 data = requests.get(url, prefetch=False)
