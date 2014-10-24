@@ -17,7 +17,10 @@ def send_mail(config_file, file_to_send):
     smtpPort = config.get('Mail', 'port')
     mailSender = config.get('Mail', 'mailSender')
     mailTo = config.get('Mail', 'mailTo')
-    logScenario = config.get('Basic','logScenario')
+    if 'EMAIL_SUBJECT' in os.environ:
+        logScenario = os.environ.get('EMAIL_SUBJECT')
+    else:
+        logScenario = config.get('Basic','logScenario')
 
     if not mailTo:
         print 'Mail destination not configured. Skipping'
