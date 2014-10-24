@@ -101,19 +101,16 @@ class ContrailTestInit:
             self.prov_data = self._create_prov_data()
         else:
             self.prov_data = self._read_prov_file()
-        self.build_id = self.get_build_id()
-        self.setup_detail = '%s %s' % (self.get_distro(), self.build_id)
+        (self.build_id, self.sku) = self.get_build_id()
+        self.setup_detail = '%s %s~%s' % (self.get_distro_sku(), self.build_id,
+                                          self.sku)
         self.build_folder = self.build_id + '_' + self.ts
-        self.log_path = os.environ.get('PWD') + '/logs/' + self.build_folder
-        self.html_report = self.log_path + '/junit-noframes.html'
         self.web_server_path = self.config.get(
             'WebServer', 'path') + '/' + self.build_folder + '/'
-        self.html_log_link = 'http://%s/%s/%s/%s' % (self.web_server, self.path,
-                                      self.build_folder, self.html_report.split('/')[-1])
-        self.log_link = 'http://%s/%s/%s/logs/' % (self.web_server, self.path,
-                                      self.build_folder)
-#        self.html_log_link = '<a href=\"%s\">%s</a>' % (html_log_link,
-#                                                        html_log_link)
+        self.html_log_link = 'http://%s/%s/%s/junit-noframes.html' % (
+            self.web_server, self.web_root, self.build_folder)
+        self.log_link = 'http://%s/%s/%s/logs/' % (self.web_server, self.web_root,
+            self.build_folder)
 
         self.os_type = self.get_os_version()
         self.username = self.host_data[self.cfgm_ip]['username']
@@ -324,7 +321,8 @@ class ContrailTestInit:
         details_h = open(self.report_details_file, 'w')
         config = ConfigParser.ConfigParser()
         config.add_section('Test')
-        config.set('Test', 'Build', self.setup_detail)
+        config.set('Test', 'Build', self.build_id)
+        config.set('Test', 'Distro_Sku', self.setup_detail)
         config.set('Test', 'timestamp', self.ts)
         config.set('Test', 'Report', self.html_log_link)
         config.set('Test', 'LogsLocation', self.log_link)
@@ -357,9 +355,9 @@ class ContrailTestInit:
                 tries -= 1
                 pass
             
-        return build_id.rstrip('\n')
+        return build_id.rstrip('\n').split('~')
 
-    def get_distro(self):
+    def get_distro_sku(self):
         if self.distro:
             return self.distro
         cmd = '''
@@ -373,7 +371,7 @@ class ContrailTestInit:
         except NetworkError,e:
             self.distro = ''
         return self.distro
-    # end get_distro
+    # end get_distro_sku
 
     def run_cmd_on_server(self, server_ip, issue_cmd, username=None,password=None, pty=True):
         if server_ip in self.host_data.keys():
