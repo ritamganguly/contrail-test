@@ -20,8 +20,10 @@ from tcutils.agent.vna_introspect_utils import *
 from topo_helper import *
 from vnc_api import vnc_api
 from vnc_api.gen.resource_test import *
-from webui_test import *
-
+try:
+    from webui_test import *
+except ImportError:
+    pass
 
 class sdnTopoSetupFixture(fixtures.Fixture):
 
@@ -34,11 +36,10 @@ class sdnTopoSetupFixture(fixtures.Fixture):
         self.vnc_lib = self.connections.vnc_lib
         self.logger = self.inputs.logger
         self.topo = topo
-        if self.inputs.webui_verification_flag:
+        if self.inputs.is_gui_based_testing():
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
-            self.webui_verification_flag = self.inputs.webui_verification_flag
     # end __init__
 
     def setUp(self):

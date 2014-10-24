@@ -10,16 +10,32 @@ def get_build_id():
                     [cmd],stdout=subprocess.PIPE,shell=True).communicate()[0]
     return build_id.rstrip('\n')
 
+def read_config_option(config, section, option, default_option=None):
+    ''' Read the config file. If the option/section is not present, return the default_option
+    '''
+    try:
+        val = config.get(section, option)
+        if val.lower() == 'true':
+            val = True
+        elif val.lower() == 'false' or val.lower() == 'none':
+            val = False
+        elif not val:
+            val = default_option
+        return val
+    except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        return default_option
+# end read_config_option
+
 def send_mail(config_file, file_to_send):
     config = ConfigParser.ConfigParser()
     config.read(config_file)
-    smtpServer = config.get('Mail', 'server')
-    smtpPort = config.get('Mail', 'port')
-    mailSender = config.get('Mail', 'mailSender')
-    mailTo = config.get('Mail', 'mailTo')
-    logScenario = config.get('Basic','logScenario')
+    smtpServer = read_config_option(config, 'Mail', 'server')
+    smtpPort = read_config_option(config, 'Mail', 'port')
+    mailSender = read_config_option(config, 'Mail', 'mailSender', 'contrailbuild@juniper.net')
+    mailTo = read_config_option(config, 'Mail', 'mailTo')
+    logScenario = read_config_option(config, 'Basic', 'logScenario')
 
-    if not mailTo:
+    if not mailTo or not smtpServer or not smtpPort:
         print 'Mail destination not configured. Skipping'
         return True
     fp = open(file_to_send, 'rb')
@@ -32,14 +48,14 @@ def send_mail(config_file, file_to_send):
     msg['To'] = mailTo
 
     s = None
-    try: 
+    try:
         s = smtplib.SMTP(smtpServer, smtpPort)
     except Exception, e:
         print "Unable to connect to Mail Server"
         return False
     s.ehlo()
     try:
-        s.sendmail(mailSender, [mailTo], msg.as_string())
+        s.sendmail(mailSender, mailTo.split(","), msg.as_string())
         s.quit()
     except smtplib.SMTPException, e:
         print 'Error while sending mail'

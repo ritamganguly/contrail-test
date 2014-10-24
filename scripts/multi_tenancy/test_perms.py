@@ -56,7 +56,7 @@ class TestMultitenancy(BaseMultitenancyTest):
           10.Set IPAM perms such that owner/group has read/write permissions.try to update/read ipam with other user;should pass;else test fails
          Maintainer: sandipd@juniper.net
         '''
-        if self.inputs.multi_tenancy != 'True':
+        if not self.inputs.multi_tenancy:
             raise self.skipTest(
                 "Skiping Test. Multi-tenancy not enabled")
         result = True
@@ -358,7 +358,7 @@ class TestMultitenancy(BaseMultitenancyTest):
     @preposttest_wrapper
     def test_permissions_on_projects(self):
 
-        if self.inputs.multi_tenancy != 'True':
+        if not self.inputs.multi_tenancy:
             raise self.skipTest(
                 "Skiping Test. Multi-tenancy not enabled")
         proj_name = util.get_random_name('projF')
@@ -642,7 +642,7 @@ class TestMultitenancy(BaseMultitenancyTest):
     @preposttest_wrapper
     def test_permissions_on_policy_objects(self):
 
-        if self.inputs.multi_tenancy != 'True':
+        if not self.inputs.multi_tenancy:
             raise self.skipTest(
                 "Skiping Test. Multi-tenancy not enabled")
         proj_name = util.get_random_name('projF')
@@ -864,7 +864,7 @@ class TestMultitenancy(BaseMultitenancyTest):
 
     @preposttest_wrapper
     def test_permissions_on_vn_objects(self):
-        if self.inputs.multi_tenancy != 'True':
+        if not self.inputs.multi_tenancy:
             raise self.skipTest(
                 "Skiping Test. Multi-tenancy not enabled")
 

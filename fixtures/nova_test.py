@@ -213,7 +213,7 @@ class NovaFixture(fixtures.Fixture):
         run('pwd')
         cmd = '(source /etc/contrail/openstackrc; wget -O - %s | gunzip | glance add name="%s" \
                     is_public=true container_format=ovf disk_format=qcow2)' % (build_path, generic_image_name)
-        if self.inputs.http_proxy != 'None':
+        if self.inputs.http_proxy:
             with shell_env(http_proxy=self.inputs.http_proxy):
                 run(cmd)
         else:

@@ -71,7 +71,7 @@ if __name__ == "__main__":
     for test_class in test_classes:
         suite.addTests(loader.loadTestsFromTestCase(eval(test_class)))
         if test_class == 'TestPerms':
-            if x.inputs.multi_tenancy == 'True':
+            if x.inputs.multi_tenancy:
                 suite.addTest(TestPerms('test_all'))
     # end for
     descr = x.inputs.get_html_description()

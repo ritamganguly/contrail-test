@@ -9,7 +9,10 @@ import copy
 from tcutils.agent.vna_introspect_utils import *
 from common.policy import policy_test_utils
 import inspect
-from webui_test import *
+try:
+    from webui_test import *
+except ImportError:
+    pass
 
 #@contrail_fix_ext ()
 
@@ -34,7 +37,7 @@ class PolicyFixture(fixtures.Fixture):
         self.verify_is_run = False
         self.project_name = self.inputs.project_name
         self.api_flag = api
-        if self.inputs.webui_verification_flag:
+        if self.inputs.is_gui_based_testing():
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
@@ -53,7 +56,7 @@ class PolicyFixture(fixtures.Fixture):
                 self.policy_obj = self.quantum_fixture.get_policy_if_present(
                                           self.project_name, self.policy_name)
             if not self.policy_obj:
-                if self.inputs.webui_config_flag:
+                if self.inputs.is_gui_based_testing():
                     self.webui.create_policy_in_webui(self)
                 else:
                     self._create_policy(self.policy_name, self.rules_list)
@@ -376,7 +379,7 @@ class PolicyFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
-            if self.inputs.webui_config_flag:
+            if self.inputs.is_gui_based_testing():
                 self.webui.delete_policy_in_webui(self)
             else:
                 self._delete_policy()

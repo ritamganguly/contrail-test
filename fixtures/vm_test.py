@@ -21,7 +21,10 @@ from subprocess import Popen, PIPE
 from tcutils.pkgs.install import PkgHost, build_and_install
 
 env.disable_known_hosts = True
-from webui_test import *
+try:
+    from webui_test import *
+except ImportError:
+    pass
 #output.debug= True
 
 #@contrail_fix_ext ()
@@ -124,7 +127,7 @@ class VMFixture(fixtures.Fixture):
         self.userdata = userdata
         self.vm_username = None
         self.vm_password = None
-        if self.inputs.webui_verification_flag:
+        if self.inputs.is_gui_based_testing():
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
@@ -153,7 +156,7 @@ class VMFixture(fixtures.Fixture):
                 self.logger.debug('VM %s already present, not creating it'
                                   % (self.vm_name))
         else:
-            if self.inputs.webui_config_flag:
+            if self.inputs.is_gui_based_testing():
                 self.webui.create_vm_in_openstack(self)
             else:
                 objs = self.nova_fixture.create_vm(
@@ -236,7 +239,7 @@ class VMFixture(fixtures.Fixture):
         return False, errmsg
 
     def verify_on_setup(self, force=False):
-        if self.inputs.verify_on_setup == 'False' and not force:
+        if not (self.inputs.verify_on_setup or force):
             self.logger.info('Skipping VM %s verification' % (self.vm_name))
             return True
         result = True
@@ -250,7 +253,7 @@ class VMFixture(fixtures.Fixture):
             return result
 
         self.verify_vm_flag = result and vm_status[0] 
-        if self.inputs.webui_verification_flag:
+        if self.inputs.is_gui_based_testing():
             self.webui.verify_vm_in_webui(self)
         result = result and self.verify_vm_in_api_server()
         if not result:
@@ -1345,7 +1348,7 @@ class VMFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
-            if self.inputs.webui_config_flag:
+            if self.inputs.is_gui_based_testing():
                 self.webui.vm_delete_in_openstack(self)
             else:
                 self.vrfs = dict()

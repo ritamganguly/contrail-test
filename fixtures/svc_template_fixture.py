@@ -1,8 +1,10 @@
 import fixtures
 from vnc_api.vnc_api import *
 from tcutils.util import retry
-from webui_test import *
-
+try:
+    from webui_test import *
+except ImportError:
+    pass
 
 class SvcTemplateFixture(fixtures.Fixture):
 
@@ -27,7 +29,7 @@ class SvcTemplateFixture(fixtures.Fixture):
         self.inputs = inputs
         self.connections = connections
         self.nova_fixture = connections.nova_fixture
-        if self.inputs.webui_verification_flag:
+        if self.inputs.is_gui_based_testing():
             self.browser = connections.browser
             self.browser_openstack = connections.browser_openstack
             self.webui = WebuiTest(connections, inputs)
@@ -71,7 +73,7 @@ class SvcTemplateFixture(fixtures.Fixture):
                 svc_properties.add_interface_type(if_type)
 
             svc_template.set_service_template_properties(svc_properties)
-            if self.inputs.webui_config_flag:
+            if self.inputs.is_gui_based_testing():
                 self.webui.create_svc_template_in_webui(self)
             else:
                 self.vnc_lib_h.service_template_create(svc_template)

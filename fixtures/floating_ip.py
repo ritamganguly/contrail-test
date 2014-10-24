@@ -7,11 +7,12 @@ from contrail_fixtures import *
 import ast
 import sys
 from tcutils.util import retry
-#from analytics_tests import *
-from webui_test import *
+try:
+    from webui_test import *
+except ImportError:
+    pass
 
 #@contrail_fix_ext ()
-
 
 class FloatingIPFixture(fixtures.Fixture):
 
@@ -38,11 +39,10 @@ class FloatingIPFixture(fixtures.Fixture):
             self.pool_name = 'floating-ip-pool'
         else:
             self.pool_name = pool_name
-        if self.inputs.webui_verification_flag:
+        if self.inputs.is_gui_based_testing():
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
-            self.webui_verification_flag = self.inputs.webui_verification_flag
             self.vn_name = vn_name
     # end __init__
 
@@ -52,7 +52,7 @@ class FloatingIPFixture(fixtures.Fixture):
             project_name=self.project_name, vnc_lib_h=self.vnc_lib_h, connections=self.connections))
         self.project_obj = self.project_fixture.project_obj
         if not self.is_fip_pool_present(self.pool_name):
-            if self.inputs.webui_config_flag:
+            if self.inputs.is_gui_based_testing():
                 self.create_floatingip_pool_webui(self.pool_name, self.vn_name)
             else:
                 self.create_floatingip_pool(self.pool_name, self.vn_id)
@@ -510,7 +510,7 @@ class FloatingIPFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
-            if not self.inputs.webui_config_flag:
+            if not self.inputs.is_gui_based_testing():
                 self.logger.info('Deleting the FIP pool %s' %
                                  (self.pool_name))
                 self.delete_floatingip_pool()
