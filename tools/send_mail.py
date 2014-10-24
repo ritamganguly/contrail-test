@@ -3,6 +3,7 @@ import smtplib
 import subprocess
 import ConfigParser
 import sys
+import os
 
 def get_build_id():
     cmd = 'contrail-version|grep contrail | head -1 | awk \'{print $2}\''
