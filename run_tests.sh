@@ -117,7 +117,7 @@ function testr_init {
 function send_mail {
   if [ $send_mail -eq 1 ] ; then
      if [ -f report/junit-noframes.html ]; then
-        ${wrapper} python tools/send_mail.py $1 $2
+        ${wrapper} python tools/send_mail.py $1 $2 $3
      fi
   fi
 }
@@ -269,7 +269,7 @@ python tools/report_gen.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE
 generate_html 
 upload_to_web_server
 sleep 2
-send_mail $TEST_CONFIG_FILE $REPORT_FILE
+send_mail $TEST_CONFIG_FILE $REPORT_FILE $REPORT_DETAILS_FILE
 retval=$?
 
 exit $retval
