@@ -3,6 +3,7 @@ from tcutils.commands import ssh, execute_cmd, execute_cmd_out
 from fabric.context_managers import settings, hide
 from tcutils.util import run_fab_cmd_on_node
 import re
+from time import sleep
 
 class BaseTestLbaas(BaseNeutronTest):
 
@@ -85,7 +86,7 @@ class BaseTestLbaas(BaseNeutronTest):
                 with settings(host_string='%s@%s' % (self.inputs.username,server.vm_node_ip),
                               password=self.inputs.password, warn_only=True,abort_on_prompts= False):
                     cmd1 = 'sudo hostname > index.html'
-                    cmd2 = 'sudo python -m SimpleHTTPServer 80 & sleep 300'
+                    cmd2 = 'sudo python -m SimpleHTTPServer 80 & sleep 600'
                     output = run_fab_cmd_on_node(host_string = '%s@%s'%(server.vm_username,server.local_ip),
                                             password = server.vm_password, cmd = cmd1, as_sudo=False)
                     output = run_fab_cmd_on_node(host_string = '%s@%s'%(server.vm_username,server.local_ip),
@@ -114,3 +115,60 @@ class BaseTestLbaas(BaseNeutronTest):
                     self.logger.info("Request went to server: %s" % (response))
 
                 return (result,response)
+    #end run_wget
+
+    def get_netns_left_intf(self, server_ip, pool_uuid):
+        cmd = 'ip netns list | grep %s' % pool_uuid
+        left_int = ''
+        out = self.inputs.run_cmd_on_server(
+                                       server_ip, cmd,
+                                       self.inputs.host_data[server_ip]['username'],
+                                       self.inputs.host_data[server_ip]['password'])
+        pattern = "vrouter-((\w+-)+\w+):"
+        match = re.match(pattern, out)
+        if match:
+            netns = match.group(1)
+            inspect_h = self.agent_inspect[server_ip]
+            for tapint in inspect_h.get_vna_tap_interface_by_vm(netns):
+                if 'left interface' in tapint['vm_name']:
+                    left_int = tapint['name']
+        return left_int
+
+    def start_tcpdump(self, server_ip, tap_intf):
+        session = ssh(server_ip,self.inputs.host_data[server_ip]['username'],self.inputs.host_data[server_ip]['password'])
+        pcap = '/tmp/%s.pcap' % tap_intf
+        cmd = "tcpdump -nei %s tcp -w %s" % (tap_intf, pcap)
+        self.logger.info("Staring tcpdump to capture the packets on server %s" % (server_ip))
+        execute_cmd(session, cmd, self.logger)
+        return pcap, session
+
+    def stop_tcpdump(self,session, pcap):
+        self.logger.info("Waiting for the tcpdump write to complete.")
+        sleep(30)
+        cmd = 'kill $(pidof tcpdump)'
+        execute_cmd(session, cmd, self.logger)
+        cmd = 'tcpdump -r %s | wc -l' % pcap
+        out, err = execute_cmd_out(session, cmd, self.logger)
+        count = int(out.strip('\n'))
+        cmd = 'rm -f %s' % pcap
+        execute_cmd(session, cmd, self.logger)
+        return count
+
+    def start_stop_service(self, server_ip, service, action):
+        cmd =  "service %s %s" % (service, action)
+        out = self.inputs.run_cmd_on_server(
+                                   server_ip, cmd,
+                                   self.inputs.host_data[server_ip]['username'],
+                                   self.inputs.host_data[server_ip]['password'])
+        cmd = "service %s status" % (service)
+        output = self.inputs.run_cmd_on_server(
+                                   server_ip, cmd,
+                                   self.inputs.host_data[server_ip]['username'],
+                                   self.inputs.host_data[server_ip]['password'])
+        if action == 'stop' and 'STOPPED' in output:
+                self.logger.info("%s service stopped in server %s" % (service, server_ip))
+        elif action == 'start' and 'RUNNING' in output:
+                self.logger.info("%s service running in server %s" % (service, server_ip))
+        else:
+            self.logger.warn("requested action is %s for service %s, but current staus is %s" % (action, service, output))
+        return

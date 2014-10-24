@@ -5,7 +5,7 @@ from common import isolated_creds
 from vn_test import VNFixture
 from vm_test import VMFixture
 from project_test import ProjectFixture
-from tcutils.util import get_random_name
+from tcutils.util import get_random_name, retry
 from fabric.context_managers import settings
 from fabric.api import run
 from fabric.operations import get, put
@@ -452,6 +452,7 @@ class BaseNeutronTest(test.BaseTestCase):
         assert result, msg
     # end verify_on_vip_delete
 
+    @retry(delay=10, tries=10)
     def verify_vip_delete(self, vip_id):
         vip = self.quantum_fixture.show_vip(vip_id)
         if vip:
@@ -462,6 +463,7 @@ class BaseNeutronTest(test.BaseTestCase):
         return (True, None)
     #end verify_vip_delete
 
+    @retry(delay=10, tries=10)
     def verify_netns_delete(self, pool_id):
         cmd = 'ip netns list | grep %s' % pool_id
         pool_obj = self.quantum_fixture.get_lb_pool(pool_id)
@@ -480,6 +482,7 @@ class BaseNeutronTest(test.BaseTestCase):
             return (True, None)
     # end verify_netns_delete
 
+    @retry(delay=10, tries=10)
     def verify_haproxy_kill(self,pool_id):
         cmd = 'ps -aux | grep loadbalancer | grep %s' % pool_id
         pool_obj = self.quantum_fixture.get_lb_pool(pool_id)
