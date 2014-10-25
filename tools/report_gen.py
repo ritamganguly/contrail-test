@@ -44,6 +44,8 @@ class ContrailTestInit:
                               'WebServer', 'reportPath', None)
         self.web_server_log_path = self.read_config_option(
                               'WebServer', 'logPath', None)
+        self.web_root = self.read_config_option(
+                              'WebServer', 'webRoot', None)
         # Mail Setup
         self.smtpServer = self.read_config_option(
                               'Mail', 'server', None)
@@ -59,6 +61,7 @@ class ContrailTestInit:
         self.jenkins_trigger = self.get_os_env('JENKINS_TRIGGERED')
         self.os_type = {}
         self.report_details_file='report_details.ini'
+        self.distro = None
 
     # end __init__
 
@@ -67,23 +70,21 @@ class ContrailTestInit:
             self.prov_data = self._create_prov_data()
         else:
             self.prov_data = self._read_prov_file()
-        self.build_id = self.get_build_id()
+        (self.build_id, self.sku) = self.get_build_id()
+        self.setup_detail = '%s %s~%s' % (self.get_distro_sku(), self.build_id,
+                                          self.sku)
         self.build_folder = self.build_id + '_' + self.ts
-        self.log_path = os.environ.get('PWD') + '/logs/' + self.build_folder
-        self.html_report = self.log_path + '/junit-noframes.html'
-        self.web_server_path = self.web_server_log_path + '/' + self.build_folder + '/'
-        self.html_log_link = 'http://%s/%s/%s/%s' % (self.web_server, self.web_server_log_path,
-                                      self.build_folder, self.html_report.split('/')[-1])
-        self.log_link = 'http://%s/%s/%s/logs/' % (self.web_server, self.web_server_log_path,
-                                      self.build_folder)
-
+        self.html_log_link = 'http://%s/%s/%s/junit-noframes.html' % (
+                             self.web_server, self.web_root, self.build_folder)
+        self.log_link = 'http://%s/%s/%s/logs/' % (self.web_server, self.web_root,
+                             self.build_folder)
         self.os_type = self.get_os_version()
         self.username = self.host_data[self.cfgm_ip]['username']
         self.password = self.host_data[self.cfgm_ip]['password']
         self.write_report_details()
     # end setUp
 
-    def read_config_option(self, section, option, default_option):
+    def read_config_option(self, section, option, default_option=None):
         ''' Read the config file. If the option/section is not present, return the default_option
         '''
         try:
@@ -293,6 +294,7 @@ class ContrailTestInit:
         config = ConfigParser.ConfigParser()
         config.add_section('Test')
         config.set('Test', 'Build', self.build_id)
+        config.set('Test', 'Distro_Sku', self.setup_detail)
         config.set('Test', 'timestamp', self.ts)
         config.set('Test', 'Report', self.html_log_link)
         config.set('Test', 'LogsLocation', self.log_link)
@@ -313,7 +315,7 @@ class ContrailTestInit:
         if self.build_id:
             return self.build_id
         build_id = None
-        cmd = 'contrail-version|grep contrail | head -1 | awk \'{print $2}\''
+        cmd = 'contrail-version|grep contrail-install | head -1 | awk \'{print $2}\''
         tries = 50
         while not build_id and tries:
             try:
@@ -322,7 +324,23 @@ class ContrailTestInit:
                 time.sleep(1)
                 tries -= 1
                 pass
-        return build_id.rstrip('\n')
+        return build_id.rstrip('\n').split('~')
+
+    def get_distro_sku(self):
+        if self.distro:
+            return self.distro
+        cmd = '''
+            if [ -f /etc/lsb-release ]; then (cat /etc/lsb-release | grep DISTRIB_DESCRIPTION | cut -d "=" -f2 )
+            else
+                cat /etc/redhat-release | sed s/\(Final\)//
+            fi
+            '''
+        try:
+            self.distro = self.run_cmd_on_server(self.cfgm_ips[0], cmd)
+        except NetworkError,e:
+            self.distro = ''
+        return self.distro
+    # end get_distro_sku
 
     def run_cmd_on_server(self, server_ip, issue_cmd, username=None,password=None, pty=True):
         if server_ip in self.host_data.keys():

@@ -38,6 +38,7 @@ password=$__webserver_password__
 # Absolute path in the webserver where the logs and reports has to be copied
 logPath=$__webserver_log_dir__
 reportPath=$__webserver_report_dir__
+webRoot=$__webroot__
 
 [Mail]
 server=$__mail_server__

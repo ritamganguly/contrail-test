@@ -396,10 +396,12 @@ class BaseNeutronTest(test.BaseTestCase):
         return True
     #end verify_vrrp_sction
     
-    def _remove_from_cleanup(self, func_call, args):
+    def _remove_from_cleanup(self, func_call, *args):
         for cleanup in self._cleanups:
             if func_call in cleanup and args == cleanup[1]:
                 self._cleanups.remove(cleanup)
+                return True
+        return False
 
     def create_lb_pool(self, name, lb_method, protocol, subnet_id):
         lb_pool_resp = None

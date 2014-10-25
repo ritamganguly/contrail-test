@@ -348,7 +348,7 @@ def get_random_value(obj, attribute, dep_attribute1=None, dep_attribute2=None):
         # IPv4 always
         return '4'
     elif 'cidr-string' == item:
-        return get_random_cidr()
+        return get_random_cidr('16')
     elif 'gw-ip' == item:
         return get_random_ip(dep_attribute1)
     elif 'list-string' == item:

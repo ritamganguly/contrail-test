@@ -3,12 +3,7 @@ import smtplib
 import subprocess
 import ConfigParser
 import sys
-
-def get_build_id():
-    cmd = 'contrail-version|grep contrail | head -1 | awk \'{print $2}\''
-    build_id = subprocess.Popen(
-                    [cmd],stdout=subprocess.PIPE,shell=True).communicate()[0]
-    return build_id.rstrip('\n')
+import os
 
 def read_config_option(config, section, option, default_option=None):
     ''' Read the config file. If the option/section is not present, return the default_option
@@ -26,14 +21,20 @@ def read_config_option(config, section, option, default_option=None):
         return default_option
 # end read_config_option
 
-def send_mail(config_file, file_to_send):
+def send_mail(config_file, file_to_send, report_details):
     config = ConfigParser.ConfigParser()
     config.read(config_file)
+    report_config = ConfigParser.ConfigParser()
+    report_config.read(report_details)
+    distro_sku = report_config.get('Test','Distro_Sku')
     smtpServer = read_config_option(config, 'Mail', 'server')
     smtpPort = read_config_option(config, 'Mail', 'port')
     mailSender = read_config_option(config, 'Mail', 'mailSender', 'contrailbuild@juniper.net')
     mailTo = read_config_option(config, 'Mail', 'mailTo')
-    logScenario = read_config_option(config, 'Basic', 'logScenario')
+    if 'EMAIL_SUBJECT' in os.environ:
+        logScenario = os.environ.get('EMAIL_SUBJECT')
+    else:
+        logScenario = read_config_option(config, 'Basic', 'logScenario')
 
     if not mailTo or not smtpServer or not smtpPort:
         print 'Mail destination not configured. Skipping'
@@ -43,7 +44,7 @@ def send_mail(config_file, file_to_send):
     fp.close()
 
     msg['Subject'] = '[Build %s] ' % (
-         get_build_id()) + logScenario + ' Report'
+         distro_sku) + logScenario + ' Report'
     msg['From'] = mailSender
     msg['To'] = mailTo
 
@@ -65,4 +66,4 @@ def send_mail(config_file, file_to_send):
 
 if __name__ == "__main__":
     #send_mail('sanity_params.ini','report/junit-noframes.html') 
-    send_mail(sys.argv[1], sys.argv[2])
+    send_mail(sys.argv[1], sys.argv[2], sys.argv[3])
