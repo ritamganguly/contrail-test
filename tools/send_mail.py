@@ -10,7 +10,7 @@ def send_mail(config_file, file_to_send, report_details):
     config.read(config_file)
     report_config = ConfigParser.ConfigParser()
     report_config.read(report_details)
-    distro_sku = report_config.read('Test','Distro_Sku')
+    distro_sku = report_config.get('Test','Distro_Sku')
     smtpServer = config.get('Mail', 'server')
     smtpPort = config.get('Mail', 'port')
     mailSender = config.get('Mail', 'mailSender')
