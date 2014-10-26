@@ -6,7 +6,7 @@ from tcutils.control.cn_introspect_utils import *
 from tcutils.agent.vna_introspect_utils import *
 from tcutils.collector.opserver_introspect_utils import *
 from fixtures import Fixture
-from scripts.analytics.analytics_tests import *
+from scripts.analytics_tests import *
 from vnc_api.vnc_api import *
 from tcutils.vdns.dns_introspect_utils import DnsAgentInspect
 from tcutils.config.ds_introspect_utils import *
