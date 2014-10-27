@@ -319,6 +319,7 @@ class VerifySvcFirewall(VerifySvcMirror):
         self.vn2_subnets = vn2_subnets
         self.vm2_name = get_random_name("in_network_vm2")
         self.action_list = []
+        self.si_list = []
         self.policy_name = get_random_name("policy_in_network")
         self.vn1_fixture = self.config_vn(self.vn1_name, self.vn1_subnets)
         self.vn2_fixture = self.config_vn(self.vn2_name, self.vn2_subnets)
@@ -348,6 +349,7 @@ class VerifySvcFirewall(VerifySvcMirror):
                     ordered_interfaces=ordered_interfaces, project= self.inputs.project_name)
             action_step= self.chain_si(si_count, si_prefix, self.inputs.project_name)
             self.action_list += action_step
+            self.si_list += self.si_fixtures
         self.rules = [
             {
                 'direction': '<>',
