@@ -35,7 +35,7 @@ class IPAMFixture(fixtures.Fixture):
         self.verify_is_run = False
         self.project_name = project_obj.project_name
         self.ri_name = None
-        if self.inputs.is_gui_based_testing():
+        if self.inputs.verify_thru_gui():
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
@@ -65,7 +65,7 @@ class IPAMFixture(fixtures.Fixture):
                 name=self.name, parent_obj=self.project_obj, network_ipam_mgmt=self.ipamtype)
             if self.vdns_obj:
                 self.obj.add_virtual_DNS(self.vdns_obj)
-            if self.inputs.is_gui_based_testing():
+            if self.inputs.is_gui_based_configuration():
                 self.webui.create_ipam_in_webui(self)
             else:
                 self.project_fixture_obj.vnc_lib_h.network_ipam_create(

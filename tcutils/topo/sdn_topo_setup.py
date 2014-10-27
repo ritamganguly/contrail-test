@@ -36,7 +36,7 @@ class sdnTopoSetupFixture(fixtures.Fixture):
         self.vnc_lib = self.connections.vnc_lib
         self.logger = self.inputs.logger
         self.topo = topo
-        if self.inputs.is_gui_based_testing():
+        if self.inputs.verify_thru_gui():
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)

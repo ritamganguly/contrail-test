@@ -38,7 +38,7 @@ class SvcInstanceFixture(fixtures.Fixture):
         self.cs_svc_vns = []
         self.cs_svc_ris = []
         self.svn_list = ['svc-vn-mgmt', 'svc-vn-left', 'svc-vn-right']
-        if self.inputs.is_gui_based_testing():
+        if self.inputs.verify_thru_gui():
             self.browser = connections.browser
             self.browser_openstack = connections.browser_openstack
             self.webui = WebuiTest(connections, inputs)
@@ -121,7 +121,7 @@ class SvcInstanceFixture(fixtures.Fixture):
             si_prop.set_scale_out(ServiceScaleOutType(self.max_inst))
             svc_instance.set_service_instance_properties(si_prop)
             svc_instance.set_service_template(self.svc_template)
-            if self.inputs.is_gui_based_testing():
+            if self.inputs.is_gui_based_configuration():
                 self.webui.create_svc_instance_in_webui(self)
             else:
                 self.vnc_lib.service_instance_create(svc_instance)

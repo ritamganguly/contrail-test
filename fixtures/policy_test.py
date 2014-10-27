@@ -37,7 +37,7 @@ class PolicyFixture(fixtures.Fixture):
         self.verify_is_run = False
         self.project_name = self.inputs.project_name
         self.api_flag = api
-        if self.inputs.is_gui_based_testing():
+        if self.inputs.verify_thru_gui():
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
@@ -56,7 +56,7 @@ class PolicyFixture(fixtures.Fixture):
                 self.policy_obj = self.quantum_fixture.get_policy_if_present(
                                           self.project_name, self.policy_name)
             if not self.policy_obj:
-                if self.inputs.is_gui_based_testing():
+                if self.inputs.is_gui_based_configuration():
                     self.webui.create_policy_in_webui(self)
                 else:
                     self._create_policy(self.policy_name, self.rules_list)
@@ -379,7 +379,7 @@ class PolicyFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
-            if self.inputs.is_gui_based_testing():
+            if self.inputs.is_gui_based_configuration():
                 self.webui.delete_policy_in_webui(self)
             else:
                 self._delete_policy()

@@ -643,7 +643,7 @@ def allocateNassociateFIP(self, config_topo):
         self.addCleanup(self.fip_fixture.deassoc_project,
                         self.fip_fixture, project)
         for vmfixt in config_topo[project]['vm']:
-            if self.inputs.is_gui_based_testing():
+            if self.inputs.is_gui_based_configuration():
                 self.fip_fixture.create_and_assoc_fip_webui(
                     self.fvn_fixture.vn_id,
                     config_topo[project]['vm'][vmfixt].vm_id)

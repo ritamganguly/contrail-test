@@ -29,7 +29,7 @@ class SvcTemplateFixture(fixtures.Fixture):
         self.inputs = inputs
         self.connections = connections
         self.nova_fixture = connections.nova_fixture
-        if self.inputs.is_gui_based_testing():
+        if self.inputs.verify_thru_gui():
             self.browser = connections.browser
             self.browser_openstack = connections.browser_openstack
             self.webui = WebuiTest(connections, inputs)
@@ -73,7 +73,7 @@ class SvcTemplateFixture(fixtures.Fixture):
                 svc_properties.add_interface_type(if_type)
 
             svc_template.set_service_template_properties(svc_properties)
-            if self.inputs.is_gui_based_testing():
+            if self.inputs.is_gui_based_configuration():
                 self.webui.create_svc_template_in_webui(self)
             else:
                 self.vnc_lib_h.service_template_create(svc_template)

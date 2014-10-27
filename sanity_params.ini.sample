@@ -54,9 +54,11 @@ mailSender=$__sender_mail_id__
 proxy_url=$__http_proxy__
 
 
-# Provide browser details for gui based testing, 'chrome' or 'firefox' or None
 [webui]
+# Provide browser details for gui based testing, 'chrome' or 'firefox' or None
 browser=$__webui__
+# if object creation has to be through gui set the config flag to True. default False
+config=$__webui_config__
 
 
 # Set the same to True if devstack env

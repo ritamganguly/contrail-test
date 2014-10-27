@@ -108,6 +108,10 @@ class ContrailTestInit(fixtures.Fixture):
                               'proxy', 'proxy_url', None)
         self.webui_browser = self.read_config_option(
                               'webui', 'browser', None)
+        self.webui_config = self.read_config_option(
+                              'webui', 'config', False)
+        if self.webui_config and not self.webui_browser:
+            raise ValueError("Configuring via GUI needs 'browser' details. Please set the same.")
         self.devstack = self.read_config_option(
                               'devstack', 'devstack', None)
         # router options
@@ -167,8 +171,19 @@ class ContrailTestInit(fixtures.Fixture):
             self.mysql_token = self.get_mysql_token()
     # end setUp
 
-    def is_gui_based_testing(self):
+    def verify_thru_gui(self):
+        '''
+        Check if GUI based verification is enabled
+        '''
         if self.webui_browser:
+            return True
+        return False
+
+    def is_gui_based_configuration(self):
+        '''
+        Check if objects have to configured via GUI
+        '''
+        if self.webui_config:
             return True
         return False
 

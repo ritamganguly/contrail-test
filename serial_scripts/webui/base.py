@@ -37,7 +37,7 @@ class WebuiBaseTest(test.BaseTestCase):
         resource_class = cls.__name__ + 'Resource'
         cls.res = ResourceFactory.createResource(resource_class)
         cls.res.setUp(cls.inputs , cls.connections)
-        if cls.inputs.is_gui_based_testing():
+        if cls.inputs.verify_thru_gui():
             cls.browser = cls.connections.browser
             cls.browser_openstack = cls.connections.browser_openstack
             cls.delay = 10

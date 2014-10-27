@@ -47,7 +47,7 @@ class ContrailConnections():
                                  insecure=insecure)
         self.project_id = get_dashed_uuid(self.ks_client.tenant_id)
 
-        if self.inputs.is_gui_based_testing():
+        if self.inputs.verify_thru_gui():
             global webui
             if not webui:
                 raise ImportError("Selenium and/or pyvirtualdisplay python packages are missing")
@@ -137,7 +137,7 @@ class ContrailConnections():
 
     def cleanUp(self):
         super(ContrailConnections, self).cleanUp()
-        if self.inputs.is_gui_based_testing():
+        if self.inputs.verify_thru_gui():
             self.browser.quit()
             self.browser_openstack.quit()
             self.display.stop()

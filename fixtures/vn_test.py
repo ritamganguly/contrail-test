@@ -54,7 +54,7 @@ class VNFixture(fixtures.Fixture):
         self.cn_inspect = self.connections.cn_inspect
         self.vn_name = vn_name
         self.vn_subnets = subnets
-        if self.inputs.is_gui_based_testing():
+        if self.inputs.verify_thru_gui():
             self.browser = self.connections.browser
             self.browser_openstack = self.connections.browser_openstack
             self.webui = WebuiTest(self.connections, self.inputs)
@@ -213,7 +213,7 @@ class VNFixture(fixtures.Fixture):
                                    connections=self.connections))
         self.scale = self.project_obj.scale
         self.project_id = self.project_obj.uuid
-        if self.inputs.is_gui_based_testing():
+        if self.inputs.is_gui_based_configuration():
             self.webui.create_vn_in_webui(self)
         elif (self.option == 'api'):
             self._create_vn_api(self.vn_name, self.project_obj)
@@ -303,7 +303,7 @@ class VNFixture(fixtures.Fixture):
             self.logger.error(
                 "One or more verifications in OpServer for VN %s failed" % (self.vn_name))
             return result
-        if self.inputs.is_gui_based_testing():
+        if self.inputs.verify_thru_gui():
             self.webui.verify_vn_in_webui(self)
         if self.policy_objs:
             self.verify_vn_policy_in_vn_uve()
@@ -956,7 +956,7 @@ class VNFixture(fixtures.Fixture):
                 self.del_route_target(
                     self.ri_name, self.router_asn, self.rt_number)
             self.logger.info("Deleting the VN %s " % self.vn_name)
-            if self.inputs.is_gui_based_testing():
+            if self.inputs.is_gui_based_configuration():
                 self.webui.vn_delete_in_webui(self)
             elif (self.option == 'api'):
                 self.logger.info("Deleting the VN %s using Api server" %
