@@ -31,6 +31,7 @@ class VNCApiInspect (VerificationUtilBase):
             'st': {},
             'dns': {},
             'dns_rec': {},
+            'lb_pool': {},
         }
 
     def update_cache(self, otype, fq_path, d):
@@ -583,6 +584,21 @@ class VNCApiInspect (VerificationUtilBase):
                 if acl['fq_name'][2] == secgrp:
                     p.append(acl['href'])
 
+        return p
+
+    def get_lb_pool(self, pool_id, refresh=False):
+        '''
+        method: get_lb_pool find a lb pool
+        returns None if not found, a dict w/ attrib. eg:
+
+        '''
+        p = self.try_cache('lb_pool', pool_id, refresh)
+        if not p:
+            # cache miss
+            pp = self.dict_get('loadbalancer-pool/%s' % pool_id)
+            if pp:
+                p = CsVMResult(pp)
+                self.update_cache('lb_pool', pool_id, p)
         return p
 
 if __name__ == '__main__':
