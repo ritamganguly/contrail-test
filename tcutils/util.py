@@ -407,3 +407,19 @@ class Lock:
 
     def __del__(self):
         self.handle.close()
+
+def read_config_option(config, section, option, default_option):
+    ''' Read the config file. If the option/section is not present, return the default_option
+    '''
+    try:
+        val = config.get(section, option)
+        if val.lower() == 'true':
+            val = True
+        elif val.lower() == 'false' or val.lower() == 'none':
+            val = False
+        elif not val:
+            val = default_option
+        return val
+    except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        return default_option
+# end read_config_option

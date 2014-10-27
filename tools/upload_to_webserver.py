@@ -5,6 +5,7 @@ from fabric.context_managers import settings, hide
 import os
 import ConfigParser
 import subprocess
+from tcutils.util import read_config_option
 
 #monkey patch subprocess.check_output cos its not supported in 2.6
 if "check_output" not in dir( subprocess ): # duck punch it in!
@@ -28,22 +29,6 @@ def get_os_env(var, default=''):
     else:
         return default
 # end get_os_env
-
-def read_config_option(config, section, option, default_option=None):
-    ''' Read the config file. If the option/section is not present, return the default_option
-    '''
-    try:
-        val = config.get(section, option)
-        if val.lower() == 'true':
-            val = True
-        elif val.lower() == 'false' or val.lower() == 'none':
-            val = False
-        elif not val:
-            val = default_option
-        return val
-    except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-        return default_option
-# end read_config_option
 
 def upload_to_webserver(config_file, report_config_file, elem):
 

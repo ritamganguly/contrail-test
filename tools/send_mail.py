@@ -4,22 +4,7 @@ import subprocess
 import ConfigParser
 import sys
 import os
-
-def read_config_option(config, section, option, default_option=None):
-    ''' Read the config file. If the option/section is not present, return the default_option
-    '''
-    try:
-        val = config.get(section, option)
-        if val.lower() == 'true':
-            val = True
-        elif val.lower() == 'false' or val.lower() == 'none':
-            val = False
-        elif not val:
-            val = default_option
-        return val
-    except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-        return default_option
-# end read_config_option
+from tcutils.util import read_config_option
 
 def send_mail(config_file, file_to_send, report_details):
     config = ConfigParser.ConfigParser()
@@ -28,15 +13,15 @@ def send_mail(config_file, file_to_send, report_details):
     report_config.read(report_details)
     distro_sku = report_config.get('Test','Distro_Sku')
     smtpServer = read_config_option(config, 'Mail', 'server')
-    smtpPort = read_config_option(config, 'Mail', 'port')
+    smtpPort = read_config_option(config, 'Mail', 'port', '25')
     mailSender = read_config_option(config, 'Mail', 'mailSender', 'contrailbuild@juniper.net')
     mailTo = read_config_option(config, 'Mail', 'mailTo')
     if 'EMAIL_SUBJECT' in os.environ:
         logScenario = os.environ.get('EMAIL_SUBJECT')
     else:
-        logScenario = read_config_option(config, 'Basic', 'logScenario')
+        logScenario = read_config_option(config, 'Basic', 'logScenario', 'Sanity')
 
-    if not mailTo or not smtpServer or not smtpPort:
+    if not mailTo or not smtpServer:
         print 'Mail destination not configured. Skipping'
         return True
     fp = open(file_to_send, 'rb')

@@ -23,38 +23,38 @@ class ContrailTestInit:
         self.build_id = None
         self.config = ConfigParser.ConfigParser()
         self.config.read(ini_file)
-        self.prov_file = self.read_config_option(
+        self.prov_file = read_config_option(self.config,
                               'Basic', 'provFile', None)
-        self.log_scenario = self.read_config_option(
+        self.log_scenario = read_config_option(self.config,
                               'Basic', 'logScenario', 'Sanity')
         if 'EMAIL_SUBJECT' in os.environ:
             self.log_scenario = os.environ.get('EMAIL_SUBJECT')
         else:
             self.log_scenario = self.log_scenario
-        self.keystone_ip = self.read_config_option(
+        self.keystone_ip = read_config_option(self.config,
                               'Basic', 'keystone_ip', None)
         # Web Server related details
-        self.web_server = self.read_config_option(
+        self.web_server = read_config_option(self.config,
                               'WebServer', 'host', None)
-        self.web_server_user = self.read_config_option(
+        self.web_server_user = read_config_option(self.config,
                               'WebServer', 'username', None)
-        self.web_server_password = self.read_config_option(
+        self.web_server_password = read_config_option(self.config,
                               'WebServer', 'password', None)
-        self.web_server_report_path = self.read_config_option(
+        self.web_server_report_path = read_config_option(self.config,
                               'WebServer', 'reportPath', None)
-        self.web_server_log_path = self.read_config_option(
+        self.web_server_log_path = read_config_option(self.config,
                               'WebServer', 'logPath', None)
-        self.web_root = self.read_config_option(
+        self.web_root = read_config_option(self.config,
                               'WebServer', 'webRoot', None)
         # Mail Setup
-        self.smtpServer = self.read_config_option(
+        self.smtpServer = read_config_option(self.config,
                               'Mail', 'server', None)
-        self.smtpPort = self.read_config_option(
-                              'Mail', 'port', None)
-        self.mailTo = self.read_config_option(
+        self.smtpPort = read_config_option(self.config,
+                              'Mail', 'port', '25')
+        self.mailTo = read_config_option(self.config,
                               'Mail', 'mailTo', None)
-        self.mailSender = self.read_config_option(
-                              'Mail', 'mailSender', None)
+        self.mailSender = read_config_option(self.config,
+                              'Mail', 'mailSender', 'contrailbuild@juniper.net')
         self.ts = self.get_os_env('SCRIPT_TS') or \
               datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
         self.single_node = self.get_os_env('SINGLE_NODE_IP')
@@ -83,22 +83,6 @@ class ContrailTestInit:
         self.password = self.host_data[self.cfgm_ip]['password']
         self.write_report_details()
     # end setUp
-
-    def read_config_option(self, section, option, default_option=None):
-        ''' Read the config file. If the option/section is not present, return the default_option
-        '''
-        try:
-            val = self.config.get(section, option)
-            if val.lower() == 'true':
-                val = True
-            elif val.lower() == 'false' or val.lower() == 'none':
-                val = False
-            elif not val:
-                val = default_option
-            return val
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            return default_option
-    # end read_config_option
 
     def get_os_env(self,var, default=''):
         if var in os.environ:

@@ -53,87 +53,87 @@ class ContrailTestInit(fixtures.Fixture):
         self.config = ConfigParser.ConfigParser()
         self.config.read(ini_file)
 
-        self.prov_file = self.read_config_option(
+        self.prov_file = read_config_option(self.config,
                               'Basic', 'provFile', None)
-        self.key = self.read_config_option(
+        self.key = read_config_option(self.config,
                               'Basic', 'key', 'key1')
-        self.stack_user = stack_user or self.read_config_option(
+        self.stack_user = stack_user or read_config_option(self.config,
                               'Basic', 'stackUser', 'admin')
-        self.stack_password = stack_password or self.read_config_option(
+        self.stack_password = stack_password or read_config_option(self.config,
                               'Basic', 'stackPassword', 'contrail123')
-        self.stack_tenant = self.read_config_option(
+        self.stack_tenant = read_config_option(self.config,
                               'Basic', 'stackTenant', 'admin')
-        self.stack_domain = self.read_config_option(
+        self.stack_domain = read_config_option(self.config,
                               'Basic', 'stackDomain', 'default-domain')
         self.project_fq_name = project_fq_name or \
                               [self.stack_domain, self.stack_tenant]
         self.project_name = self.project_fq_name[1]
         self.domain_name = self.project_fq_name[0]
-        self.keystone_ip = self.read_config_option(
+        self.keystone_ip = read_config_option(self.config,
                               'Basic', 'keystone_ip', None)
-        self.multi_tenancy = self.read_config_option(
+        self.multi_tenancy = read_config_option(self.config,
                               'Basic', 'multiTenancy', False)
-        self.log_scenario = self.read_config_option(
+        self.log_scenario = read_config_option(self.config,
                               'Basic', 'logScenario', 'Sanity')
         if 'EMAIL_SUBJECT' in os.environ:
             self.log_scenario = os.environ.get('EMAIL_SUBJECT')
         else:
             self.log_scenario = self.log_scenario
-        self.generate_html_report = self.read_config_option(
+        self.generate_html_report = read_config_option(self.config,
                               'Basic', 'generate_html_report', True)
-        self.fixture_cleanup = self.read_config_option(
+        self.fixture_cleanup = read_config_option(self.config,
                               'Basic', 'fixtureCleanup', 'yes')
         # Web Server related details
-        self.web_server = self.read_config_option(
+        self.web_server = read_config_option(self.config,
                               'WebServer', 'host', None)
-        self.web_server_user = self.read_config_option(
+        self.web_server_user = read_config_option(self.config,
                               'WebServer', 'username', None)
-        self.web_server_password = self.read_config_option(
+        self.web_server_password = read_config_option(self.config,
                               'WebServer', 'password', None)
-        self.web_server_report_path = self.read_config_option(
+        self.web_server_report_path = read_config_option(self.config,
                               'WebServer', 'reportPath', None)
-        self.web_server_log_path = self.read_config_option(
+        self.web_server_log_path = read_config_option(self.config,
                               'WebServer', 'logPath', None)
         # Mail Setup
-        self.smtpServer = self.read_config_option(
+        self.smtpServer = read_config_option(self.config,
                               'Mail', 'server', None)
-        self.smtpPort = self.read_config_option(
+        self.smtpPort = read_config_option(self.config,
                               'Mail', 'port', None)
-        self.mailTo = self.read_config_option(
+        self.mailTo = read_config_option(self.config,
                               'Mail', 'mailTo', None)
-        self.mailSender = self.read_config_option(
+        self.mailSender = read_config_option(self.config,
                               'Mail', 'mailSender', None)
 
-        self.http_proxy = self.read_config_option(
+        self.http_proxy = read_config_option(self.config,
                               'proxy', 'proxy_url', None)
-        self.webui_browser = self.read_config_option(
+        self.webui_browser = read_config_option(self.config,
                               'webui', 'browser', None)
-        self.webui_config = self.read_config_option(
+        self.webui_config = read_config_option(self.config,
                               'webui', 'config', False)
         if self.webui_config and not self.webui_browser:
             raise ValueError("Configuring via GUI needs 'browser' details. Please set the same.")
-        self.devstack = self.read_config_option(
+        self.devstack = read_config_option(self.config,
                               'devstack', 'devstack', None)
         # router options
-        self.mx_rt = self.read_config_option(
+        self.mx_rt = read_config_option(self.config,
                               'router', 'route_target', '10003')
-        self.router_asn = self.read_config_option(
+        self.router_asn = read_config_option(self.config,
                               'router', 'asn', '64512')
-        router_info_tuples_string = self.read_config_option(
+        router_info_tuples_string = read_config_option(self.config,
                               'router', 'router_info', '[]')
         self.ext_routers = ast.literal_eval(router_info_tuples_string)
-        self.fip_pool_name = self.read_config_option(
+        self.fip_pool_name = read_config_option(self.config,
                               'router', 'fip_pool_name', 'public-pool')
-        self.fip_pool = self.read_config_option(
+        self.fip_pool = read_config_option(self.config,
                               'router', 'fip_pool', None)
-        self.test_revision = self.read_config_option(
+        self.test_revision = read_config_option(self.config,
                               'repos', 'test_revision', None)
-        self.fab_revision = self.read_config_option(
+        self.fab_revision = read_config_option(self.config,
                               'repos', 'fab_revision', None)
         # debug option
-        self.verify_on_setup = self.read_config_option(
+        self.verify_on_setup = read_config_option(self.config,
                               'debug', 'verify_on_setup', False)
-        self.stop_on_fail = self.read_config_option(
+        self.stop_on_fail = read_config_option(self.config,
                               'debug', 'stop_on_fail', None)
 
         self.check_juniper_intranet()
@@ -218,22 +218,6 @@ class ContrailTestInit(fixtures.Fixture):
                     self.os_type[host_ip] = 'ubuntu'
         return self.os_type
     # end get_os_version
-
-    def read_config_option(self, section, option, default_option):
-        ''' Read the config file. If the option/section is not present, return the default_option
-        '''
-        try:
-            val = self.config.get(section, option)
-            if val.lower() == 'true':
-                val = True
-            elif val.lower() == 'false' or val.lower() == 'none':
-                val = False
-            elif not val:
-                val = default_option
-            return val
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            return default_option
-    # end read_config_option
 
     def _read_prov_file(self):
         prov_file = open(self.prov_file, 'r')
