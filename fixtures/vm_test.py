@@ -247,7 +247,7 @@ class VMFixture(fixtures.Fixture):
         vm_status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
         if vm_status[1] in 'ERROR':
             self.logger.warn("VM in error state. Asserting...")
-            assert False
+            return False
 
         if vm_status[1] != 'ACTIVE':
             result = result and False
