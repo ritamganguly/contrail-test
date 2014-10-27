@@ -248,6 +248,10 @@ class VMFixture(fixtures.Fixture):
             result = result and False
             return result
         vm_status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
+        if vm_status[1] in 'ERROR':
+            self.logger.warn("VM in error state. Asserting...")
+            return False
+
         if vm_status[1] != 'ACTIVE':
             result = result and False
             return result
@@ -1476,7 +1480,7 @@ class VMFixture(fixtures.Fixture):
         self.run_cmd_on_vm(cmds, as_sudo=True)
 
     @retry(delay=10, tries=5)
-    def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100', fip=None):
+    def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100', fip=None, expectation= True):
         '''
         Creates a file of "size" bytes and transfers to the VM in dest_vm_fixture using mode scp/tftp
         '''
@@ -1516,11 +1520,17 @@ class VMFixture(fixtures.Fixture):
         if size in out_dict.values()[0]:
             self.logger.info('File of size %s is trasferred successfully to \
                     %s by %s ' % (size, dest_vm_ip, mode))
+            if not expectation:
+                return False
+            else:
+                return True
         else:
             self.logger.warn('File of size %s is not trasferred fine to %s \
-                    by %s !! Pls check logs' % (size, dest_vm_ip, mode))
-            return False
-        return True
+                    by %s' % (size, dest_vm_ip, mode))
+            if not expectation:
+                return True
+            else:
+                return False
     # end check_file_transfer
 
     def get_rsa_to_vm(self):
@@ -1602,8 +1612,35 @@ class VMFixture(fixtures.Fixture):
         return vm_ip
     # end def
 
-    @retry(delay=3, tries=20)
     def wait_till_vm_is_up(self):
+        status = self.wait_till_vm_up()
+        if type(status) == tuple:
+            return status[0]
+        elif type(status) == bool:
+            return status
+
+    def wait_till_vm_is_active(self):
+        status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
+        if type(status) == tuple:
+            if status[1] in 'ERROR':
+                return False
+            elif status[1] in 'ACTIVE':
+                return True
+        elif type(status) == bool:
+            return status
+
+    @retry(delay=3, tries=20)
+    def wait_till_vm_up(self):
+        vm_status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
+        if vm_status[1] in 'ERROR':
+            self.logger.warn("VM in error state. Asserting...")
+            return (False, 'final')
+#            assert False
+
+        if vm_status[1] != 'ACTIVE':
+            result = result and False
+            return result
+
         result = self.verify_vm_launched()
         #console_check = self.nova_fixture.wait_till_vm_is_up(self.vm_obj)
         #result = result and self.nova_fixture.wait_till_vm_is_up(self.vm_obj)

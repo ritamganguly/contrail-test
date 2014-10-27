@@ -63,7 +63,7 @@ class TestECMPSanity(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffic
             si_count=1, svc_scaling=True, max_inst=3)
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         dst_vm_list= [self.vm2_fixture]
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
         return True
@@ -91,7 +91,7 @@ class TestECMPSanity(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffic
                                             vn1_subnet_list, vn2_subnets= vn2_subnet_list)
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         dst_vm_list= [self.vm2_fixture]
 #        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
@@ -143,8 +143,8 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
         self.vm2_fixture.put_pub_key_to_vm() 
         #TFTP from Left VM to Right VM is expected to fail
         errmsg1 = "TFTP to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
-        assert not self.vm1_fixture.check_file_transfer(
-                dest_vm_fixture=self.vm2_fixture, mode='tftp'), errmsg1
+        assert self.vm1_fixture.check_file_transfer(
+                dest_vm_fixture=self.vm2_fixture, mode='tftp', size= '333', expectation= False), errmsg1
         #Ping from left VM to right VM; expected to fail
         errmsg = "Ping to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
         assert self.vm1_fixture.ping_with_certainty(
@@ -152,7 +152,7 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
         #SCP from Left VM to Right VM is expected to pass
         errmsg2 = "SCP to right VM ip %s from left VM failed; expected to pass" % self.vm2_fixture.vm_ip
         assert self.vm1_fixture.check_file_transfer(
-                dest_vm_fixture=self.vm2_fixture, mode='scp'), errmsg2
+                dest_vm_fixture=self.vm2_fixture, mode='scp', size= '444'), errmsg2
         return True
     # end test_ecmp_in_pol_based_svc
  
@@ -176,8 +176,8 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
         self.vm2_fixture.put_pub_key_to_vm() 
         #TFTP from Left VM to Right VM is expected to fail
         errmsg1 = "TFTP to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
-        assert not self.vm1_fixture.check_file_transfer(
-                dest_vm_fixture=self.vm2_fixture, mode='tftp'), errmsg1
+        assert self.vm1_fixture.check_file_transfer(
+                dest_vm_fixture=self.vm2_fixture, mode='tftp', size= '111', expectation= False), errmsg1
         #Ping from left VM to right VM; expected to fail
         errmsg = "Ping to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
         assert self.vm1_fixture.ping_with_certainty(
@@ -185,7 +185,7 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
         #SCP from Left VM to Right VM is expected to pass
         errmsg2 = "SCP to right VM ip %s from left VM failed; expected to pass" % self.vm2_fixture.vm_ip
         assert self.vm1_fixture.check_file_transfer(
-                dest_vm_fixture=self.vm2_fixture, mode='scp'), errmsg2
+                dest_vm_fixture=self.vm2_fixture, mode='scp', size= '222'), errmsg2
         self.logger.info('Will update the policy to allow only udp')
         old_data= {'policy': {'entries': self.policy_fixture.policy_obj['policy']['entries']}}
         old_entry= self.policy_fixture.policy_obj['policy']['entries']
@@ -205,8 +205,8 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
                 self.vm2_fixture.vm_ip, expectation=False), errmsg
         #SCP from Left VM to Right VM is expected to fail
         errmsg2 = "SCP to right VM ip %s from left VM passed; expected to fail" % self.vm2_fixture.vm_ip
-        assert not self.vm1_fixture.check_file_transfer(
-                dest_vm_fixture=self.vm2_fixture, mode='scp', size= '202'), errmsg2
+        assert self.vm1_fixture.check_file_transfer(
+                dest_vm_fixture=self.vm2_fixture, mode='scp', size= '202', expectation= False), errmsg2
         return True
     # end test_ecmp_in_pol_based_svc_pol_update
    
@@ -235,7 +235,7 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
             si_count=1, svc_scaling=True, max_inst=3, svc_mode='in-network-nat')
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         dst_vm_list= [self.vm2_fixture]
 #        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
@@ -250,7 +250,7 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
             si_count=1, svc_scaling=True, max_inst=3)
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         vm_list = [self.vm1_fixture, self.vm2_fixture]
         for vm in vm_list:
             vm.install_pkg("Traffic")
@@ -285,7 +285,7 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
             si_count=1, svc_scaling=True, max_inst=3)
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         vm_list = [self.vm1_fixture, self.vm2_fixture]
         for vm in vm_list:
             vm.install_pkg("Traffic")
@@ -321,7 +321,7 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
             si_count=1, svc_scaling=True, max_inst=3)
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         dest_vm2 = self.useFixture(
             VMFixture(
                 project_name=self.inputs.project_name, connections=self.connections,
@@ -367,7 +367,7 @@ class TestECMPFeature(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
             si_count=1, svc_scaling=True, max_inst=3)
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         dst_vm_list= [self.vm2_fixture]
 #        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
@@ -433,7 +433,7 @@ class TestECMPScale(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffic,
                     si_count=1, svc_scaling=True, max_inst=i, svc_mode='in-network-nat')
                 svm_ids = self.si_fixtures[0].svm_ids
                 self.get_rt_info_tap_intf_list(
-                    self.vn1_fixture, self.vm1_fixture, svm_ids)
+                    self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
                 dst_vm_list= [self.vm2_fixture]
 #                self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
                 self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
@@ -550,7 +550,7 @@ class TestECMPwithFIP(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTraffi
         self.addCleanup(self.vnc_lib.floating_ip_delete, self.fip_obj.fq_name)
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         
         self.vm1_fixture.ping_with_certainty('10.1.1.10')
         return True   
@@ -752,15 +752,17 @@ class TestMultiInlineSVC(BaseECMPTest, VerifySvcFirewall, ECMPSolnSetup, ECMPTra
     # end test_three_stage_SC_with_ECMP
 
     @preposttest_wrapper
-    def test_three_stage_SC(self):
+    def test_three_stage_SC_with_traffic(self):
         self.verify_multi_inline_svc(
                 si_list= [('in-net', 2), ('bridge', 2), ('nat', 2)])
+        tap_list= []
+        si_list= self.si_list
         svm_ids = self.si_fixtures[0].svm_ids
-        self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+        tap_list= self.get_rt_info_tap_intf_list(
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         dst_vm_list= [self.vm2_fixture]
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
 
         return True
-    # end test_three_stage_SC
+    # end test_three_stage_SC_with_traffic
 

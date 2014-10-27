@@ -127,10 +127,12 @@ class PolicyFixture(fixtures.Fixture):
                 'protocol': 'any',
                 'source_network': None,
                 'source_policy': None,
+                'source_subnet': None,
                 'src_ports': [PortType(-1, -1)],
                 'application': None,
                 'dest_network': None,
                 'dest_policy': None,
+                'dest_subnet': None,
                 'dst_ports': [PortType(-1, -1)],
                 'action_list': {},
             }
@@ -189,6 +191,26 @@ class PolicyFixture(fixtures.Fixture):
                 else:
                     dest_policy = ':'.join(self.project_fq_name) + \
                         ':' + new_rule['dest_policy']
+            if new_rule['source_subnet'] is not None:
+                try:
+                    source_subnet_prefix = str(new_rule['source_subnet'].split('/')[0])
+                    source_subnet_prefix_length = int(new_rule['source_subnet'].split('/')[1])
+                    source_subnet_dict = {'ip_prefix':source_subnet_prefix,
+                                          'ip_prefix_len':source_subnet_prefix_length}
+                except:
+                    self.logger.debug("Subnet should be defined as ip/prefix_length \
+                        where ip = xx.xx.xx.xx and prefix_length is the subnet mask \
+                        length.")
+            if new_rule['dest_subnet'] is not None:
+                try:
+                    dest_subnet_prefix = str(new_rule['dest_subnet'].split('/')[0])
+                    dest_subnet_prefix_length = int(new_rule['dest_subnet'].split('/')[1])
+                    dest_subnet_dict = {'ip_prefix':dest_subnet_prefix,
+                                        'ip_prefix_len':dest_subnet_prefix_length}
+                except:
+                    self.logger.debug("Subnet should be defined as ip/prefix_length \
+                        where ip = xx.xx.xx.xx and prefix_length is the subnet mask \
+                        length.")
 
             # handle 'any' network case
             try:
@@ -229,6 +251,20 @@ class PolicyFixture(fixtures.Fixture):
                 dest_address = new_rule['dest_policy']
             except NameError:
                 self.logger.debug("No dest policy defined in this rule of %s \
+                    policy" % (policy_name))
+            try:
+                new_rule['source_subnet'] = [
+                    AddressType(subnet=source_subnet_dict)]
+                src_address = new_rule['source_subnet']
+            except NameError:
+                self.logger.debug("No source subnet defined in this rule of %s \
+                    policy" % (policy_name))
+            try:
+                new_rule['dest_subnet'] = [
+                    AddressType(subnet=dest_subnet_dict)]
+                dest_address = new_rule['dest_subnet']
+            except NameError:
+                self.logger.debug("No destination subnet defined in this rule of %s \
                     policy" % (policy_name))
 
             np_rules.append(PolicyRuleType(direction=new_rule['direction'],
