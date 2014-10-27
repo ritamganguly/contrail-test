@@ -336,7 +336,8 @@ class TestLbaas(BaseTestLbaas):
         if (count_active == 0) and (count_standby !=0):
             self.logger.info("traffic is flowing only through standby %s, failover working" % (standby))
         else:
-            assert False, "traffic is not flowing through standby %s when agent in Active is down,"
-                           " failover not working" % (standby)
+            assert False, "traffic is not flowing through standby %s \
+                           when agent in Active is down,  failover not \
+                           working" % (standby)
 
     # end test_active_standby_failover
