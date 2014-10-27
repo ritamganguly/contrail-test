@@ -245,6 +245,10 @@ class VMFixture(fixtures.Fixture):
             result = result and False
             return result
         vm_status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
+        if vm_status[1] in 'ERROR':
+            self.logger.warn("VM %s in error state. Asserting..."%(self.vm_name))
+            assert False
+
         if vm_status[1] != 'ACTIVE':
             result = result and False
             return result
@@ -1601,6 +1605,13 @@ class VMFixture(fixtures.Fixture):
 
     @retry(delay=3, tries=20)
     def wait_till_vm_is_up(self):
+        vm_status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
+        if vm_status[1] in 'ERROR':
+            self.logger.warn("VM %s in error state. Asserting..."%(self.vm_name))
+            assert False
+        if vm_status[1] != 'ACTIVE':
+            result = result and False
+            return result
         result = self.verify_vm_launched()
         #console_check = self.nova_fixture.wait_till_vm_is_up(self.vm_obj)
         #result = result and self.nova_fixture.wait_till_vm_is_up(self.vm_obj)
