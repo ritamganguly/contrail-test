@@ -40,7 +40,7 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
             si_count=1, svc_scaling=True, max_inst=3)
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         dst_vm_list= [self.vm2_fixture]
 #        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
@@ -53,7 +53,7 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
         self.vm2_fixture.wait_till_vm_is_up()
 
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         fab_connections.clear()
 #        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
@@ -66,7 +66,7 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
         self.vm2_fixture.wait_till_vm_is_up()
 
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         fab_connections.clear()
 #        self.verify_traffic_flow(self.vm1_fixture, dst_vm_list)
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
@@ -83,7 +83,7 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
             si_count=1, svc_scaling=True, max_inst=3, flavor='contrail_flavor_2cpu')
         svm_ids = self.si_fixtures[0].svm_ids
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         
         dst_vm_list= [self.vm2_fixture]
         self.verify_traffic_flow(self.vm1_fixture, dst_vm_list, self.si_fixtures[0], self.vn1_fixture)
@@ -106,20 +106,20 @@ class TestECMPRestart(BaseECMPRestartTest, VerifySvcFirewall, ECMPSolnSetup, ECM
             'Will check the state of the SIs and power it ON, if it is in SHUTOFF state')
         # We need to check the status of only those VMs associated with this project
         si_svms= []
-        si_svms= self.get_svms_in_si(self.si_fixtures, self.inputs.project_name)
+        si_svms= self.get_svms_in_si(self.si_fixtures[0], self.inputs.project_name)
         vms= [self.vm1_fixture, self.vm2_fixture]
         for svm in si_svms:
-            if not self.nova_fixture.wait_till_vm_is_active(svm):
+            if self.nova_fixture.wait_till_vm_is_active(svm)[1] != 'ACTIVE':
                 self.logger.info('Will Power-On %s' % svm.name)
                 svm.start()
         for vm in vms:
-            if not self.nova_fixture.wait_till_vm_is_active(vm.vm_obj):
+            if self.nova_fixture.wait_till_vm_is_active(vm.vm_obj)[1] != 'ACTIVE':
                 self.logger.info('Will Power-On %s' % vm.vm_obj.name)
                 vm.vm_obj.start()
         self.logger.info('Sleeping for 30 seconds')
         sleep(30)
         self.get_rt_info_tap_intf_list(
-            self.vn1_fixture, self.vm1_fixture, svm_ids)
+            self.vn1_fixture, self.vm1_fixture, self.vm2_fixture, svm_ids)
         fab_connections.clear()
         self.vm1_fixture.wait_till_vm_is_up()
         self.vm2_fixture.wait_till_vm_is_up()

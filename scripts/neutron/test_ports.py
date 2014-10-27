@@ -626,6 +626,7 @@ class TestPorts(BaseNeutronTest):
 
     # end test_aap_with_vrrp_admin_state_toggle
 
+    @test.attr(type=['sanity']) 
     @preposttest_wrapper
     def test_aap_with_vrrp_priority_change(self):
         '''Create 2 VMs and enable VRRP between them, specifying a vIP.
