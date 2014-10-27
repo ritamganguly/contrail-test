@@ -174,26 +174,6 @@ class NovaFixture(fixtures.Fixture):
                     webserver = r'http://10.84.5.100/'
 
             build_path = '%s/%s/%s' % (webserver, location, image)
-            if image_name == 'cirros-0.3.0-x86_64-uec':
-                run('source /etc/contrail/openstackrc')
-                run('cd /tmp ; sudo rm -f /tmp/cirros-0.3.0-x86_64*')
-                if not os.path.isfile("/root/cirros-0.3.0-x86_64-uec.tar.gz"):
-                    run('cd /tmp; wget %s' % build_path)
-                else:
-                    run("cp /root/cirros-0.3.0-x86_64-uec.tar.gz /tmp/cirros-0.3.0-x86_64-uec.tar.gz")
-
-                run('tar xvzf /tmp/cirros-0.3.0-x86_64-uec.tar.gz -C /tmp/')
-                run('source /etc/contrail/openstackrc && glance add name=cirros-0.3.0-x86_64-kernel is_public=true ' +
-                    'container_format=aki disk_format=aki < /tmp/cirros-0.3.0-x86_64-vmlinuz')
-                run('source /etc/contrail/openstackrc && glance add name=cirros-0.3.0-x86_64-ramdisk is_public=true ' +
-                    ' container_format=ari disk_format=ari < /tmp/cirros-0.3.0-x86_64-initrd')
-                run('source /etc/contrail/openstackrc && glance add name=' + image_name + ' is_public=true ' +
-                    'container_format=ami disk_format=ami ' +
-                    '\"kernel_id=$(glance index | awk \'/cirros-0.3.0-x86_64-kernel/ {print $1}\')\" ' +
-                    '\"ramdisk_id=$(glance index | awk \'/cirros-0.3.0-x86_64-ramdisk/ {print $1}\')\" ' +
-                    ' < <(zcat --force /tmp/cirros-0.3.0-x86_64-blank.img)')
-                return True
-            # end if
 
             return self.copy_and_glance(build_path, image_name, image)
     # end _install_image
@@ -211,8 +191,12 @@ class NovaFixture(fixtures.Fixture):
            Requires Image path
         """
         run('pwd')
-        cmd = '(source /etc/contrail/openstackrc; wget -O - %s | gunzip | glance add name="%s" \
-                    is_public=true container_format=ovf disk_format=qcow2)' % (build_path, generic_image_name)
+        unzip = ''
+        if '.gz' in build_path:
+            unzip = ' gunzip | '
+        cmd = '(source /etc/contrail/openstackrc; wget -O - %s | %s glance add name="%s" \
+                    is_public=true container_format=ovf disk_format=qcow2)' % (
+                    build_path, unzip, generic_image_name)
         if self.inputs.http_proxy != 'None':
             with shell_env(http_proxy=self.inputs.http_proxy):
                 run(cmd)
