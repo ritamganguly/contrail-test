@@ -245,6 +245,10 @@ class VMFixture(fixtures.Fixture):
             result = result and False
             return result
         vm_status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
+        if vm_status[1] in 'ERROR':
+            self.logger.warn("VM in error state. Asserting...")
+            assert False
+
         if vm_status[1] != 'ACTIVE':
             result = result and False
             return result
@@ -1599,8 +1603,35 @@ class VMFixture(fixtures.Fixture):
         return vm_ip
     # end def
 
-    @retry(delay=3, tries=20)
     def wait_till_vm_is_up(self):
+        status = self.wait_till_vm_up()
+        if type(status) == tuple:
+            return status[0]
+        elif type(status) == bool:
+            return status
+
+    def wait_till_vm_is_active(self):
+        status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
+        if type(status) == tuple:
+            if status[1] in 'ERROR':
+                return False
+            elif status[1] in 'ACTIVE':
+                return True
+        elif type(status) == bool:
+            return status
+
+    @retry(delay=3, tries=20)
+    def wait_till_vm_up(self):
+        vm_status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
+        if vm_status[1] in 'ERROR':
+            self.logger.warn("VM in error state. Asserting...")
+            return (False, 'final')
+#            assert False
+
+        if vm_status[1] != 'ACTIVE':
+            result = result and False
+            return result
+
         result = self.verify_vm_launched()
         #console_check = self.nova_fixture.wait_till_vm_is_up(self.vm_obj)
         #result = result and self.nova_fixture.wait_till_vm_is_up(self.vm_obj)
