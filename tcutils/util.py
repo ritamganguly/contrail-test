@@ -47,10 +47,15 @@ def retry(tries=5, delay=3):
 
             result = f(*args, **kwargs)  # first attempt
             rv = result
+            final = False
             if type(result) is tuple:
                 rv = result[0]
+                if 'final' in result:
+                    final = True
             if type(result) is dict:
                 rv = result['result']
+                if 'final' in result.keys() and result['final']:
+                    final = True
             while mtries > 0:
                 if rv is True:  # Done on success
                     if type(result) is tuple:
@@ -59,6 +64,8 @@ def retry(tries=5, delay=3):
                         return {'result': True, 'msg': result['msg']}
                     else:
                         return True
+                if final:
+                    break
                 mtries -= 1      # consume an attempt
                 time.sleep(mdelay)  # wait...
 

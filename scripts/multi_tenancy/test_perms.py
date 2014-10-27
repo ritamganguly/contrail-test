@@ -38,7 +38,7 @@ class TestMultitenancy(BaseMultitenancyTest):
         pass
     # end runTest
 
-    @test.attr(type=['sanity'])
+    #@test.attr(type=['sanity'])- Removing multi-tenancy test case from sanity
     @preposttest_wrapper
     def test_all(
         self, ip='127.0.0.1', port=8082, domain_name='default-domain',
