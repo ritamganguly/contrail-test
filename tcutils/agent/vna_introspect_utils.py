@@ -331,6 +331,26 @@ l[0]={'protocol': '1', 'stats_bytes': '222180', 'stats_packets': '2645', 'setup_
                 return routes
     # end get_vna_route
 
+    def get_ipv6_vna_route(self, vrf_id='', ip=None, prefix=None):
+        routes = {'ip': ip, 'prefix': prefix}
+        path = 'Snh_Inet6UcRouteReq?x=%s' % str(vrf_id)
+        xpath = './route_list/list/RouteUcSandeshData'
+        p = self.dict_get(path)
+        routelist = EtreeToDict(xpath).get_all_entry(p)
+        if not ip or not prefix:
+            routes.update({'routes': routelist})
+            return routes
+        if type(routelist) is dict:
+            routelist1 = [routelist]
+        else:
+            routelist1 = routelist
+        for route in routelist1:
+            if (route['src_ip'] == ip and route['src_plen'] == str(prefix)):
+                routes.update({'routes': [route]})
+                return routes
+    # end get_ipv6_vna_route
+
+
     def get_vna_layer2_route(self, vrf_id='', mac=None):
         routes = {'mac': mac}
         path = 'Snh_Layer2RouteReq?x=%s' % str(vrf_id)
@@ -371,6 +391,19 @@ l[0]={'protocol': '1', 'stats_bytes': '222180', 'stats_packets': '2645', 'setup_
         else:
             return None
     # end get_vna_active_route
+
+    def get_ipv6_vna_active_route(self, vrf_id, ip, prefix):
+        '''
+
+        Returns the first path got from get_vna_route. We would later need to have API to search a path given a set of match-conditions like  nh/label/peer etc.
+        '''
+        route_list = self.get_ipv6_vna_route(vrf_id, ip, prefix)
+        if route_list:
+            return route_list['routes'][0]
+        else:
+            return None
+    # end get_ipv6_vna_active_route
+
 
     def _itf_fltr(self, x, _type, value):
         if _type == 'vmi':
