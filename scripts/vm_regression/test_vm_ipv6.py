@@ -23,6 +23,7 @@ class TestBasicVMVN0(BaseVnVmTest):
     def setUpClass(cls):
         super(TestBasicVMVN0, cls).setUpClass()
 
+    @test.attr(type=['sanity','ipv6'])
     @preposttest_wrapper
     def test_ipv6_vn_add_delete(self):
         '''Test to validate IPV6 VN creation and deletion.
@@ -39,7 +40,8 @@ class TestBasicVMVN0(BaseVnVmTest):
             vn_obj.create_subnet(cidr,ipam,ip_version=6)
         return True
     #end test_ipv6_vn_add_delete
-
+#
+    @test.attr(type=['sanity','ipv6'])
     @preposttest_wrapper
     def test_ipv6_vm_add_delete(self):
         ''' Test to validate that a VM creation and deletion passes for ipv6 network.
@@ -62,7 +64,7 @@ class TestBasicVMVN0(BaseVnVmTest):
         return True
     # end test_ipv6_vm_add_delete
 
-    #@test.attr(type=['sanity','ci_sanity','quick_sanity'])
+    @test.attr(type=['sanity','ipv6'])
     @preposttest_wrapper
     def test_ping6_within_vn(self):
         ''' Validate Ping between two VMs within a VN.
@@ -107,6 +109,7 @@ class TestBasicVMVN0(BaseVnVmTest):
     # end test_ping_within_vn
 
 
+    @test.attr(type=['sanity','ipv6'])
     @preposttest_wrapper
     def test_ipv6_vm_file_trf_scp_tests(self):
         '''
@@ -177,6 +180,7 @@ class TestBasicVMVN0(BaseVnVmTest):
         return transfer_result
     # end test_vm_file_trf_scp_tests
 
+    @test.attr(type=['sanity','ipv6'])
     @preposttest_wrapper
     def test_ipv6_vm_file_trf_tftp_tests(self):
         '''
@@ -252,6 +256,7 @@ class TestBasicVMVN0(BaseVnVmTest):
         return transfer_result
     #end test_vm_file_trf_tftp_tests
       
+    @test.attr(type=['sanity','ipv6'])
     @preposttest_wrapper
     def test_ping6_across_vn_two_vms_two_different_subnets(self):
         ''' Validate Ping between two VMs across  VNs in 2 different subnets.
