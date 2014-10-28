@@ -100,13 +100,9 @@ class ECMPVerify():
                     new_destn_agent = self.inputs.host_data[
                         destn_agent]['host_ip']
                     inspect_hh = self.agent_inspect[new_destn_agent]
-                    agent_vrf_objs = inspect_hh.get_vna_vrf_objs(
-                        domain, project, vn)
-                    agent_vrf_obj = src_vm.get_matching_vrf(
-                        agent_vrf_objs['vrf_list'], src_vn.vrf_name)
-                    fvn_vrf_id5 = agent_vrf_obj['ucindex']
+                    vn_vrf_id= self.get_vrf_id(src_vn, src_vm, new_destn_agent)
                     next_hops_in_tnl = inspect_hh.get_vna_active_route(
-                        vrf_id=fvn_vrf_id5, ip=shared_ip, prefix='32')['path_list'][0]['nh']['mc_list']
+                        vrf_id=vn_vrf_id, ip=shared_ip, prefix='32')['path_list'][0]['nh']['mc_list']
                     for next_hop in next_hops_in_tnl:
                         if next_hop['type'] == 'Interface':
                             tap_intf_from_tnl = next_hop['itf']
@@ -123,13 +119,9 @@ class ECMPVerify():
                 new_destn_agent = self.inputs.host_data[
                     destn_agent]['host_ip']
                 inspect_hh = self.agent_inspect[new_destn_agent]
-                agent_vrf_objs = inspect_hh.get_vna_vrf_objs(
-                    domain, project, vn)
-                agent_vrf_obj = src_vm.get_matching_vrf(
-                    agent_vrf_objs['vrf_list'], src_vn.vrf_name)
-                fvn_vrf_id5 = agent_vrf_obj['ucindex']
+                vn_vrf_id= self.get_vrf_id(src_vn, src_vm, new_destn_agent)
                 next_hops_in_tnl = inspect_hh.get_vna_active_route(
-                    vrf_id=fvn_vrf_id5, ip=shared_ip, prefix='32')['path_list'][0]['nh']
+                    vrf_id=vn_vrf_id, ip=shared_ip, prefix='32')['path_list'][0]['nh']
                 if 'mc_list' in next_hops_in_tnl:
                     next_hops_in_tnl= next_hops_in_tnl['mc_list']
                     for next_hop in next_hops_in_tnl:
@@ -148,14 +140,15 @@ class ECMPVerify():
         self.logger.info(
                 'The Tap interface list :%s' %
             tap_intf_list)
-
         return tap_intf_list
     # end get_tap_intf_list
-
-    def get_vrf_id(self, src_vn, src_vm):
-        agent= self.inputs.host_data[src_vm.vm_node_ip]['host_ip']
+ 
+    def get_vrf_id(self, src_vn, src_vm, destn_agent= None):
+        if destn_agent is None:
+            destn_agent= src_vm.vm_node_ip
+            destn_agent= self.inputs.host_data[destn_agent]['host_ip']
         (domain, project, vn) = src_vn.vn_fq_name.split(':')
-        inspect_h1 = self.agent_inspect[agent]
+        inspect_h1 = self.agent_inspect[destn_agent]
         agent_vrf_objs = inspect_h1.get_vna_vrf_objs(domain, project, vn)
         agent_vrf_obj = src_vm.get_matching_vrf(
             agent_vrf_objs['vrf_list'], src_vn.vrf_name)
