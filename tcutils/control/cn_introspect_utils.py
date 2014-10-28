@@ -202,6 +202,26 @@ class ControlNodeInspect (VerificationUtilBase):
                     if route['prefix'] == prefix:
                         return route['paths']
 
+
+    def get_cn_ipv6_route_table_entry(self, prefix, ri_name, table='inet6.0'):
+        '''Returns the route dictionary for requested prefix and routing instance.
+        '''
+        path = 'Snh_ShowRouteReq?x=%s.%s' % (ri_name, table)
+        xpath = '/ShowRouteResp/tables/list/ShowRouteTable'
+        p = self.dict_get(path)
+        rt = EtreeToDict(xpath).get_all_entry(p)
+        if type(rt) == type(dict()):
+            for route in rt['routes']:
+                if route['prefix'] == prefix:
+                    return route['paths']
+        else:
+            for entry in rt:
+                for route in entry['routes']:
+                    if route['prefix'] == prefix:
+                        return route['paths']
+
+
+
     def get_cn_bgp_neigh_entry(self, encoding='All'):
         '''Returns the route dictionary for requested prefix and routing instance.
         '''

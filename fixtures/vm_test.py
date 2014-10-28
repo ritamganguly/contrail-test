@@ -190,8 +190,8 @@ class VMFixture(fixtures.Fixture):
                                           % (vm_obj.name))
                     self.vm_launch_flag = self.vm_launch_flag and False
                     return False
-                self.vm_ips.append(
-                    self.nova_fixture.get_vm_ip(vm_obj, vn_name)[0])
+            self.vm_ips =self.nova_fixture.get_vm_ip(vm_obj, vn_name)
+            #self.nova_fixture.get_vm_ip(vm_obj, vn_name)[0])
             with self.printlock:
                 self.logger.info('VM %s launched on Node %s'
                                  % (vm_obj.name, self.nova_fixture.get_nova_host_of_vm(vm_obj)))
@@ -544,10 +544,17 @@ class VMFixture(fixtures.Fixture):
                 vn_fq_name]['ucindex']
             if fw_mode != unicode('l2'):
                 try:
-                    self.agent_path[vn_fq_name] = inspect_h.get_vna_active_route(
-                        vrf_id=self.agent_vrf_id[vn_fq_name],
-                        ip=self.vm_ip_dict[vn_fq_name],
-                        prefix='32')
+                   vm_ip=self.vm_ip_dict[vn_fq_name]
+                   if ':' in vm_ip :
+                       self.agent_path[vn_fq_name] = inspect_h.get_ipv6_vna_active_route(
+                                                     vrf_id=self.agent_vrf_id[vn_fq_name],
+                                                     ip=self.vm_ip_dict[vn_fq_name],
+                                                      prefix='128')
+                   else:
+                       self.agent_path[vn_fq_name] = inspect_h.get_vna_active_route(
+                                                     vrf_id=self.agent_vrf_id[vn_fq_name],
+                                                     ip=self.vm_ip_dict[vn_fq_name],
+                                                      prefix='32')
                 except Exception as e:
                     return False
                 if not self.agent_path:
@@ -1019,9 +1026,13 @@ class VMFixture(fixtures.Fixture):
                     #vn_name= vn_fq_name.split(':')[-1]
                     #ri_name= vn_fq_name + ':' + vn_name
                     #self.ri_names[vn_fq_name]= ri_name
-                    cn_routes = self.cn_inspect[cn].get_cn_route_table_entry(
-                        ri_name=ri_name,
-                        prefix=self.vm_ip_dict[vn_fq_name] + '/32')
+                    if ':' in self.vm_ip_dict[vn_fq_name] :
+                        cn_routes = self.cn_inspect[cn].get_cn_ipv6_route_table_entry(
+                        ri_name=ri_name, prefix=self.vm_ip_dict[vn_fq_name] + '/128')
+                    else:
+ 
+                        cn_routes = self.cn_inspect[cn].get_cn_route_table_entry(
+                                    ri_name=ri_name, prefix=self.vm_ip_dict[vn_fq_name] + '/32')
                     if not cn_routes:
                         with self.printlock:
                             self.logger.warn(
@@ -1064,6 +1075,11 @@ class VMFixture(fixtures.Fixture):
                 else:
                     ethernet_tag ="2-0:0-0"
                 prefix = ethernet_tag + '-' + prefix
+                #currently mac + ipv6 doesnot supprt so for ipv6 address it will return true
+                if ':' in self.vm_ip_dict[vn_fq_name]  :
+                    self.logger.info(
+                    'Skipping the layer 2 verification of %s control node for ipv6 network since its not supporting' % (cn))
+                    return True
                 cn_l2_routes = self.cn_inspect[cn].get_cn_route_table_entry(
                     ri_name=ri_name, prefix=prefix, table='evpn.0')
                 if not cn_l2_routes:
@@ -1205,7 +1221,11 @@ class VMFixture(fixtures.Fixture):
                     return False
                 ops_data = ops_intf_list[ops_index]
                 if fw_mode != unicode('l2'):
-                    if self.vm_ip_dict[vn_fq_name] != ops_data['ip_address']:
+                    if ':' in self.vm_ip_dict[vn_fq_name] :
+                        op_data=ops_data['ip6_address']
+                    else:
+                        op_data=ops_data['ip_address']
+                    if self.vm_ip_dict[vn_fq_name] != op_data :
                         self.logger.warn(
                             "VM %s IP Address of %s not in Opserver VM view"
                             " " % (self.vm_name, self.vm_ip_dict[vn_fq_name]))
@@ -1443,8 +1463,12 @@ class VMFixture(fixtures.Fixture):
                         warn_only=True, abort_on_prompts=False):
                     key_file = self.nova_fixture.tmp_key_file
                     self.get_rsa_to_vm()
-                    i = 'timeout %d scp -o StrictHostKeyChecking=no -i id_rsa %s %s@%s:' % (
+                    if ':' in vm_ip :
+                       i = 'timeout %d scp -o StrictHostKeyChecking=no -i id_rsa %s %s@[%s]:' % (
                         timeout, file, dest_vm_username, vm_ip)
+                    else:
+                       i = 'timeout %d scp -o StrictHostKeyChecking=no -i id_rsa %s %s@%s:' % (
+                           timeout, file, dest_vm_username, vm_ip)
                     cmd_outputs = self.run_cmd_on_vm(cmds=[i])
                     self.logger.debug(cmd_outputs)
         except Exception, e:
@@ -1486,7 +1510,9 @@ class VMFixture(fixtures.Fixture):
            dest_vm_ip = fip
         else:
            dest_vm_ip = dest_vm_fixture.vm_ip
-
+        for vm_ipv6 in dest_vm_fixture.vm_ips :
+            if ':' in vm_ipv6 :
+                dest_vm_ip= vm_ipv6
         # Create file
         cmd = 'dd bs=%s count=1 if=/dev/zero of=%s' % (size, filename)
         self.run_cmd_on_vm(cmds=[cmd])
