@@ -128,10 +128,16 @@ class ECMPVerify():
                 agent_vrf_obj = src_vm.get_matching_vrf(
                     agent_vrf_objs['vrf_list'], src_vn.vrf_name)
                 fvn_vrf_id5 = agent_vrf_obj['ucindex']
-#                fvn_vrf_id = self.get_vrf_id(src_vn, src_vm)
                 next_hops_in_tnl = inspect_hh.get_vna_active_route(
                     vrf_id=fvn_vrf_id5, ip=shared_ip, prefix='32')['path_list'][0]['nh']
-                if 'face' in next_hops_in_tnl['type']:
+                if 'mc_list' in next_hops_in_tnl:
+                    next_hops_in_tnl= next_hops_in_tnl['mc_list']
+                    for next_hop in next_hops_in_tnl:
+                        if next_hop['type'] == 'Interface':
+                            tap_intf_from_tnl = next_hop['itf']
+                            agent_tap_intf_tuple= (new_destn_agent, tap_intf_from_tnl)
+                            tap_intf_list.append(agent_tap_intf_tuple)
+                elif 'face' in next_hops_in_tnl['type']:
                     tap_intf_from_tnl = next_hops_in_tnl['itf']
                     agent_tap_intf_tuple= (new_destn_agent, tap_intf_from_tnl)
                     tap_intf_list.append(agent_tap_intf_tuple)
