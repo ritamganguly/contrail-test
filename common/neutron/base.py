@@ -513,6 +513,6 @@ class BaseNeutronTest(test.BaseTestCase):
         hm_resp = self.quantum_fixture.associate_health_monitor(
             pool_id, hm_id)
         if hm_resp:
-            self.addCleanup(self.quantum_fixture.disassociate_health_monitor(
-                pool_id, hm_id))
+            self.addCleanup(self.quantum_fixture.disassociate_health_monitor,
+                            pool_id, hm_id)
     # end associate_health_monitor
