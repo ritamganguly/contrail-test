@@ -174,7 +174,7 @@ function generate_html {
 function upload_to_web_server {
   if [ $upload -eq 1 ] ; then
       ${wrapper} python tools/upload_to_webserver.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE $REPORT_FILE
-  fi 
+  fi
 }
 
 if [ $never_venv -eq 0 ]

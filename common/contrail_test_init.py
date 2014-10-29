@@ -4,15 +4,10 @@ import sys
 import json
 import time
 import socket
-import smtplib
 import getpass
-import logging
 import ConfigParser
+import ast
 from netaddr import *
-import logging.config
-from functools import wraps
-from email.mime.text import MIMEText
-import datetime
 
 import fixtures
 from fabric.api import env, run , local
@@ -42,118 +37,106 @@ if "check_output" not in dir( subprocess ): # duck punch it in!
         return output
     subprocess.check_output = f
 
-BUILD_DIR = {'fc17': '/cs-shared/builder/',
-             'centos_el6': '/cs-shared/builder/centos64_os/',
-             'xenserver': '/cs-shared/builder/xen/',
-             'ubuntu': '/cs-shared/builder/ubuntu/',
-             }
-
 class ContrailTestInit(fixtures.Fixture):
     def __init__(self, ini_file, stack_user=None, stack_password=None, project_fq_name=None,logger = None  ):
-        config = ConfigParser.ConfigParser()
-        self.config = config
-        config.read(ini_file)
-        self.config = config
-        self.prov_file = config.get('Basic', 'provFile')
         self.username = 'root'
         self.password = 'c0ntrail123'
-        self.key = config.get('Basic', 'key')
         self.api_server_port = '8082'
         self.bgp_port = '8083'
         self.ds_port = '5998'
-        self.stack_tenant = config.get('Basic', 'stackTenant')
+        self.logger = logger
+        self.build_id = None
+        self.single_node = self.get_os_env('SINGLE_NODE_IP')
+        self.jenkins_trigger = self.get_os_env('JENKINS_TRIGGERED')
+        self.os_type = {}
+        self.report_details_file='report_details.ini'
+        self.config = ConfigParser.ConfigParser()
+        self.config.read(ini_file)
+
+        self.prov_file = read_config_option(self.config,
+                              'Basic', 'provFile', None)
+        self.key = read_config_option(self.config,
+                              'Basic', 'key', 'key1')
+        self.stack_user = stack_user or read_config_option(self.config,
+                              'Basic', 'stackUser', 'admin')
+        self.stack_password = stack_password or read_config_option(self.config,
+                              'Basic', 'stackPassword', 'contrail123')
+        self.stack_tenant = read_config_option(self.config,
+                              'Basic', 'stackTenant', 'admin')
+        self.stack_domain = read_config_option(self.config,
+                              'Basic', 'stackDomain', 'default-domain')
         self.project_fq_name = project_fq_name or \
-                                ['default-domain', self.stack_tenant]
+                              [self.stack_domain, self.stack_tenant]
         self.project_name = self.project_fq_name[1]
         self.domain_name = self.project_fq_name[0]
-        self.stack_user = stack_user or config.get('Basic', 'stackUser')
-        self.stack_password = stack_password or config.get(
-            'Basic', 'stackPassword')
-        self.multi_tenancy = self.read_config_option(
-            'Basic', 'multiTenancy', 'False')
-        if self.config.get('webui', 'webui') == 'False':
-            self.webui_verification_flag = False
-        else:
-            self.webui_verification_flag = self.config.get('webui', 'webui')
-        self.webui_config_flag = (
-            self.config.get('webui_config', 'webui_config') == 'True')
-        self.devstack = (self.config.get('devstack', 'devstack') == 'True')
-        self.keystone_ip = self.read_config_option(
-            'Basic', 'keystone_ip', 'None')
-        self.http_proxy = self.read_config_option('proxy', 'http', 'None')
-
-        generate_html_report = config.get('Basic', 'generate_html_report')
-        self.logger = logger   
-        self.log_scenario = self.read_config_option(
-            'Basic', 'logScenario', 'Sanity')
-        self.build_id = None
-
+        self.keystone_ip = read_config_option(self.config,
+                              'Basic', 'keystone_ip', None)
+        self.multi_tenancy = read_config_option(self.config,
+                              'Basic', 'multiTenancy', False)
+        self.log_scenario = read_config_option(self.config,
+                              'Basic', 'logScenario', 'Sanity')
         if 'EMAIL_SUBJECT' in os.environ:
             self.log_scenario = os.environ.get('EMAIL_SUBJECT')
         else:
             self.log_scenario = self.log_scenario
-
-  #      ts = self.get_os_env('SCRIPT_TS') or \
-  #            datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-  #      self.ts = ts
-        self.single_node = self.get_os_env('SINGLE_NODE_IP')
-        self.jenkins_trigger = self.get_os_env('JENKINS_TRIGGERED')
-
-        # Fixture cleanup option
-        self.fixture_cleanup = self.read_config_option(
-            'Basic', 'fixtureCleanup', 'yes')
-        # Mx option
-        mx_infos = self.config.items('Mx')
-        self.ext_routers = []  # List of (router_name, router_ip) Tuple.
-        for mx_info, value in mx_infos:
-            if 'router_name' in mx_info:
-                self.ext_routers.append((value,
-                                         self.read_config_option('Mx', '%s_router_ip' % value, None)))
-        self.mx_rt = self.read_config_option('Mx', 'mx_rt', '10003')
-        self.router_asn = self.read_config_option('Mx', 'router_asn', '64512')
-        self.fip_pool_name = self.read_config_option(
-            'Mx', 'fip_pool_name', 'public-pool')
-        self.fip_pool = self.read_config_option('Mx', 'fip_pool', None)
-
+        self.generate_html_report = read_config_option(self.config,
+                              'Basic', 'generate_html_report', True)
+        self.fixture_cleanup = read_config_option(self.config,
+                              'Basic', 'fixtureCleanup', 'yes')
+        # Web Server related details
+        self.web_server = read_config_option(self.config,
+                              'WebServer', 'host', None)
+        self.web_server_user = read_config_option(self.config,
+                              'WebServer', 'username', None)
+        self.web_server_password = read_config_option(self.config,
+                              'WebServer', 'password', None)
+        self.web_server_report_path = read_config_option(self.config,
+                              'WebServer', 'reportPath', None)
+        self.web_server_log_path = read_config_option(self.config,
+                              'WebServer', 'logPath', None)
         # Mail Setup
-        self.smtpServer = config.get('Mail', 'server')
-        self.smtpPort = config.get('Mail', 'port')
-        self.mailSender = config.get('Mail', 'mailSender')
-        self.mailTo = config.get('Mail', 'mailTo')
+        self.smtpServer = read_config_option(self.config,
+                              'Mail', 'server', None)
+        self.smtpPort = read_config_option(self.config,
+                              'Mail', 'port', None)
+        self.mailTo = read_config_option(self.config,
+                              'Mail', 'mailTo', None)
+        self.mailSender = read_config_option(self.config,
+                              'Mail', 'mailSender', None)
 
-        # Web Server to upload files
-        self.web_server = config.get('WebServer', 'host')
-        self.web_server_report_path = config.get('WebServer', 'reportpath')
-        self.web_serverUser = config.get('WebServer', 'username')
-        self.web_server_password = config.get('WebServer', 'password')
-        self.web_root = config.get('WebServer', 'webRoot')
-        self.path = config.get('WebServer', 'path')
-
-        # Test Revision
-        self.test_repo_dir = self.read_config_option(
-            'Basic', 'testRepoDir', '/root/test/')
-        try:
-            self.test_revision = config.get('repos', 'test_revision')
-        except ConfigParser.NoOptionError:
-            self.test_revision = ''
-        try:
-            self.fab_revision = config.get('repos', 'fab_revision')
-        except ConfigParser.NoOptionError:
-            self.fab_revision = ''
-
+        self.http_proxy = read_config_option(self.config,
+                              'proxy', 'proxy_url', None)
+        self.webui_browser = read_config_option(self.config,
+                              'webui', 'browser', None)
+        self.webui_config = read_config_option(self.config,
+                              'webui', 'config', False)
+        if self.webui_config and not self.webui_browser:
+            raise ValueError("Configuring via GUI needs 'browser' details. Please set the same.")
+        self.devstack = read_config_option(self.config,
+                              'devstack', 'devstack', None)
+        # router options
+        self.mx_rt = read_config_option(self.config,
+                              'router', 'route_target', '10003')
+        self.router_asn = read_config_option(self.config,
+                              'router', 'asn', '64512')
+        router_info_tuples_string = read_config_option(self.config,
+                              'router', 'router_info', '[]')
+        self.ext_routers = ast.literal_eval(router_info_tuples_string)
+        self.fip_pool_name = read_config_option(self.config,
+                              'router', 'fip_pool_name', 'public-pool')
+        self.fip_pool = read_config_option(self.config,
+                              'router', 'fip_pool', None)
+        self.test_revision = read_config_option(self.config,
+                              'repos', 'test_revision', None)
+        self.fab_revision = read_config_option(self.config,
+                              'repos', 'fab_revision', None)
         # debug option
-        self.verify_on_setup = self.read_config_option(
-            'debug', 'verify_on_setup', 'True')
-        self.stop_on_fail = False
-        stop_on_fail = config.get('debug', 'stop_on_fail')
-        if stop_on_fail == "yes":
-            self.stop_on_fail = True
-        self.is_juniper_intranet = False
+        self.verify_on_setup = read_config_option(self.config,
+                              'debug', 'verify_on_setup', False)
+        self.stop_on_fail = read_config_option(self.config,
+                              'debug', 'stop_on_fail', None)
+
         self.check_juniper_intranet()
-
-        self.os_type = {}
-
-        self.report_details_file='report_details.ini'
 
     # end __init__
 
@@ -188,23 +171,21 @@ class ContrailTestInit(fixtures.Fixture):
             self.mysql_token = self.get_mysql_token()
     # end setUp
 
-    def get_repo_version(self):
-        if 'BUILD_ID' in os.environ:
-            git_file = 'git_build_%s.txt' % self.build_id
-            cmd = 'cat %s' % os.path.join(BUILD_DIR[self.os_type[self.cfgm_ip]],
-                                          self.build_id, git_file)
-            build_versions = self.run_cmd_on_server(self.web_server, cmd,
-                                                    self.web_serverUser, self.web_server_password)
-            if not 'No such file' in build_versions:
-                build_versions = str(build_versions).replace('\r\n', '<br>')
-            with open(self.html_repos, 'w+') as repofile:
-                repofile.write(build_versions + '<br>')
-        test_version = 'ssh://git@github.com:Juniper/contrail-test %s<br>' % self.test_revision
-        fab_version = 'ssh://git@github.com:Juniper/contrail-fabric-utils %s<br>' % self.fab_revision
-        with open(self.html_repos, 'a') as repofile:
-            repofile.write(test_version)
-            repofile.write(fab_version)
-        self.upload_to_webserver(self.html_repos)
+    def verify_thru_gui(self):
+        '''
+        Check if GUI based verification is enabled
+        '''
+        if self.webui_browser:
+            return True
+        return False
+
+    def is_gui_based_configuration(self):
+        '''
+        Check if objects have to configured via GUI
+        '''
+        if self.webui_config:
+            return True
+        return False
 
     def get_os_env(self, var):
         if var in os.environ:
@@ -237,16 +218,6 @@ class ContrailTestInit(fixtures.Fixture):
                     self.os_type[host_ip] = 'ubuntu'
         return self.os_type
     # end get_os_version
-
-    def read_config_option(self, section, option, default_option):
-        ''' Read the config file. If the option/section is not present, return the default_option
-        '''
-        try:
-            val = self.config.get(section, option)
-            return val
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            return default_option
-    # end read_config_option
 
     def _read_prov_file(self):
         prov_file = open(self.prov_file, 'r')
@@ -289,7 +260,7 @@ class ContrailTestInit(fixtures.Fixture):
             roles = host["roles"]
             for role in roles:
                 if role['type'] == 'openstack':
-                    if self.keystone_ip != 'None':
+                    if self.keystone_ip:
                         self.openstack_ip = self.keystone_ip
                     else:
                         self.openstack_ip = host_ip
@@ -757,11 +728,10 @@ class ContrailTestInit(fixtures.Fixture):
     # end 
 
     def check_juniper_intranet(self):
-        #cmd = 'ping -c 5 www-int.juniper.net'
         cmd = 'ping -c 5 ntp.juniper.net'
         try:
             # Use http based check if proxy is set.
-            if self.http_proxy != 'None':
+            if self.http_proxy:
                 cmd = "http_proxy=%s wget -O /dev/null --timeout=3 --tries=2 ntp.juniper.net" % self.http_proxy
             subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
             self.is_juniper_intranet = True

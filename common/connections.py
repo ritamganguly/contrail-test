@@ -11,14 +11,18 @@ from vnc_api.vnc_api import *
 from tcutils.vdns.dns_introspect_utils import DnsAgentInspect
 from tcutils.config.ds_introspect_utils import *
 from tcutils.config.discovery_tests import *
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from pyvirtualdisplay import Display
 from keystoneclient.v2_0 import client as ks_client
 from tcutils.util import get_dashed_uuid
 import os
 
+try:
+    from selenium import webdriver
+    from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.support.ui import WebDriverWait
+    from pyvirtualdisplay import Display
+    webui=True
+except ImportError:
+    webui=False
 
 class ContrailConnections():
     browser = None
@@ -43,7 +47,10 @@ class ContrailConnections():
                                  insecure=insecure)
         self.project_id = get_dashed_uuid(self.ks_client.tenant_id)
 
-        if self.inputs.webui_verification_flag:
+        if self.inputs.verify_thru_gui():
+            global webui
+            if not webui:
+                raise ImportError("Selenium and/or pyvirtualdisplay python packages are missing")
             self.os_type = self.inputs.os_type
             self.webui_ip = self.inputs.webui_ip
             self.os_name = self.os_type[self.webui_ip]
@@ -51,10 +58,10 @@ class ContrailConnections():
             self.delay = 30
             self.frequency = 1
             if not ContrailConnections.browser:
-                if self.inputs.webui_verification_flag == 'firefox':
+                if self.inputs.webui_browser.lower() == 'firefox':
                     ContrailConnections.browser = webdriver.Firefox()
                     ContrailConnections.browser_openstack = webdriver.Firefox()
-                elif self.inputs.webui_verification_flag == 'chrome':
+                elif self.inputs.webui_browser.lower() == 'chrome':
                     ContrailConnections.browser = webdriver.Chrome()
                     ContrailConnections.browser_openstack = webdriver.Chrome()
                 else:
@@ -130,7 +137,7 @@ class ContrailConnections():
 
     def cleanUp(self):
         super(ContrailConnections, self).cleanUp()
-        if self.inputs.webui_verification_flag:
+        if self.inputs.verify_thru_gui():
             self.browser.quit()
             self.browser_openstack.quit()
             self.display.stop()
@@ -272,7 +279,7 @@ class ContrailConnections():
     def login_webui(self, project_name, username, password):
         if self.browser:
             self.inputs.logger.info(" %s browser launched...." %
-                                    (self.inputs.webui_verification_flag))
+                                    (self.inputs.webui_browser))
         else:
             self.inputs.logger.info("Browser launch error....")
         self.browser.set_window_position(0, 0)
@@ -293,7 +300,7 @@ class ContrailConnections():
     def login_openstack(self, project_name, username, password):
         if self.browser_openstack:
             self.inputs.logger.info(" %s browser launched...." %
-                                    (self.inputs.webui_verification_flag))
+                                    (self.inputs.webui_browser))
         else:
             self.inputs.logger.info(
                 "Problem occured while browser launch....")

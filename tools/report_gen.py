@@ -6,91 +6,60 @@ import time
 import socket
 import smtplib
 import getpass
-import logging
 import ConfigParser
-from netaddr import *
-import logging.config
-from functools import wraps
-from email.mime.text import MIMEText
 import datetime
 
-import fixtures
-from fabric.api import env, run , local, cd
+from fabric.api import env, run, cd
 from fabric.operations import get, put
 from fabric.context_managers import settings, hide
 from fabric.exceptions import NetworkError
-from fabric.contrib.files import exists
-
 from tcutils.util import *
 from tcutils.custom_filehandler import *
 
-import subprocess
 CORE_DIR = '/var/crashes'
-
-#monkey patch subprocess.check_output cos its not supported in 2.6
-if "check_output" not in dir( subprocess ): # duck punch it in!
-    def f(*popenargs, **kwargs):
-        if 'stdout' in kwargs:
-            raise ValueError('stdout argument not allowed, it will be overridden.')
-        process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
-        output, unused_err = process.communicate()
-        retcode = process.poll()
-        if retcode:
-            cmd = kwargs.get("args")
-            if cmd is None:
-                cmd = popenargs[0]
-            raise subprocess.CalledProcessError(retcode, cmd)
-        return output
-    subprocess.check_output = f
-
-BUILD_DIR = {'fc17': '/cs-shared/builder/',
-             'centos_el6': '/cs-shared/builder/centos64_os/',
-             'xenserver': '/cs-shared/builder/xen/',
-             'ubuntu': '/cs-shared/builder/ubuntu/',
-             }
 
 class ContrailTestInit:
     def __init__(self, ini_file):
-        config = ConfigParser.ConfigParser()
-        self.config = config
-        config.read(ini_file)
-        self.config = config
-        self.prov_file = config.get('Basic', 'provFile')
-
-        generate_html_report = config.get('Basic', 'generate_html_report')
-        self.http_proxy = self.read_config_option('proxy', 'http', 'None')
-        self.log_scenario = self.read_config_option(
-            'Basic', 'logScenario', 'Sanity')
         self.build_id = None
-        self.keystone_ip = self.read_config_option(
-            'Basic', 'keystone_ip', 'None')
-
+        self.config = ConfigParser.ConfigParser()
+        self.config.read(ini_file)
+        self.prov_file = read_config_option(self.config,
+                              'Basic', 'provFile', None)
+        self.log_scenario = read_config_option(self.config,
+                              'Basic', 'logScenario', 'Sanity')
         if 'EMAIL_SUBJECT' in os.environ:
             self.log_scenario = os.environ.get('EMAIL_SUBJECT')
         else:
             self.log_scenario = self.log_scenario
-        ts = self.get_os_env('SCRIPT_TS') or \
+        self.keystone_ip = read_config_option(self.config,
+                              'Basic', 'keystone_ip', None)
+        # Web Server related details
+        self.web_server = read_config_option(self.config,
+                              'WebServer', 'host', None)
+        self.web_server_user = read_config_option(self.config,
+                              'WebServer', 'username', None)
+        self.web_server_password = read_config_option(self.config,
+                              'WebServer', 'password', None)
+        self.web_server_report_path = read_config_option(self.config,
+                              'WebServer', 'reportPath', None)
+        self.web_server_log_path = read_config_option(self.config,
+                              'WebServer', 'logPath', None)
+        self.web_root = read_config_option(self.config,
+                              'WebServer', 'webRoot', None)
+        # Mail Setup
+        self.smtpServer = read_config_option(self.config,
+                              'Mail', 'server', None)
+        self.smtpPort = read_config_option(self.config,
+                              'Mail', 'port', '25')
+        self.mailTo = read_config_option(self.config,
+                              'Mail', 'mailTo', None)
+        self.mailSender = read_config_option(self.config,
+                              'Mail', 'mailSender', 'contrailbuild@juniper.net')
+        self.ts = self.get_os_env('SCRIPT_TS') or \
               datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-        self.ts = ts
         self.single_node = self.get_os_env('SINGLE_NODE_IP')
         self.jenkins_trigger = self.get_os_env('JENKINS_TRIGGERED')
-
-        # Mail Setup
-        self.smtpServer = config.get('Mail', 'server')
-        self.smtpPort = config.get('Mail', 'port')
-        self.mailSender = config.get('Mail', 'mailSender')
-        self.mailTo = config.get('Mail', 'mailTo')
-
-        # Web Server to upload files
-        self.web_server = config.get('WebServer', 'host')
-        self.web_server_report_path = config.get('WebServer', 'reportpath')
-        self.web_serverUser = config.get('WebServer', 'username')
-        self.web_server_password = config.get('WebServer', 'password')
-        self.web_root = config.get('WebServer', 'webRoot')
-        self.path = config.get('WebServer', 'path')
-
         self.os_type = {}
-
         self.report_details_file='report_details.ini'
         self.distro = None
 
@@ -105,13 +74,10 @@ class ContrailTestInit:
         self.setup_detail = '%s %s~%s' % (self.get_distro_sku(), self.build_id,
                                           self.sku)
         self.build_folder = self.build_id + '_' + self.ts
-        self.web_server_path = self.config.get(
-            'WebServer', 'path') + '/' + self.build_folder + '/'
         self.html_log_link = 'http://%s/%s/%s/junit-noframes.html' % (
-            self.web_server, self.web_root, self.build_folder)
+                             self.web_server, self.web_root, self.build_folder)
         self.log_link = 'http://%s/%s/%s/logs/' % (self.web_server, self.web_root,
-            self.build_folder)
-
+                             self.build_folder)
         self.os_type = self.get_os_version()
         self.username = self.host_data[self.cfgm_ip]['username']
         self.password = self.host_data[self.cfgm_ip]['password']
@@ -149,16 +115,6 @@ class ContrailTestInit:
                     self.os_type[host_ip] = 'ubuntu'
         return self.os_type
     # end get_os_version
-
-    def read_config_option(self, section, option, default_option):
-        ''' Read the config file. If the option/section is not present, return the default_option
-        '''
-        try:
-            val = self.config.get(section, option)
-            return val
-        except ConfigParser.NoOptionError:
-            return default_option
-    # end read_config_option
 
     def _read_prov_file(self):
         prov_file = open(self.prov_file, 'r')
@@ -201,7 +157,7 @@ class ContrailTestInit:
             roles = host["roles"]
             for role in roles:
                 if role['type'] == 'openstack':
-                    if self.keystone_ip != 'None':
+                    if self.keystone_ip:
                         self.openstack_ip = self.keystone_ip
                     else:
                         self.openstack_ip = host_ip
@@ -328,7 +284,6 @@ class ContrailTestInit:
         config.set('Test', 'LogsLocation', self.log_link)
         config.set('Test', 'Cores', self.get_cores())
         config.set('Test', 'Topology', phy_topology)
-        #config.write(details_h)
 
         log_location = ''
         if self.jenkins_trigger:
@@ -339,7 +294,6 @@ class ContrailTestInit:
 
         details_h.close()
     # end 
-
 
     def get_build_id(self):
         if self.build_id:
@@ -354,7 +308,6 @@ class ContrailTestInit:
                 time.sleep(1)
                 tries -= 1
                 pass
-            
         return build_id.rstrip('\n').split('~')
 
     def get_distro_sku(self):
@@ -388,17 +341,15 @@ class ContrailTestInit:
     # end run_cmd_on_server
 
     def upload_to_webserver(self,elem):
-
-
 	log = 'logs'
 	print "Web server log path %s"%self.web_server_path
 
 	try:
             with hide('everything'):
 		with settings(host_string=self.web_server,
-	       	    user=self.web_serverUser,
-		    password=self.web_server_password,
-		    warn_only=True, abort_on_prompts=False):
+	       	              user=self.web_server_user,
+		              password=self.web_server_password,
+		              warn_only=True, abort_on_prompts=False):
                     if self.jenkins_trigger:
                         # define report path
                         if sanity_type == "Daily":

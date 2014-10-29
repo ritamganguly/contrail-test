@@ -4,6 +4,7 @@ import subprocess
 import ConfigParser
 import sys
 import os
+from tcutils.util import read_config_option
 
 def send_mail(config_file, file_to_send, report_details):
     config = ConfigParser.ConfigParser()
@@ -11,16 +12,16 @@ def send_mail(config_file, file_to_send, report_details):
     report_config = ConfigParser.ConfigParser()
     report_config.read(report_details)
     distro_sku = report_config.get('Test','Distro_Sku')
-    smtpServer = config.get('Mail', 'server')
-    smtpPort = config.get('Mail', 'port')
-    mailSender = config.get('Mail', 'mailSender')
-    mailTo = config.get('Mail', 'mailTo')
+    smtpServer = read_config_option(config, 'Mail', 'server')
+    smtpPort = read_config_option(config, 'Mail', 'port', '25')
+    mailSender = read_config_option(config, 'Mail', 'mailSender', 'contrailbuild@juniper.net')
+    mailTo = read_config_option(config, 'Mail', 'mailTo')
     if 'EMAIL_SUBJECT' in os.environ:
         logScenario = os.environ.get('EMAIL_SUBJECT')
     else:
-        logScenario = config.get('Basic','logScenario')
+        logScenario = read_config_option(config, 'Basic', 'logScenario', 'Sanity')
 
-    if not mailTo:
+    if not mailTo or not smtpServer:
         print 'Mail destination not configured. Skipping'
         return True
     fp = open(file_to_send, 'rb')
@@ -33,14 +34,14 @@ def send_mail(config_file, file_to_send, report_details):
     msg['To'] = mailTo
 
     s = None
-    try: 
+    try:
         s = smtplib.SMTP(smtpServer, smtpPort)
     except Exception, e:
         print "Unable to connect to Mail Server"
         return False
     s.ehlo()
     try:
-        s.sendmail(mailSender, [mailTo], msg.as_string())
+        s.sendmail(mailSender, mailTo.split(","), msg.as_string())
         s.quit()
     except smtplib.SMTPException, e:
         print 'Error while sending mail'

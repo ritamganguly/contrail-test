@@ -17,12 +17,8 @@ from floating_ip import *
 from policy_test import *
 from contrail_fixtures import * 
 from tcutils.wrappers import preposttest_wrapper
-from selenium import webdriver
-from pyvirtualdisplay import Display
-from selenium.webdriver.common.keys import Keys
 import time
 import random
-from selenium.webdriver.support.ui import WebDriverWait
 
 class WebuiBaseTest(test.BaseTestCase):
 
@@ -41,7 +37,7 @@ class WebuiBaseTest(test.BaseTestCase):
         resource_class = cls.__name__ + 'Resource'
         cls.res = ResourceFactory.createResource(resource_class)
         cls.res.setUp(cls.inputs , cls.connections)
-        if cls.inputs.webui_verification_flag:
+        if cls.inputs.verify_thru_gui():
             cls.browser = cls.connections.browser
             cls.browser_openstack = cls.connections.browser_openstack
             cls.delay = 10

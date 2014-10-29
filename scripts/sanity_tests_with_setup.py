@@ -103,7 +103,7 @@ if __name__ == "__main__":
         ECMPSanityFixture('test_ecmp_svc_in_network_nat_with_3_instance'))
     suite.addTest(
         ECMPSanityFixture('test_ecmp_svc_transparent_with_3_instance'))
-    if inputs.multi_tenancy == 'True':
+    if inputs.multi_tenancy:
         suite.addTest(TestPerms('test_all'))
     suite.addTest(PerformanceSanity('test_netperf_within_vn')) # TBD
     suite.addTest(TestEvpnCases('test_with_vxlan_l2_mode'))
