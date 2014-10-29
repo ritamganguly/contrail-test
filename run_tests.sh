@@ -239,7 +239,7 @@ if [ $? -eq 0 ];then
 fi
 }
 
-export PYTHONPATH=$PATH:$PWD/scripts:$PWD/fixtures
+export PYTHONPATH=$PATH:$PWD/scripts:$PWD/fixtures:$PWD
 apply_testtools_patch_for_centos
 
 if [[ ! -z $path ]];then
@@ -264,7 +264,7 @@ if [[ -z $path ]] && [[ -z $testrargs ]];then
     run_tests_serial
 fi
 sleep 2
-export PYTHONPATH=$PATH:$PWD/scripts:$PWD/fixtures:$PWD
+
 python tools/report_gen.py $TEST_CONFIG_FILE $REPORT_DETAILS_FILE
 generate_html 
 upload_to_web_server
