@@ -12,10 +12,10 @@ def send_mail(config_file, file_to_send, report_details):
     report_config = ConfigParser.ConfigParser()
     report_config.read(report_details)
     distro_sku = report_config.get('Test','Distro_Sku')
-    smtpServer = read_config_option(config, 'Mail', 'server')
+    smtpServer = read_config_option(config, 'Mail', 'server', '10.204.216.49')
     smtpPort = read_config_option(config, 'Mail', 'port', '25')
     mailSender = read_config_option(config, 'Mail', 'mailSender', 'contrailbuild@juniper.net')
-    mailTo = read_config_option(config, 'Mail', 'mailTo')
+    mailTo = read_config_option(config, 'Mail', 'mailTo', 'contrail-build@juniper.net')
     if 'EMAIL_SUBJECT' in os.environ:
         logScenario = os.environ.get('EMAIL_SUBJECT')
     else:
