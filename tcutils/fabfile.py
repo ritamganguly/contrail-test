@@ -78,3 +78,24 @@ def wait_for_ssh(timeout=5):
     print "True"
     return "True"
 # end wait_for_ssh
+
+
+@retry(delay=5, tries=2)
+def verify_socket_connection(port = 22):
+    import socket
+    host = env.host
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.settimeout(2)
+        s.connect((host, int(port)))
+        s.shutdown(2)
+        print "Port %s reachable for host %s"%(str(port),host)
+        print "True"
+        return "True"
+    except socket.error as e:
+        print "Error on connect: %s" % e
+        print "Port %s NOT reachable for host %s"%(host,str(port))
+        print "False"
+        return "False"
+    s.close()
+#end verify_socket_connection

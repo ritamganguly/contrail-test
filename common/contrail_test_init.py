@@ -169,6 +169,7 @@ class ContrailTestInit(fixtures.Fixture):
             self.mysql_token = 'contrail123'
         else:
             self.mysql_token = self.get_mysql_token()
+        self.copy_fabfile_to_agents()
     # end setUp
 
     def verify_thru_gui(self):
@@ -756,4 +757,13 @@ class ContrailTestInit(fixtures.Fixture):
                 pass
             
         return build_id.rstrip('\n')
+
+    def copy_fabfile_to_agents(self):
+        host = {}
+        for ip in self.compute_ips:
+            host['ip'] = ip
+            host['username'] = self.host_data[ip]['username']
+            host['password'] = self.host_data[ip]['password']
+            copy_file_to_server(host,'tcutils/fabfile.py', '~/','fabfile.py')
+#end copy_fabfile_to_agents
 

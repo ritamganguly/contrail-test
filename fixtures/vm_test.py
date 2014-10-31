@@ -848,14 +848,19 @@ class VMFixture(fixtures.Fixture):
                 'Exception occured while trying ping from VM ')
             return False
         expected_result = ' 0% packet loss'
-        if expected_result not in output:
-            self.logger.warn("Ping to IP %s from VM %s failed" %
+        try:
+            if expected_result not in output:
+                self.logger.warn("Ping to IP %s from VM %s failed" %
                              (ip, self.vm_name))
+                return False
+            else:
+                self.logger.info('Ping to IP %s from VM %s passed' %
+                             (ip, self.vm_name))
+            return True
+
+        except Exception as e:
+            self.logger.warn("Got exception in ping_to_ip")
             return False
-        else:
-            self.logger.info('Ping to IP %s from VM %s passed' %
-                             (ip, self.vm_name))
-        return True
     # end ping_to_ip
 
     def ping_to_ipv6(self, ipv6, return_output=False, other_opt='', count='5', intf='eth0'):
@@ -1503,7 +1508,7 @@ class VMFixture(fixtures.Fixture):
         '''sed -i -e 's/no-port-forwarding.*sleep 10\" //g' ~root/.ssh/authorized_keys''']
         self.run_cmd_on_vm(cmds, as_sudo=True)
 
-    @retry(delay=10, tries=5)
+    @retry(delay=10, tries=10)
     def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100', fip=None, expectation= True):
         '''
         Creates a file of "size" bytes and transfers to the VM in dest_vm_fixture using mode scp/tftp
@@ -1655,18 +1660,21 @@ class VMFixture(fixtures.Fixture):
         elif type(status) == bool:
             return status
 
-    @retry(delay=3, tries=20)
+    @retry(delay=3, tries=10)
     def wait_till_vm_up(self):
         vm_status = self.nova_fixture.wait_till_vm_is_active(self.vm_obj)
-        if vm_status[1] in 'ERROR':
-            self.logger.warn("VM in error state. Asserting...")
-            return (False, 'final')
+        if type(vm_status) == tuple:
+            if vm_status[1] in 'ERROR':
+                self.logger.warn("VM in error state. Asserting...")
+                return (False, 'final')
 #            assert False
 
-        if vm_status[1] != 'ACTIVE':
-            result = result and False
-            return result
-
+            if vm_status[1] != 'ACTIVE':
+                result = result and False
+                return result
+        elif type(vm_status) == bool:
+            return (vm_status, 'final')
+            
         result = self.verify_vm_launched()
         #console_check = self.nova_fixture.wait_till_vm_is_up(self.vm_obj)
         #result = result and self.nova_fixture.wait_till_vm_is_up(self.vm_obj)
@@ -1731,26 +1739,20 @@ class VMFixture(fixtures.Fixture):
     def get_console_output(self):
         return self.vm_obj.get_console_output()
 
+    @retry(delay=5, tries=20)
     def wait_for_ssh_on_vm(self):
         self.logger.info('Waiting to SSH to VM %s, IP %s' % (self.vm_name,
                                                              self.vm_ip))
 
-        # Need fab files on compute node before talking to VMs
-        host = self.inputs.host_data[self.vm_node_ip]
-        with settings(host_string='%s@%s' % (host['username'],
-                      self.vm_node_ip), password=host['password'],
-                      warn_only=True, abort_on_prompts=False):
-            put('tcutils/fabfile.py', '~/')
-
         # Check if ssh from compute node to VM works(with retries)
-        cmd = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running wait_for_ssh:' % (
+        cmd = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running verify_socket_connection:22' % (
             self.vm_username, self.vm_password, self.local_ip)
         output = self.inputs.run_cmd_on_server(self.vm_node_ip, cmd,
                                                self.inputs.host_data[
                                                    self.vm_node_ip][
                                                    'username'],
                                                self.inputs.host_data[self.vm_node_ip]['password'])
-        output = remove_unwanted_output(output)
+        #output = remove_unwanted_output(output)
 
         if 'True' in output:
             self.logger.info('VM %s is ready for SSH connections ' % (

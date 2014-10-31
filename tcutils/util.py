@@ -18,6 +18,8 @@ import random
 from netaddr import IPNetwork
 import fcntl
 from fabric.exceptions import CommandTimeout
+from fabric.contrib.files import exists
+from fabric.context_managers import settings, hide
 
 log.basicConfig(format='%(levelname)s: %(message)s', level=log.DEBUG)
 
@@ -166,13 +168,11 @@ def remove_unwanted_output(text):
     return real_output
 
 
-def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False, timeout=0):
+def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False, timeout=30):
     '''
     Run fab command on a node. Usecase : as part of script running on cfgm node, can run a cmd on VM from compute node
     '''
     cmd = _escape_some_chars(cmd)
-    # Fetch fabfile
-    put('tcutils/fabfile.py', '~/')
     (username, host_ip) = host_string.split('@')
     cmd_str = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running ' % (
         username, password, host_ip)
@@ -185,7 +185,7 @@ def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False, timeout=0):
     else:
         cmd_str += 'command:\"%s\"' % (cmd)
     # Sometimes, during bootup, there could be some intermittent conn. issue
-    tries = 5
+    tries = 1
     output = None
     while tries > 0:
         if timeout:
@@ -209,7 +209,6 @@ def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False, timeout=0):
 
 def fab_put_file_to_vm(host_string, password, src, dest):
     (username, host_ip) = host_string.split('@')
-    put('tcutils/fabfile.py', '~/')
     cmd_str = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running fput:\"%s\",\"%s\"' % (
         username, password, host_ip, src, dest)
     log.debug(cmd_str)
@@ -423,3 +422,14 @@ def read_config_option(config, section, option, default_option):
     except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
         return default_option
 # end read_config_option
+
+def copy_file_to_server(host, src, dest , filename):
+  
+      fname = "%s/%s"%(dest,filename)
+      time.sleep(random.randint(1,10))
+      with settings(host_string='%s@%s' % (host['username'],
+                        host['ip']), password=host['password'],
+                        warn_only=True, abort_on_prompts=False):
+              if not exists(fname):
+                  put(src, dest)
+  #end copy_file_to_server
