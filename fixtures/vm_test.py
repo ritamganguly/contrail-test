@@ -848,14 +848,19 @@ class VMFixture(fixtures.Fixture):
                 'Exception occured while trying ping from VM ')
             return False
         expected_result = ' 0% packet loss'
-        if expected_result not in output:
-            self.logger.warn("Ping to IP %s from VM %s failed" %
+        try:
+            if expected_result not in output:
+                self.logger.warn("Ping to IP %s from VM %s failed" %
                              (ip, self.vm_name))
+                return False
+            else:
+                self.logger.info('Ping to IP %s from VM %s passed' %
+                             (ip, self.vm_name))
+            return True
+
+        except Exception as e:
+            self.logger.warn("Got exception in ping_to_ip")
             return False
-        else:
-            self.logger.info('Ping to IP %s from VM %s passed' %
-                             (ip, self.vm_name))
-        return True
     # end ping_to_ip
 
     def ping_to_ipv6(self, ipv6, return_output=False, other_opt='', count='5', intf='eth0'):
