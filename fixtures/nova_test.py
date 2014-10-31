@@ -3,7 +3,7 @@ import fixtures
 from novaclient import client as mynovaclient
 from novaclient import exceptions as novaException
 from fabric.context_managers import settings, hide, cd, shell_env
-from fabric.api import run, local
+from fabric.api import run, local, env
 from fabric.operations import get, put
 from fabric.contrib.files import exists
 from tcutils.util import *
@@ -158,23 +158,16 @@ class NovaFixture(fixtures.Fixture):
     def _install_image(self, image_name):
         result = False
         image_info = self.images_info[image_name]
-        webserver = image_info['webserver']
+        webserver = image_info['webserver'] or \
+            getattr(env, 'IMAGE_WEB_SERVER', '10.204.216.51')
         location = image_info['location']
         image = image_info['name']
         username = self.inputs.host_data[self.openstack_ip]['username']
         password = self.inputs.host_data[self.openstack_ip]['password']
+        build_path = 'http://%s/%s/%s' % (webserver, location, image)
         with settings(
             host_string='%s@%s' % (username, self.openstack_ip),
                 password=password, warn_only=True, abort_on_prompts=False):
-            # Work arround to choose build server.
-            if webserver == '':
-                if '10.204' in self.openstack_ip:
-                    webserver = r'http://10.204.216.51/'
-                else:
-                    webserver = r'http://10.84.5.100/'
-
-            build_path = '%s/%s/%s' % (webserver, location, image)
-
             return self.copy_and_glance(build_path, image_name, image)
     # end _install_image
 
