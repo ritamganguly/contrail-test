@@ -1739,13 +1739,6 @@ class VMFixture(fixtures.Fixture):
         self.logger.info('Waiting to SSH to VM %s, IP %s' % (self.vm_name,
                                                              self.vm_ip))
 
-        # Need fab files on compute node before talking to VMs
-       # host = self.inputs.host_data[self.vm_node_ip]
-       # with settings(host_string='%s@%s' % (host['username'],
-       #               self.vm_node_ip), password=host['password'],
-       #               warn_only=True, abort_on_prompts=False):
-       #     put('tcutils/fabfile.py', '~/')
-
         # Check if ssh from compute node to VM works(with retries)
         cmd = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running verify_socket_connection:22' % (
             self.vm_username, self.vm_password, self.local_ip)

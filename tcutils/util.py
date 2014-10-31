@@ -173,8 +173,6 @@ def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False, timeout=5):
     Run fab command on a node. Usecase : as part of script running on cfgm node, can run a cmd on VM from compute node
     '''
     cmd = _escape_some_chars(cmd)
-    # Fetch fabfile
-    #put('tcutils/fabfile.py', '~/')
     (username, host_ip) = host_string.split('@')
     cmd_str = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running ' % (
         username, password, host_ip)
@@ -211,7 +209,6 @@ def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False, timeout=5):
 
 def fab_put_file_to_vm(host_string, password, src, dest):
     (username, host_ip) = host_string.split('@')
-    #put('tcutils/fabfile.py', '~/')
     cmd_str = 'fab -u %s -p "%s" -H %s -D -w --hide status,user,running fput:\"%s\",\"%s\"' % (
         username, password, host_ip, src, dest)
     log.debug(cmd_str)
