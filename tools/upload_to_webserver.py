@@ -35,13 +35,17 @@ def upload_to_webserver(config_file, report_config_file, elem):
     jenkins_trigger = get_os_env('JENKINS_TRIGGERED')
     config = ConfigParser.ConfigParser()
     config.read(config_file)
-    web_server = read_config_option(config, 'WebServer', 'host')
-    web_server_report_path = read_config_option(config, 'WebServer', 'reportPath')
-    web_server_log_path = read_config_option(config, 'WebServer', 'logPath')
-    web_server_username = read_config_option(config, 'WebServer', 'username')
-    web_server_password = read_config_option(config, 'WebServer', 'password')
+    web_server = read_config_option(config, 'WebServer', 'host', None)
+    web_server_report_path = read_config_option(config, 'WebServer', 
+                                                'reportPath', None)
+    web_server_log_path = read_config_option(config, 'WebServer',
+                                             'logPath', None)
+    web_server_username = read_config_option(config, 'WebServer', 'username', 
+                                             None)
+    web_server_password = read_config_option(config, 'WebServer', 'password',
+                                             None)
     log_scenario = read_config_option(config, 'Basic', 'logScenario', 'Sanity')
-    http_proxy = read_config_option(config, 'proxy', 'proxy_url')
+    http_proxy = read_config_option(config, 'proxy', 'proxy_url', None)
 
     if not (web_server and web_server_report_path and web_server_log_path and \
             web_server_username and web_server_password):
