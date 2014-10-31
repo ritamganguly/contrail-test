@@ -185,7 +185,7 @@ def run_fab_cmd_on_node(host_string, password, cmd, as_sudo=False, timeout=30):
     else:
         cmd_str += 'command:\"%s\"' % (cmd)
     # Sometimes, during bootup, there could be some intermittent conn. issue
-    tries = 2
+    tries = 1
     output = None
     while tries > 0:
         if timeout:
