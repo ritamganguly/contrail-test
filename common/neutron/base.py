@@ -360,6 +360,7 @@ class BaseNeutronTest(test.BaseTestCase):
         self.logger.info('Will verify who the VRRP master is and the corresponding route entries in the Agent')
         vm.run_cmd_on_vm(cmds=[vrrp_mas_chk_cmd], as_sudo=True)
         output = vm.return_output_cmd_dict[vrrp_mas_chk_cmd]
+        result= False
         if ip in output:
             self.logger.info('%s is selected as the VRRP Master'%vm.vm_name)
             result= True
