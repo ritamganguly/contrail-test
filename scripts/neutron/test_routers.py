@@ -79,7 +79,7 @@ class TestRouters(BaseNeutronTest):
         self.delete_vn_from_router(router_dict['id'], vn1_fixture)
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip,
                                                    expectation=False)
-        self.add_vn_to_router(router_dict['id'], vn1_fixture)
+        self.add_vn_to_router(router_dict['id'], vn1_fixture, cleanup=False)
         assert vn1_vm1_fixture.ping_with_certainty(vn2_vm1_fixture.vm_ip)
     # end test_basic_router_behavior
 
