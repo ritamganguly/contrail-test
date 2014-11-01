@@ -20,6 +20,7 @@ import fcntl
 from fabric.exceptions import CommandTimeout
 from fabric.contrib.files import exists
 from fabric.context_managers import settings, hide
+import ConfigParser
 
 log.basicConfig(format='%(levelname)s: %(message)s', level=log.DEBUG)
 
