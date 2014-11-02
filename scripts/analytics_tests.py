@@ -287,7 +287,7 @@ class AnalyticsVerification(fixtures.Fixture):
             assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortQueryEngine'])
         for ip in self.inputs.collector_ips:
             self.logger.info("Verifying through opserver in %s" % (ip))
-            expected_module_id = ['contrail-control', 'DnsAgent']
+            expected_module_id = ['contrail-control', 'contrail-dns']
             expected_node_type = 'Control'
             expected_instance_id = '0'
             for bgp_host in self.bgp_hosts:

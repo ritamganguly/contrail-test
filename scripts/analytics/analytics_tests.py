@@ -239,7 +239,7 @@ class AnalyticsVerification(fixtures.Fixture ):
          #verify module-id for bgp node in collector uve - should be 'ControlNode'
         for ip in self.inputs.collector_ips:
             self.logger.info("Verifying through opserver in %s"%(ip))
-            expected_module_id=['ControlNode','DnsAgent']
+            expected_module_id=['ControlNode','contrail-dns']
             expected_node_type='Control'
             expected_instance_id='0'
             for bgp_host in self.bgp_hosts:
@@ -252,7 +252,7 @@ class AnalyticsVerification(fixtures.Fixture ):
                     else:
                         result=result and False
 
-            expected_module_id='VRouterAgent'
+            expected_module_id='contrail-vrouter-agent'
             expected_node_type='Compute'
             expected_instance_id='0'
             for compute_host in self.compute_hosts:
@@ -263,7 +263,7 @@ class AnalyticsVerification(fixtures.Fixture ):
                 else:
                     result=result and False
             #Verifying module_id from ApiServer
-            expected_cfgm_modules='Schema'
+            expected_cfgm_modules='contrail-schema'
             expected_node_type='Config'
             expected_instance_id='0'
             for cfgm_node in self.inputs.cfgm_names:
@@ -276,7 +276,7 @@ class AnalyticsVerification(fixtures.Fixture ):
                 else:
                     result1=result1 and False
             result = result and result1
-            expected_cfgm_modules='ServiceMonitor'
+            expected_cfgm_modules='contrail-svc-monitor'
             expected_node_type='Config'
             expected_instance_id='0'
             for cfgm_node in self.inputs.cfgm_names:
@@ -290,7 +290,7 @@ class AnalyticsVerification(fixtures.Fixture ):
                     result1=result1 and False
             result = result and result1
             #Verifying module_id  ApiServer
-            expected_apiserver_module='ApiServer'
+            expected_apiserver_module='contrail-api'
             expected_apiserver_instances=self.get_module_instances(expected_apiserver_module)
             expected_node_type='Config'
             #expected_cfgm_modules=['Schema','ServiceMonitor']
@@ -314,7 +314,7 @@ class AnalyticsVerification(fixtures.Fixture ):
                     else:
                         result=result and False
             #Verifying collector:moduleid
-            expected_collector_module=['Collector','QueryEngine']
+            expected_collector_module=['contrail-collector', 'contrail-query-engine']
             expected_node_type='Analytics'
             expected_instance_id='0'
             for c_host in self.collector_hosts:
