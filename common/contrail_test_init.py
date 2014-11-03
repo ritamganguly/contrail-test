@@ -106,12 +106,16 @@ class ContrailTestInit(fixtures.Fixture):
 
         self.http_proxy = read_config_option(self.config,
                               'proxy', 'proxy_url', None)
-        self.webui_browser = read_config_option(self.config,
-                              'webui', 'browser', None)
-        self.webui_config = read_config_option(self.config,
-                              'webui', 'config', False)
-        if self.webui_config and not self.webui_browser:
-            raise ValueError("Configuring via GUI needs 'browser' details. Please set the same.")
+        self.ui_config = read_config_option(self.config,
+                              'ui', 'ui_config', None)
+        self.ui_browser = read_config_option(self.config,
+                              'ui', 'ui_browser', None)
+        self.verify_webui = read_config_option(self.config,
+                              'ui', 'webui', False)
+        self.verify_horizon = read_config_option(self.config,
+                              'ui', 'horizon', False)
+        if self.verify_webui or self.verify_horizon and not self.ui_browser:
+            raise ValueError("Verification via GUI needs 'browser' details. Please set the same.")
         self.devstack = read_config_option(self.config,
                               'devstack', 'devstack', None)
         # router options
@@ -176,16 +180,16 @@ class ContrailTestInit(fixtures.Fixture):
         '''
         Check if GUI based verification is enabled
         '''
-        if self.webui_browser:
+        if self.ui_browser:
             return True
         return False
 
-    def is_gui_based_configuration(self):
+    def is_gui_based_config(self):
         '''
         Check if objects have to configured via GUI
         '''
-        if self.webui_config:
-            return True
+        if self.ui_config:
+            return self.ui_config
         return False
 
     def get_os_env(self, var):
@@ -767,3 +771,14 @@ class ContrailTestInit(fixtures.Fixture):
             copy_file_to_server(host,'tcutils/fabfile.py', '~/','fabfile.py')
 #end copy_fabfile_to_agents
 
+    def get_openstack_release(self):
+        with settings(
+            host_string='%s@%s' % (
+                self.inputs.username, self.inputs.cfgm_ips[0]),
+                password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
+            ver = run('contrail-version')
+            pkg = re.search(r'contrail-install-packages(.*)~(\w+)(.*)', ver)
+            os_release = pkg.group(2)
+            self.logger.info("%s" % os_release)
+            return os_release
+    # end get_openstack_release  

@@ -213,8 +213,8 @@ class VNFixture(fixtures.Fixture):
                                    connections=self.connections))
         self.scale = self.project_obj.scale
         self.project_id = self.project_obj.uuid
-        if self.inputs.is_gui_based_configuration():
-            self.webui.create_vn_in_webui(self)
+        if self.inputs.is_gui_based_config():
+            self.webui.create_vn(self)
         elif (self.option == 'api'):
             self._create_vn_api(self.vn_name, self.project_obj)
         else:
@@ -304,7 +304,7 @@ class VNFixture(fixtures.Fixture):
                 "One or more verifications in OpServer for VN %s failed" % (self.vn_name))
             return result
         if self.inputs.verify_thru_gui():
-            self.webui.verify_vn_in_webui(self)
+            self.webui.verify_vn(self)
         if self.policy_objs:
             self.verify_vn_policy_in_vn_uve()
         if not self.policy_verification_flag['result']:
@@ -959,8 +959,8 @@ class VNFixture(fixtures.Fixture):
                 self.del_route_target(
                     self.ri_name, self.router_asn, self.rt_number)
             self.logger.info("Deleting the VN %s " % self.vn_name)
-            if self.inputs.is_gui_based_configuration():
-                self.webui.vn_delete_in_webui(self)
+            if self.inputs.is_gui_based_config():
+                self.webui.delete_vn(self)
             elif (self.option == 'api'):
                 self.logger.info("Deleting the VN %s using Api server" %
                                  self.vn_name)
