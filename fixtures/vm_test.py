@@ -194,7 +194,7 @@ class VMFixture(fixtures.Fixture):
                     self.vm_launch_flag = self.vm_launch_flag and False
                     return False
                 for ip in self.nova_fixture.get_vm_ip(vm_obj, vn_name):
-                    self.vm_ips.append(ip))
+                    self.vm_ips.append(ip)
             with self.printlock:
                 self.logger.info('VM %s launched on Node %s'
                                  % (vm_obj.name, self.nova_fixture.get_nova_host_of_vm(vm_obj)))
