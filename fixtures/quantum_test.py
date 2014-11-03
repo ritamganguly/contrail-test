@@ -675,7 +675,7 @@ class QuantumFixture(fixtures.Fixture):
         ''' Delete the Health monitor '''
         hm_rsp = self.obj.delete_health_monitor(hm_id)
         self.logger.debug(
-            'Response for delete_health_monitor : %s' + repr(hm_rsp))
+            'Response for delete_health_monitor : ' + repr(hm_rsp))
 
     def update_health_monitor(self, hm_id, hm_dict):
         '''Update Health monitor object'''
@@ -711,16 +711,16 @@ class QuantumFixture(fixtures.Fixture):
         ''' Associate Health monitor to the pool. Returns True on success.
             Returns False if it fails
         '''
-        body = {'health_monitors': [hm_id]}
+        body = {'health_monitor': {'id' : hm_id}}
         try:
             hm_list = self.obj.associate_health_monitor(pool_id, body)
         except CommonNetworkClientException as e:
             self.logger.error('Associating HM %s to Pool %s failed' % (
                               hm_id, pool_id))
             return None
-        return hm_list['health_monitors']
+        return hm_list['health_monitor']
 
-    def disassociate_health_monitor(pool_id, hm_id):
+    def disassociate_health_monitor(self, pool_id, hm_id):
         '''Disassociate health monitor from the pool
         '''
         self.obj.disassociate_health_monitor(pool_id, hm_id)

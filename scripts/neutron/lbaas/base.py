@@ -113,7 +113,9 @@ class BaseTestLbaas(BaseNeutronTest):
                     out = run_fab_cmd_on_node(host_string = '%s@%s'%(vm.vm_username,vm.local_ip),
                                               password = vm.vm_password, cmd = cmd3, as_sudo=False)
                     self.logger.info("Request went to server: %s" % (response))
-
+                else:
+                    self.logger.error("Error in response on connecting to vip %s. Error is %s" % (vip, result))
+                    result = False
                 return (result,response)
     #end run_wget
 
