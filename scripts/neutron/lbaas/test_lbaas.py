@@ -55,20 +55,26 @@ class TestLbaas(BaseTestLbaas):
         self.logger.info("creating lb pool:%s" % (pool_name))
         lb_pool = self.create_lb_pool(pool_name, lb_method, protocol, vn_pool_fixture.vn_subnet_objs[0]['id'])
         assert lb_pool, "lb pool create failed"
-        #TODO:api server verification
+        #api server verification
+        assert self.verify_lb_pool_in_api_server(lb_pool['id']), \
+               "API server verification failed for pool with pool id %s" % (lb_pool['id'])
         pool_uuid = lb_pool['id']
 
         #create lb member
         self.logger.info("creating lb member")
         lb_member = self.create_lb_member(pool_vm1_fixture.vm_ip, protocol_port, lb_pool['id'])
         assert lb_member, "lb memebr create failed"
-        #TODO:api server verification
+        #api server verification
+        assert self.verify_member_in_api_server(lb_member['id']), \
+              "API server verification failed for member with id %s" % (lb_member['id'])
 
         #create vip
         self.logger.info("creating lb vip:%s" % (vip_name))
         lb_vip = self.create_vip(vip_name, protocol, protocol_port, vn_vip_fixture.vn_subnet_objs[0]['id'], lb_pool['id'])
         assert lb_vip, "lb vip create failed"
-        #TODO:api server verification
+        #api server verification
+        assert self.verify_vip_in_api_server(lb_vip['id']), \
+               "API server verification failed for vip with vip id %s" % (lb_vip['id'])
         #TODO : agent verification
 
         pool_names = []
@@ -138,24 +144,33 @@ class TestLbaas(BaseTestLbaas):
         self.logger.info("creating lb pool:%s" % (pool_name))
         lb_pool = self.create_lb_pool(pool_name, lb_method, protocol, vn_pool_fixture.vn_subnet_objs[0]['id'])
         assert lb_pool, "lb pool create failed"
-        #TODO:api server verification
+        #api server verification
+        assert self.verify_lb_pool_in_api_server(lb_pool['id']), \
+               "API server verification failed for pool with pool id %s" % (lb_pool['id'])
 
         #create lb member
         self.logger.info("creating lb member")
         lb_member1 = self.create_lb_member(pool_vm1_fixture.vm_ip, protocol_port, lb_pool['id'])
         assert lb_member1, "lb memebr create failed"
+        assert self.verify_member_in_api_server(lb_member1['id']), \
+              "API server verification failed for member with id %s" % (lb_member1['id'])
         lb_member2 = self.create_lb_member(pool_vm2_fixture.vm_ip, protocol_port, lb_pool['id'])
         assert lb_member2, "lb memebr create failed"
+        assert self.verify_member_in_api_server(lb_member2['id']), \
+              "API server verification failed for member with id %s" % (lb_member2['id'])
         lb_member3 = self.create_lb_member(pool_vm3_fixture.vm_ip, protocol_port, lb_pool['id'])
         assert lb_member3, "lb memebr create failed"
-        #TODO:api server verification
+        assert self.verify_member_in_api_server(lb_member3['id']), \
+              "API server verification failed for member with id %s" % (lb_member3['id'])
 
         #create vip
         self.logger.info("creating lb vip:%s" % (vip_name))
         lb_vip = self.create_vip(vip_name, protocol, protocol_port, vn_vip_fixture.vn_subnet_objs[0]['id'], lb_pool['id'])
         assert lb_vip, "lb vip create failed"
         vip_ip = lb_vip['address']
-        #TODO:api server verification
+        #api server verification
+        assert self.verify_vip_in_api_server(lb_vip['id']), \
+               "API server verification failed for vip with vip id %s" % (lb_vip['id'])
         #TODO : agent verification
 
         #Start SimpleHTTPServer on port 80 on all lb pool servers
@@ -238,24 +253,33 @@ class TestLbaas(BaseTestLbaas):
         self.logger.info("creating lb pool:%s" % (pool_name))
         lb_pool = self.create_lb_pool(pool_name, lb_method, protocol, vn_pool_fixture.vn_subnet_objs[0]['id'])
         assert lb_pool, "lb pool create failed"
-        #TODO:api server verification
+        #api server verification
+        assert self.verify_lb_pool_in_api_server(lb_pool['id']), \
+               "API server verification failed for pool with pool id %s" % (lb_pool['id'])
 
         #create lb member
         self.logger.info("creating lb member")
         lb_member1 = self.create_lb_member(pool_vm1_fixture.vm_ip, protocol_port, lb_pool['id'])
         assert lb_member1, "lb memebr create failed"
+        assert self.verify_member_in_api_server(lb_member1['id']), \
+              "API server verification failed for member with id %s" % (lb_member1['id'])
         lb_member2 = self.create_lb_member(pool_vm2_fixture.vm_ip, protocol_port, lb_pool['id'])
         assert lb_member2, "lb memebr create failed"
+        assert self.verify_member_in_api_server(lb_member2['id']), \
+              "API server verification failed for member with id %s" % (lb_member2['id'])
         lb_member3 = self.create_lb_member(pool_vm3_fixture.vm_ip, protocol_port, lb_pool['id'])
         assert lb_member3, "lb memebr create failed"
-        #TODO:api server verification
+        assert self.verify_member_in_api_server(lb_member3['id']), \
+              "API server verification failed for member with id %s" % (lb_member3['id'])
 
         #create vip
         self.logger.info("creating lb vip:%s" % (vip_name))
         lb_vip = self.create_vip(vip_name, protocol, protocol_port, vn_vip_fixture.vn_subnet_objs[0]['id'], lb_pool['id'])
         assert lb_vip, "lb vip create failed"
         vip_ip = lb_vip['address']
-        #TODO:api server verification
+        #api server verification
+        assert self.verify_vip_in_api_server(lb_vip['id']), \
+               "API server verification failed for vip with vip id %s" % (lb_vip['id'])
         #TODO : agent verification
 
         #sleep for 10 sec for netns to get created
@@ -394,29 +418,40 @@ class TestLbaas(BaseTestLbaas):
         self.logger.info("creating lb pool:%s" % (pool_name))
         lb_pool = self.create_lb_pool(pool_name, lb_method, protocol, vn_pool_fixture.vn_subnet_objs[0]['id'])
         assert lb_pool, "lb pool create failed"
-        #TODO:api server verification
+        #api server verification
+        assert self.verify_lb_pool_in_api_server(lb_pool['id']), \
+               "API server verification failed for pool with pool id %s" % (lb_pool['id'])
 
         #create lb member
         self.logger.info("creating lb member")
         lb_member1 = self.create_lb_member(pool_vm1_fixture.vm_ip, protocol_port, lb_pool['id'])
         assert lb_member1, "lb memebr create failed"
+        assert self.verify_member_in_api_server(lb_member1['id']), \
+              "API server verification failed for member with id %s" % (lb_member1['id'])
         lb_member2 = self.create_lb_member(pool_vm2_fixture.vm_ip, protocol_port, lb_pool['id'])
         assert lb_member2, "lb memebr create failed"
+        assert self.verify_member_in_api_server(lb_member2['id']), \
+              "API server verification failed for member with id %s" % (lb_member2['id'])
         lb_member3 = self.create_lb_member(pool_vm3_fixture.vm_ip, protocol_port, lb_pool['id'])
         assert lb_member3, "lb memebr create failed"
-        #TODO:api server verification
+        assert self.verify_member_in_api_server(lb_member3['id']), \
+              "API server verification failed for member with id %s" % (lb_member3['id'])
 
         #create vip
         self.logger.info("creating lb vip:%s" % (vip_name))
         lb_vip = self.create_vip(vip_name, protocol, protocol_port, vn_vip_fixture.vn_subnet_objs[0]['id'], lb_pool['id'])
         assert lb_vip, "lb vip create failed"
         vip_ip = lb_vip['address']
-        #TODO:api server verification
+        #api server verification
+        assert self.verify_vip_in_api_server(lb_vip['id']), \
+               "API server verification failed for vip with vip id %s" % (lb_vip['id'])
         #TODO : agent verification
 
         #create helathmonitor of type HTTP
         self.logger.info("creating healthmonitor")
         healthmonitor = self.create_health_monitor(hm_delay, hm_max_retries, hm_probe_type, hm_timeout)
+        assert self.verify_healthmonitor_in_api_server(healthmonitor['id']), \
+               "API server verification failed for healthmonitor with id %s" % (healthmonitor['id'])
 
         #Associate HM to pool
         self.logger.info("associating healthmonitor to pool %s" % (lb_pool['name']))
@@ -428,6 +463,11 @@ class TestLbaas(BaseTestLbaas):
             self.logger.info("pool %s is associated with healthmonitor %s" % (lb_pool['name'], pool['pool']['health_monitors']))
         else:
            assert False, "pool %s is not associated with healthmonitor %s" %(lb_pool['name'], healthmonitor['id'])
+
+        #verify in API server whether HM is associated with pool
+        self.logger.info("Verify in API server whether pool is associaed with Healthmonitor")
+        result,msg = self.verify_healthmonitor_association_in_api_server(lb_pool['id'], healthmonitor['id'])
+        assert result, msg
 
         #Start SimpleHTTPServer on port 80 on all lb pool servers
         self.start_simpleHTTPserver(lb_pool_servers)

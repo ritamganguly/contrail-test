@@ -32,6 +32,9 @@ class VNCApiInspect (VerificationUtilBase):
             'dns': {},
             'dns_rec': {},
             'lb_pool': {},
+            'lb_vip': {},
+            'lb_member': {},
+            'lb_healthmonitor': {},
         }
 
     def update_cache(self, otype, fq_path, d):
@@ -586,7 +589,7 @@ class VNCApiInspect (VerificationUtilBase):
 
         return p
 
-    def get_lb_pool(self, pool_id, refresh=False):
+    def get_lb_pool(self, pool_id, refresh=True):
         '''
         method: get_lb_pool find a lb pool
         returns None if not found, a dict w/ attrib. eg:
@@ -599,6 +602,51 @@ class VNCApiInspect (VerificationUtilBase):
             if pp:
                 p = CsVMResult(pp)
                 self.update_cache('lb_pool', pool_id, p)
+        return p
+
+    def get_lb_vip(self, vip_id, refresh=True):
+        '''
+        method: get_lb_vip find a lb vip
+        returns None if not found, a dict w/ attrib. eg:
+
+        '''
+        p = self.try_cache('lb_vip', vip_id, refresh)
+        if not p:
+            # cache miss
+            pp = self.dict_get('virtual-ip/%s' % vip_id)
+            if pp:
+                p = CsVMResult(pp)
+                self.update_cache('lb_vip', vip_id, p)
+        return p
+
+    def get_lb_member(self, member_id, refresh=True):
+        '''
+        method: get_lb_member find a lb member
+        returns None if not found, a dict w/ attrib. eg:
+
+        '''
+        p = self.try_cache('lb_member', member_id, refresh)
+        if not p:
+            # cache miss
+            pp = self.dict_get('loadbalancer-member/%s' % member_id)
+            if pp:
+                p = CsVMResult(pp)
+                self.update_cache('lb_member', member_id, p)
+        return p
+
+    def get_lb_healthmonitor(self, healthmonitor_id, refresh=True):
+        '''
+        method: get_lb_healthmonitor find a lb healthmonitor
+        returns None if not found, a dict w/ attrib. eg:
+
+        '''
+        p = self.try_cache('lb_healthmonitor', healthmonitor_id, refresh)
+        if not p:
+            # cache miss
+            pp = self.dict_get('loadbalancer-healthmonitor/%s' % healthmonitor_id)
+            if pp:
+                p = CsVMResult(pp)
+                self.update_cache('lb_healthmonitor', healthmonitor_id, p)
         return p
 
 if __name__ == '__main__':
