@@ -65,8 +65,8 @@ class IPAMFixture(fixtures.Fixture):
                 name=self.name, parent_obj=self.project_obj, network_ipam_mgmt=self.ipamtype)
             if self.vdns_obj:
                 self.obj.add_virtual_DNS(self.vdns_obj)
-            if self.inputs.is_gui_based_configuration():
-                self.webui.create_ipam_in_webui(self)
+            if self.inputs.is_gui_based_config():
+                self.webui.create_ipam(self)
             else:
                 self.project_fixture_obj.vnc_lib_h.network_ipam_create(
                     self.obj)
@@ -103,8 +103,11 @@ class IPAMFixture(fixtures.Fixture):
         if self.already_present:
             do_cleanup = False
         if do_cleanup:
-            self.project_fixture_obj.vnc_lib_h.network_ipam_delete(
-                self.fq_name)
+            if self.inputs.is_gui_based_config():
+                self.webui.delete_ipam(self)
+            else:
+                self.project_fixture_obj.vnc_lib_h.network_ipam_delete(
+                    self.fq_name)
             if self.verify_is_run:
                 assert self.verify_ipam_not_in_api_server()
                 assert self.verify_ipam_not_in_control_nodes()

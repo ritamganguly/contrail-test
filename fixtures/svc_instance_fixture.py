@@ -59,7 +59,10 @@ class SvcInstanceFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
-            self._delete_si()
+            if self.inputs.is_gui_based_config():
+                self.webui.delete_svc_instance(self)
+            else:
+                self._delete_si()
             self.logger.info("Deleted SI %s" % (self.si_fq_name))
             assert self.verify_on_cleanup()
         else:
@@ -121,8 +124,8 @@ class SvcInstanceFixture(fixtures.Fixture):
             si_prop.set_scale_out(ServiceScaleOutType(self.max_inst))
             svc_instance.set_service_instance_properties(si_prop)
             svc_instance.set_service_template(self.svc_template)
-            if self.inputs.is_gui_based_configuration():
-                self.webui.create_svc_instance_in_webui(self)
+            if self.inputs.is_gui_based_config():
+                self.webui.create_svc_instance(self)
             else:
                 self.vnc_lib.service_instance_create(svc_instance)
             svc_instance = self.vnc_lib.service_instance_read(

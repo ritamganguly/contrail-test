@@ -155,8 +155,8 @@ class VMFixture(fixtures.Fixture):
                 self.logger.debug('VM %s already present, not creating it'
                                   % (self.vm_name))
         else:
-            if self.inputs.is_gui_based_configuration():
-                self.webui.create_vm_in_openstack(self)
+            if self.inputs.is_gui_based_config():
+                self.webui.create_vm(self)
             else:
                 objs = self.nova_fixture.create_vm(
                     project_uuid=self.project_fixture.uuid,
@@ -258,7 +258,7 @@ class VMFixture(fixtures.Fixture):
 
         self.verify_vm_flag = result and vm_status[0] 
         if self.inputs.verify_thru_gui():
-            self.webui.verify_vm_in_webui(self)
+            self.webui.verify_vm(self)
         result = result and self.verify_vm_in_api_server()
         if not result:
             self.logger.error('VM %s verification in API Server failed'
@@ -1377,8 +1377,8 @@ class VMFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
-            if self.inputs.is_gui_based_configuration():
-                self.webui.vm_delete_in_openstack(self)
+            if self.inputs.is_gui_based_config():
+                self.webui.delete_vm(self)
             else:
                 self.vrfs = dict()
                 self.vrfs = self.get_vrf_ids_accross_agents()

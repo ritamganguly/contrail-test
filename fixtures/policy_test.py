@@ -56,8 +56,8 @@ class PolicyFixture(fixtures.Fixture):
                 self.policy_obj = self.quantum_fixture.get_policy_if_present(
                                           self.project_name, self.policy_name)
             if not self.policy_obj:
-                if self.inputs.is_gui_based_configuration():
-                    self.webui.create_policy_in_webui(self)
+                if self.inputs.is_gui_based_config():
+                    self.webui.create_policy(self)
                 else:
                     self._create_policy(self.policy_name, self.rules_list)
             else:
@@ -415,8 +415,8 @@ class PolicyFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
-            if self.inputs.is_gui_based_configuration():
-                self.webui.delete_policy_in_webui(self)
+            if self.inputs.is_gui_based_config():
+                self.webui.delete_policy(self)
             else:
                 self._delete_policy()
             self.logger.info("Deleted policy %s" % (self.policy_name))
