@@ -110,7 +110,6 @@ class VMFixture(fixtures.Fixture):
         self.local_ip = None
         self.vm_ip_dict = {}
         self.cs_vmi_obj = {}
-        self.vm_ips = []
         self.vm_launch_flag = True
         self.vm_in_api_flag = True
         self.vm_in_agent_flag = True
@@ -180,6 +179,7 @@ class VMFixture(fixtures.Fixture):
     # end setUp
 
     def verify_vm_launched(self):
+        self.vm_ips = []
         self.vm_launch_flag = True
         self.vm_id = self.vm_objs[0].id
         for vm_obj in self.vm_objs:
@@ -193,8 +193,8 @@ class VMFixture(fixtures.Fixture):
                                           % (vm_obj.name))
                     self.vm_launch_flag = self.vm_launch_flag and False
                     return False
-            self.vm_ips =self.nova_fixture.get_vm_ip(vm_obj, vn_name)
-            #self.nova_fixture.get_vm_ip(vm_obj, vn_name)[0])
+                for ip in self.nova_fixture.get_vm_ip(vm_obj, vn_name):
+                    self.vm_ips.append(ip))
             with self.printlock:
                 self.logger.info('VM %s launched on Node %s'
                                  % (vm_obj.name, self.nova_fixture.get_nova_host_of_vm(vm_obj)))
