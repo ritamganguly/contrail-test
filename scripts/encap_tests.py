@@ -126,6 +126,7 @@ class TestEncapsulation(testtools.TestCase, fixtures.TestWithFixtures):
             vm1_fixture = self.useFixture(
                 VMFixture(project_name=self.inputs.project_name,
                           connections=self.connections, vn_obj=vn1_fixture.obj, vm_name=vm1_name))
+            assert vm1_fixture.wait_till_vm_is_up()
             assert vm1_fixture.verify_on_setup()
 
             fip_fixture = self.useFixture(
@@ -179,7 +180,13 @@ class TestEncapsulation(testtools.TestCase, fixtures.TestWithFixtures):
 
     @preposttest_wrapper
     def test_apply_policy_fip_on_same_vn_gw_mx(self):
-        '''A particular VN is configure with policy to talk accross VN's and FIP to access outside'''
+        """A particular VN is configure with policy to talk accross VN's and FIP to access outside
+        1. Set encap priority before starting test
+        2. Create two networks and launch instance each
+        3. Conifgure policy to allow traffic between networks
+        4. Send ICMP traffic, verify traffic & encap type using tcpdump on compute
+        5. Assign floating up to VM and check public connectivity from VM
+        """
 
         if (('MX_GW_TEST' in os.environ) and (os.environ.get('MX_GW_TEST') == '1')):
 
@@ -256,6 +263,7 @@ class TestEncapsulation(testtools.TestCase, fixtures.TestWithFixtures):
             vm1_fixture = self.useFixture(
                 VMFixture(project_name=self.inputs.project_name,
                           connections=self.connections, vn_obj=vn1_fixture.obj, vm_name=vm1_name, node_name=host_list[0]))
+            assert vm1_fixture.wait_till_vm_is_up()
             assert vm1_fixture.verify_on_setup()
 
             vn2_fixture = self.useFixture(
@@ -265,6 +273,7 @@ class TestEncapsulation(testtools.TestCase, fixtures.TestWithFixtures):
             vm2_fixture = self.useFixture(
                 VMFixture(project_name=self.inputs.project_name,
                           connections=self.connections, vn_obj=vn2_fixture.obj, vm_name=vm2_name, node_name=host_list[1]))
+            assert vm2_fixture.wait_till_vm_is_up()
             assert vm2_fixture.verify_on_setup()
 
             # Fip
@@ -444,6 +453,7 @@ class TestEncapsulation(testtools.TestCase, fixtures.TestWithFixtures):
             vm1_fixture = self.useFixture(
                 VMFixture(project_name=self.inputs.project_name,
                           connections=self.connections, vn_obj=vn1_fixture.obj, vm_name=vm1_name, node_name=host_list[0]))
+            assert vm1_fixture.wait_till_vm_is_up()
             assert vm1_fixture.verify_on_setup()
 
             vn2_fixture = self.useFixture(
@@ -453,6 +463,7 @@ class TestEncapsulation(testtools.TestCase, fixtures.TestWithFixtures):
             vm2_fixture = self.useFixture(
                 VMFixture(project_name=self.inputs.project_name,
                           connections=self.connections, vn_obj=vn2_fixture.obj, vm_name=vm2_name, node_name=host_list[1]))
+            assert vm2_fixture.wait_till_vm_is_up()
             assert vm2_fixture.verify_on_setup()
 
             # Fip
@@ -703,7 +714,7 @@ class TestEncapsulation(testtools.TestCase, fixtures.TestWithFixtures):
             count2 = int(out2.strip('\n'))
             count3 = int(out3.strip('\n'))
 
-            cmd3 = 'tcpdump  -r %s | grep UDP |wc -l' % pcaps3
+            cmd3 = 'tcpdump  -r %s | egrep "UDP|VXLAN" |wc -l' % pcaps3
             out3, err = execute_cmd_out(session, cmd3, self.logger)
             count = int(out3.strip('\n'))
 

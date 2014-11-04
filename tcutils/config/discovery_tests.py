@@ -464,7 +464,7 @@ class DiscoveryVerification(fixtures.Fixture):
 
             if not dct:
                 host_name = socket.gethostbyaddr(client_ip)[0]
-                # nodea18.englab.juniper.net:ApiServer
+                # nodea18.englab.juniper.net:contrail-api
                 client_id = '%s:%s' % (host_name, client_svc)
                 dct = obj.get_attr('Clients', match=('client_id', client_id))
 
@@ -484,7 +484,7 @@ class DiscoveryVerification(fixtures.Fixture):
         control_nodes = []
         try:
             lst_service_id = self.get_subscribed_service_id(
-                ds_ip, client=(agent_ip, 'VRouterAgent'), service='xmpp-server')
+                ds_ip, client=(agent_ip, 'contrail-vrouter-agent'), service='xmpp-server')
             for id in lst_service_id:
                 node = self.get_service_endpoint_by_service_id(
                     ds_ip, service_id=id)
@@ -1137,12 +1137,12 @@ class DiscoveryVerification(fixtures.Fixture):
         except Exception as e:
             print e
         if collector_nodes:
-            self.logger.info("ApiServer %s connected to collector-service %s" %
+            self.logger.info("contrail-api %s connected to collector-service %s" %
                              (ip, collector_nodes))
             result = result and True
         else:
             self.logger.warn(
-                "ApiServer %s not connected to any collector-servicet" % (ip))
+                "contrail-api %s not connected to any collector-servicet" % (ip))
             return False
         self.logger.info("Verifying that collectors belongs to this test bed")
         collector_ips = []
@@ -1153,12 +1153,12 @@ class DiscoveryVerification(fixtures.Fixture):
         self.inputs.collector_control_ips.sort()
         if (set(collector_ips).issubset(self.inputs.collector_control_ips)):
             self.logger.info(
-                "ApiServer %s is connected to proper collectors %s" %
+                "contrail-api %s is connected to proper collectors %s" %
                 (ip, collector_ips))
             result = result and True
         else:
             self.logger.warn(
-                "ApiServer %s is not connected to proper collectors %s" %
+                "contrail-api %s is not connected to proper collectors %s" %
                 (ip, collector_ips))
             self.logger.info("Proper collectors should be %s" %
                              (self.inputs.collector_ips))

@@ -43,7 +43,7 @@ class VMFixture(fixtures.Fixture):
 
     def __init__(self, connections, vm_name, vn_obj=None,
                  vn_objs=[], project_name=None,
-                 image_name='ubuntu', subnets=[],
+                 image_name='cirros-0.3.0-x86_64-uec' if os.environ.has_key('ci_image') else 'ubuntu', subnets=[],
                  flavor='contrail_flavor_small',
                  node_name=None, sg_ids=[], count=1, userdata=None,
                  port_ids=[], fixed_ips=[], project_fixture= None):
@@ -231,7 +231,7 @@ class VMFixture(fixtures.Fixture):
                     if secgrp == sec_grp['to'][-1]:
                         self.logger.info(
                             "Security group %s is attached \                                           to the VM %s", secgrp, self.vm_name)
-                    return True, None
+                        return True, None
 
         errmsg = "Security group %s is not attached to the VM %s" % (secgrp,
                                                                      self.vm_name)
@@ -374,7 +374,14 @@ class VMFixture(fixtures.Fixture):
         self.cs_vm_obj = {}
         self.cs_vmi_objs = {}
         self.cs_instance_ip_objs = {}
-        for cfgm_ip in self.inputs.cfgm_ips:
+
+        # for ha testing modify the curr cfgm ips
+        if self.inputs.cfgm_ips_curr:
+            cfgm_ips = self.inputs.cfgm_ips_curr
+        else:
+            cfgm_ips = self.inputs.cfgm_ips
+
+        for cfgm_ip in cfgm_ips:
             api_inspect = self.api_s_inspects[cfgm_ip]
             self.cs_vm_obj[cfgm_ip] = api_inspect.get_cs_vm(self.vm_id)
             self.cs_vmi_objs[
@@ -382,7 +389,7 @@ class VMFixture(fixtures.Fixture):
             self.cs_instance_ip_objs[
                 cfgm_ip] = api_inspect.get_cs_instance_ips_of_vm(self.vm_id)
 
-        for cfgm_ip in self.inputs.cfgm_ips:
+        for cfgm_ip in cfgm_ips:
             self.logger.info("Verifying in api server %s" % (cfgm_ip))
             if not self.cs_instance_ip_objs[cfgm_ip]:
                 with self.printlock:
@@ -426,8 +433,14 @@ class VMFixture(fixtures.Fixture):
 
     @retry(delay=2, tries=15)
     def verify_vm_not_in_api_server(self):
+
+        if self.inputs.cfgm_ips_curr:
+            cfgm_ips = self.inputs.cfgm_ips_curr
+        else:
+            cfgm_ips = self.inputs.cfgm_ips
+
         self.verify_vm_not_in_api_server_flag = True
-        for ip in self.inputs.cfgm_ips:
+        for ip in cfgm_ips:
             self.logger.info("Verifying in api server %s" % (ip))
             api_inspect = self.api_s_inspects[ip]
             if api_inspect.get_cs_vm(self.vm_id, refresh=True) is not None:
@@ -483,8 +496,11 @@ class VMFixture(fixtures.Fixture):
             # Check if the VN ID matches between the Orchestration S and Agent
 #            if self.vn_id != self.agent_vn_obj['uuid']:
             if self.agent_vn_obj[vn_fq_name]['uuid'] not in self.vn_ids:
-                self.logger.warn("VN UUID %s not created in agent in node %s"
-                                     % (vn_name, self.vm_node_ip))
+                self.logger.warn('Unexpected VN UUID %s found in agent %s '
+                    'Expected: One of %s' % (
+                    self.agent_vn_obj[vn_fq_name]['uuid'], 
+                    self.vm_node_ip,
+                    self.vn_ids))
                 self.vm_in_agent_flag = self.vm_in_agent_flag and False
                 return False
             try:
@@ -735,8 +751,14 @@ class VMFixture(fixtures.Fixture):
         ''' Verify if the corresponding VN for a VM is present in all compute nodes.
             Also verifies that a route is present in all compute nodes for the VM IP
         '''
+        # for ha testing checking the curr nodes to verify
+        if self.inputs.compute_ips_curr:
+            compute_ips = self.inputs.compute_ips_curr
+        else:
+            compute_ips = self.inputs.compute_ips
+
         (domain, project, vn_name) = vn_fq_name.split(':')
-        for compute_ip in self.inputs.compute_ips:
+        for compute_ip in compute_ips:
             inspect_h = self.agent_inspect[compute_ip]
             vn = inspect_h.get_vna_vn(domain, project, vn_name)
 # The VN for the VM under test may or may not be present on other agent
@@ -1022,6 +1044,12 @@ class VMFixture(fixtures.Fixture):
             self.bgp_ips = self.inputs.bgp_ips[:]
         else:
             self.bgp_ips = self.get_control_nodes()
+
+        if self.inputs.bgp_ips_curr:
+            bgp_ips = self.inputs.bgp_ips_curr
+        else:
+            bgp_ips = self.inputs.bgp_ips
+
         for vn_fq_name in self.vn_fq_names:
             fw_mode = self.vnc_lib_fixture.get_forwarding_mode(vn_fq_name)
 #            for cn in self.inputs.bgp_ips:
@@ -1076,7 +1104,8 @@ class VMFixture(fixtures.Fixture):
 #                prefix = self.mac_addr[vn_fq_name] + \
 #                    ',' + self.vm_ip_dict[vn_fq_name] + '/32'
                 prefix = self.mac_addr[vn_fq_name] + \
-                    ',' + self.vm_ip_dict[vn_fq_name] 
+                    ',' + self.vm_ip_dict[vn_fq_name]
+                # Chhandak
                 # Computing the ethernet tag for prefix here, format is  EncapTyepe-IP(0Always):0-VXLAN-MAC,IP
                 if vn_fq_name in self.agent_vxlan_id.keys():
                     ethernet_tag = "2-0:0" + '-' + self.agent_vxlan_id[vn_fq_name]
@@ -1168,9 +1197,16 @@ class VMFixture(fixtures.Fixture):
         '''
         result = True
         self.verify_vm_not_in_control_nodes_flag = True
+
+        # updating the bgp_ips for ha testing.
+        if self.inputs.bgp_ips_curr:
+            bgp_ips = self.inputs.bgp_ips_curr
+        else:
+            bgp_ips = self.inputs.bgp_ips
+
         for vn_fq_name in self.vn_fq_names:
 #            for cn in self.inputs.bgp_ips:
-            for cn in self.bgp_ips:
+            for cn in bgp_ips:
                 # Check for VM route in each control-node
                 routing_instance = self.cn_inspect[cn].get_cn_routing_instance(
                     ri_name=self.ri_names[vn_fq_name])
@@ -1389,6 +1425,7 @@ class VMFixture(fixtures.Fixture):
                         self.remove_security_group(sec_grp)
                     self.logger.info("Deleting the VM %s" % (vm_obj.name))
                     self.nova_fixture.delete_vm(vm_obj)
+                    self.vm_objs.remove(self.vm_obj)
                 time.sleep(5)
             # Not expected to do verification when self.count is > 1, right now
             if self.verify_is_run:
@@ -1508,7 +1545,7 @@ class VMFixture(fixtures.Fixture):
         '''sed -i -e 's/no-port-forwarding.*sleep 10\" //g' ~root/.ssh/authorized_keys''']
         self.run_cmd_on_vm(cmds, as_sudo=True)
 
-    @retry(delay=10, tries=10)
+    @retry(delay=10, tries=5)
     def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100', fip=None, expectation= True):
         '''
         Creates a file of "size" bytes and transfers to the VM in dest_vm_fixture using mode scp/tftp
@@ -1702,11 +1739,24 @@ class VMFixture(fixtures.Fixture):
         cmd = 'dd bs=%s count=1 if=/dev/zero of=%s' %(size, filename)
         self.run_cmd_on_vm(cmds=[cmd])
         host = self.inputs.host_data[self.vm_node_ip]
+
+        if "TEST_DELAY_FACTOR" in os.environ:
+            delay_factor = os.environ.get("TEST_DELAY_FACTOR")
+        else:
+            delay_factor = "1.0"
+        timeout = math.floor(40 * float(delay_factor))
+
         with settings(host_string='%s@%s' % (host['username'], self.vm_node_ip),
                                              password=host['password'],
                                              warn_only=True, abort_on_prompts=False):
-            handle = pexpect.spawn('ssh -o StrictHostKeyChecking=no %s@%s' %(self.vm_username, self.local_ip))
-            handle.expect('\$ ')
+            handle = pexpect.spawn('ssh -F /dev/null -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null %s@%s' %(self.vm_username, self.local_ip))
+            handle.timeout = int(timeout)
+            i = handle.expect(['\$ ', 'password:'])
+            if i == 0:
+                pass
+            if i == 1:
+                handle.sendline('cubswin:)')
+                handle.expect('\$ ')
             if fip:
                 handle.sendline('scp %s %s@%s:~/.' %(filename, dest_vm_fixture.vm_username, fip))
             else:

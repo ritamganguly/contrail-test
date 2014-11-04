@@ -122,10 +122,6 @@ class ContrailConnections():
 
     def cleanUp(self):
         super(ContrailConnections, self).cleanUp()
-        if self.inputs.verify_thru_gui():
-            self.browser.quit()
-            self.browser_openstack.quit()
-            self.display.stop()
         pass
     # end
 
@@ -251,4 +247,3 @@ class ContrailConnections():
             self.inputs.logger.info(errmsg)
         return result
     # end read_vrouter_config_evpn
-

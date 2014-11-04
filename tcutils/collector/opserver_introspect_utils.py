@@ -21,7 +21,7 @@ class VerificationOpsSrv (VerificationUtilBase):
 
 
     def get_ops_generator(self, generator=None, moduleid=None, node_type=None, instanceid='0'):
-        '''http://nodea29:8081/analytics/generator/nodea18:Control:ControlNode:0?flat'''
+        '''http://nodea29:8081/analytics/generator/nodea18:Control:Contrail-Control:0?flat'''
         if (generator == None):
             generator = socket.gethostname()
         if (moduleid == None):
@@ -139,7 +139,7 @@ class VerificationOpsSrv (VerificationUtilBase):
         return ret_value
 
     def send_trace_to_database(self, node=None, module=None, instance_id='0', trace_buffer_name=None):
-        '''http://<opserver-ip>:8081/analytics/send-tracebuffer/nodeb8/VRouterAgent/UveTrace'''
+        '''http://<opserver-ip>:8081/analytics/send-tracebuffer/nodeb8/Contrail-Vrouter-Agent/UveTrace'''
         res = None
         try:
             res = self.dict_get('analytics/send-tracebuffer/' + node +

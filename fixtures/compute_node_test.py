@@ -248,6 +248,7 @@ class ComputeNodeFixture(fixtures.Fixture):
             dst_ip = flow_data['dst_ip']
             proto = flow_data['proto']
             vrf = flow_data['vrf']
+            self.logger.info('Get count of flows in node %s' % (self.ip))
             cmd_1 = 'flow -l | grep %s -A1 | grep %s -A1 | grep \"%s (%s\" -A1 | grep Action | wc -l' % (
                 src_ip, dst_ip, proto, vrf)
             cmd_2 = 'flow -l |grep %s -A1| grep %s -A1 |grep \"%s (%s\" -A1 |grep Action |grep -v FlowLim| wc -l' % (

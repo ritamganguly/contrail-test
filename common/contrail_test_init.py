@@ -134,11 +134,17 @@ class ContrailTestInit(fixtures.Fixture):
                               'repos', 'test_revision', None)
         self.fab_revision = read_config_option(self.config,
                               'repos', 'fab_revision', None)
+        # HA setup IPMI username/password 
+        self.ha_setup = self.read_config_option('HA', 'ha_setup', None)
+
+        if self.ha_setup == 'True':
+            self.ipmi_username = self.read_config_option('HA','ipmi_username','ADMIN')
+            self.ipmi_password = self.read_config_option('HA','ipmi_password','ADMIN')
         # debug option
         self.verify_on_setup = read_config_option(self.config,
                               'debug', 'verify_on_setup', False)
-        self.stop_on_fail = read_config_option(self.config,
-                              'debug', 'stop_on_fail', None)
+        self.stop_on_fail = bool(read_config_option(self.config,
+                              'debug', 'stop_on_fail', None))
 
         self.check_juniper_intranet()
 
@@ -156,7 +162,7 @@ class ContrailTestInit(fixtures.Fixture):
         self.username = self.host_data[self.cfgm_ip]['username']
         self.password = self.host_data[self.cfgm_ip]['password']
         # List of service correspond to each module
-        self.compute_services = ['contrail-vrouter', 'openstack-nova-compute']
+        self.compute_services = ['contrail-vrouter-agent', 'openstack-nova-compute']
         self.control_services = ['contrail-control']
         self.cfgm_services = ['contrail-api', 'contrail-schema',
                               'contrail-discovery', 'contrail-zookeeper']
@@ -221,8 +227,20 @@ class ContrailTestInit(fixtures.Fixture):
                     self.os_type[host_ip] = 'xenserver'
                 if 'Ubuntu' in output:
                     self.os_type[host_ip] = 'ubuntu'
+                if 'el7' in output:
+                    self.os_type[host_ip] = 'redhat'
         return self.os_type
     # end get_os_version
+
+    def read_config_option(self, section, option, default_option):
+        ''' Read the config file. If the option/section is not present, return the default_option
+        '''
+        try:
+            val = self.config.get(section, option)
+            return val
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            return default_option
+    # end read_config_option
 
     def _read_prov_file(self):
         prov_file = open(self.prov_file, 'r')
@@ -236,6 +254,8 @@ class ContrailTestInit(fixtures.Fixture):
         self.collector_ips = []
         self.collector_control_ips = []
         self.collector_names = []
+        self.database_ips = []
+        self.database_names = []
         self.compute_ips = []
         self.compute_names = []
         self.compute_control_ips = []
@@ -249,6 +269,13 @@ class ContrailTestInit(fixtures.Fixture):
         self.webui_ips = []
         self.host_data = {}
         self.vgw_data = {}
+        self.cfgm_ips_curr  = []
+        self.cfgm_control_ips_curr =[]
+        self.cfgm_collector_ips_curr = []
+        self.collector_control_ips_curr=[]
+        self.compute_ips_curr = []
+        self.bgp_ips_curr = []
+
         for host in json_data['hosts']:
             self.host_names.append(host['name'])
             host_ip = str(IPNetwork(host['ip']).ip)
@@ -266,7 +293,10 @@ class ContrailTestInit(fixtures.Fixture):
             for role in roles:
                 if role['type'] == 'openstack':
                     if self.keystone_ip:
-                        self.openstack_ip = self.keystone_ip
+                        if self.ha_setup == 'True':
+                            self.openstack_ip = host_ip
+                        else:
+                            self.openstack_ip = self.keystone_ip
                     else:
                         self.openstack_ip = host_ip
                         self.keystone_ip = host_ip
@@ -300,10 +330,18 @@ class ContrailTestInit(fixtures.Fixture):
                     self.collector_ips.append(host_ip)
                     self.collector_control_ips.append(host_control_ip)
                     self.collector_names.append(host['name'])
+                if role['type'] == 'database':
+                    self.database_ip = host_ip
+                    self.database_ips.append(host_ip)
+                    self.database_names.append(host['name'])
             # end for
         # end for
         if json_data.has_key('vgw'):
             self.vgw_data = json_data['vgw']
+
+        if json_data.has_key('hosts_ipmi'):
+            self.hosts_ipmi = json_data['hosts_ipmi']
+
         return json.loads(prov_data)
     # end _read_prov_file
 
@@ -319,6 +357,8 @@ class ContrailTestInit(fixtures.Fixture):
         self.host_ips = [single_node]
         self.collector_ip = single_node
         self.collector_ips = [single_node]
+        self.database_ip = single_node
+        self.database_ips = [single_node]
         self.webui_ip = single_node
         self.openstack_ip = single_node
         json_data = {}
@@ -446,7 +486,8 @@ class ContrailTestInit(fixtures.Fixture):
                 issue_cmd = 'service %s restart' % (service_name)
             else:
                 issue_cmd = 'service %s restart' % (service_name)
-        self.run_cmd_on_server(host, issue_cmd, username, password, pty=False)
+            self.run_cmd_on_server(
+                host, issue_cmd, username, password, pty=False)
     # end restart_service
 
     def stop_service(self, service_name, host_ips=[], contrail_service=True):
@@ -696,6 +737,7 @@ class ContrailTestInit(fixtures.Fixture):
         cfgm_nodes = [self.get_node_name(x) for x in self.cfgm_ips]
         webui_node = self.get_node_name(self.webui_ip)
         openstack_node =  self.get_node_name(self.openstack_ip)
+        database_nodes = [self.get_node_name(x) for x in self.database_ips]
         
         newline = '<br/>'
         detail = newline
@@ -769,7 +811,7 @@ class ContrailTestInit(fixtures.Fixture):
             host['username'] = self.host_data[ip]['username']
             host['password'] = self.host_data[ip]['password']
             copy_file_to_server(host,'tcutils/fabfile.py', '~/','fabfile.py')
-#end copy_fabfile_to_agents
+    # end copy_fabfile_to_agents
 
     def get_openstack_release(self):
         with settings(
@@ -782,3 +824,24 @@ class ContrailTestInit(fixtures.Fixture):
             self.logger.info("%s" % os_release)
             return os_release
     # end get_openstack_release  
+
+    # Updating cfgm_ip , bgp_ips , compute_ips required for ha testing during node failures .
+    def update_ip_curr(self,cfgm_ips = [],cfgm_control_ips=[],bgp_ips=[],compute_ips=[]):
+        if cfgm_ips:
+            self.cfgm_ips_curr = cfgm_ips
+        if cfgm_control_ips:
+            self.cfgm_control_ips_curr = cfgm_control_ips
+        if bgp_ips:
+            self.bgp_ips_curr = bgp_ips
+            self.collector_control_ips_curr= bgp_ips
+        if compute_ips:
+            self.compute_ips_curr = compute_ips
+
+    # resetting cfgm_ip , bgp_ips , compute_ips required for ha testing during node failures .
+    def reset_ip_curr(self):
+        self.cfgm_ips_curr = []
+        self.cfgm_control_ips_curr = []
+        self.bgp_ips_curr = []
+        self.compute_ips_curr = []
+        self.collector_control_ips_curr= []
+    # end reset_ip_curr

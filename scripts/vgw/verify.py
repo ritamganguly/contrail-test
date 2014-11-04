@@ -81,7 +81,7 @@ class VerifyVgwCases():
 
         if not result:
             self.logger.error(
-                'Test  ping outside VN cluster from VM %s failed' % (vm1_name))
+                'Test  ping outside VN cluster from VM %s failed' % (vm_name1))
             assert result
 
         return True
@@ -132,7 +132,7 @@ class VerifyVgwCases():
 
         if not result:
             self.logger.error(
-                'Test  ping outside VN cluster from VM %s failed' % (vm1_name))
+                'Test  ping outside VN cluster from VM %s failed' % (vm_name1))
             assert result
 
         return True
@@ -203,7 +203,7 @@ class VerifyVgwCases():
 
         if not result:
             self.logger.error(
-                'Test  ping outside VN cluster from VM %s failed' % (vm1_name))
+                'Test  ping outside VN cluster from VM %s failed' % (vm_name1))
             assert result
 
         return True
@@ -277,12 +277,12 @@ class VerifyVgwCases():
 
         if not result:
             self.logger.error(
-                'Test  ping outside VN cluster from VM %s failed' % (vm1_name))
+                'Test  ping outside VN cluster from VM %s failed' % (vm_name1))
             assert result
 
         # Restart vrouter service
         self.logger.info('Will restart compute  services now')
-        self.inputs.restart_service('contrail-vrouter', [vgw_compute])
+        self.inputs.restart_service('contrail-vrouter-agent', [vgw_compute])
         sleep(30)
 
         # Try ping after vrouter restart

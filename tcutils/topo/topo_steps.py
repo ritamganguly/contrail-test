@@ -843,6 +843,7 @@ def allocNassocFIP(self):
 # end allocNassocFIP
 
 
+
 def createAllocateAssociateVnFIPPools(self):
     if 'fvn_vm_map' in dir(self.topo):
         # topology rep: self.fip_pools= {'project1': {'p1-vn1-pool1':
