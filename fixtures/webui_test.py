@@ -7,12 +7,10 @@ import random
 import fixtures
 from ipam_test import *
 from project_test import *
-from util import *
+from tcutils.util import *
 from vnc_api.vnc_api import *
 from contrail_fixtures import *
 from webui.webui_common import WebuiCommon
-from fabric.api import run
-from fabric.context_managers import settings
 import re
 
 class WebuiTest:
@@ -30,21 +28,10 @@ class WebuiTest:
         self.ui = WebuiCommon(self)
         self.dash = "-" * 60
         self.vnc_lib = connections.vnc_lib_fixture
-        self.log_path = self.inputs.log_path + '/'
-        self.os_release = self.inputs.get_openstack_release()
+        self.log_path = None
+        if not WebuiTest.os_release:
+            WebuiTest.os_release = self.inputs.get_openstack_release()
     # end __init__
-
-    def get_openstack_release(self):
-        with settings(
-            host_string='%s@%s' % (
-                self.inputs.username, self.inputs.cfgm_ips[0]),
-                password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
-            ver = run('contrail-version')
-            pkg = re.search(r'contrail-install-packages(.*)~(\w+)(.*)', ver)
-            os_release = pkg.group(2)
-            self.logger.info("%s" % os_release)
-            return os_release
-    # end get_openstack_release
 
     def _click_if_element_found(self, element_name, elements_list):
         for element in elements_list:
@@ -85,7 +72,7 @@ class WebuiTest:
                                 ipam.click()
                                 break
                         self.ui.send_keys(
-                            subnet,
+                            subnet['cidr'],
                             "//input[@placeholder = 'CIDR']",
                             'xpath')
                 else:
