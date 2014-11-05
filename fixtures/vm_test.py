@@ -1461,7 +1461,7 @@ class VMFixture(fixtures.Fixture):
     # end verify_vm_not_in_nova
 
     def tftp_file_to_vm(self, file, vm_ip):
-        '''Do a scp of the specified file to the specified VM
+        '''Do a tftp of the specified file to the specified VM
 
         '''
         host = self.inputs.host_data[self.vm_node_ip]
@@ -1475,7 +1475,11 @@ class VMFixture(fixtures.Fixture):
                     password=host['password'],
                         warn_only=True, abort_on_prompts=False):
                     key_file = self.nova_fixture.tmp_key_file
-                    i = 'timeout 20 atftp -p -r %s -l %s %s' % (file,
+                    if ':' in vm_ip :
+                       i= 'tftp -m binary -v %s -c put %s' %(vm_ip,file)
+                    else:
+
+                       i = 'timeout 20 atftp -p -r %s -l %s %s' % (file,
                                                                 file, vm_ip)
                     self.run_cmd_on_vm(cmds=[i])
         except Exception, e:
@@ -1509,11 +1513,12 @@ class VMFixture(fixtures.Fixture):
                     key_file = self.nova_fixture.tmp_key_file
                     self.get_rsa_to_vm()
                     if ':' in vm_ip :
-                       i = 'timeout %d scp -o StrictHostKeyChecking=no -i id_rsa %s %s@[%s]:' % (
-                        timeout, file, dest_vm_username, vm_ip)
+                        dest_vm_username='root'
+                        i = 'scp -o StrictHostKeyChecking=no  -i id_rsa %s %s@[%s]:/root/' % (
+                         file, dest_vm_username, vm_ip)
                     else:
-                       i = 'timeout %d scp -o StrictHostKeyChecking=no -i id_rsa %s %s@%s:' % (
-                           timeout, file, dest_vm_username, vm_ip)
+                        i = 'timeout %d scp -o StrictHostKeyChecking=no -i id_rsa %s %s@%s:' % (
+                            timeout, file, dest_vm_username, vm_ip)
                     cmd_outputs = self.run_cmd_on_vm(cmds=[i])
                     self.logger.debug(cmd_outputs)
         except Exception, e:
@@ -1545,7 +1550,6 @@ class VMFixture(fixtures.Fixture):
         '''sed -i -e 's/no-port-forwarding.*sleep 10\" //g' ~root/.ssh/authorized_keys''']
         self.run_cmd_on_vm(cmds, as_sudo=True)
 
-    @retry(delay=10, tries=5)
     def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100', fip=None, expectation= True):
         '''
         Creates a file of "size" bytes and transfers to the VM in dest_vm_fixture using mode scp/tftp

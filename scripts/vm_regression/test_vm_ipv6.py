@@ -27,6 +27,11 @@ class TestBasicVMVN0(BaseVnVmTest):
     @preposttest_wrapper
     def test_ipv6_vn_add_delete(self):
         '''Test to validate IPV6 VN creation and deletion.
+           and verify VN  fixture for ipv4 network for following introspec
+               (i) API
+                (ii)control node
+                (iii) opserver
+                (iv) Agent
         '''
         vn_obj = self.useFixture(
             VNFixture(
@@ -45,6 +50,11 @@ class TestBasicVMVN0(BaseVnVmTest):
     @preposttest_wrapper
     def test_ipv6_vm_add_delete(self):
         ''' Test to validate that a VM creation and deletion passes for ipv6 network.
+            and verify VM fixture for following introspec
+                (i) API 
+                (ii)control node
+                (iii) opserver 
+                (iv) Agent   
         '''
         vm1_name = 'vm_ipv6'
         vn_fixture = self.useFixture(
@@ -59,7 +69,7 @@ class TestBasicVMVN0(BaseVnVmTest):
             vn_fixture.create_subnet(cidr,ipam,ip_version=6)
         vn_obj=vn_fixture.obj
         vm1_fixture = self.useFixture(VMFixture(connections=self.connections,
-                                                vn_obj=vn_obj, vm_name=vm1_name, project_name=self.inputs.project_name, flavor='contrail_flavor_small', image_name='ubuntu-traffic-ipv6'))
+                                                vn_obj=vn_obj, vm_name=vm1_name, project_name=self.inputs.project_name, flavor='contrail_flavor_small', image_name='centos65-ipv6'))
         assert vm1_fixture.verify_on_setup()
         return True
     # end test_ipv6_vm_add_delete
@@ -67,8 +77,12 @@ class TestBasicVMVN0(BaseVnVmTest):
     @test.attr(type=['sanity','ipv6'])
     @preposttest_wrapper
     def test_ping6_within_vn(self):
-        ''' Validate Ping between two VMs within a VN.
-
+        ''' Validate Ping between two VMs within a VN for ipv6 network. 
+            and verify VM fixture for following introspec
+                (i) API
+                (ii)control node
+                (iii) opserver
+                (iv) Agent
         '''
         vn1_name = get_random_name('vn30')
         vn1_subnets = ['10.1.1.0/24']
@@ -88,11 +102,11 @@ class TestBasicVMVN0(BaseVnVmTest):
         vm1_fixture = self.useFixture(
             VMFixture(
                 project_name=self.inputs.project_name, connections=self.connections,
-                vn_obj=vn1_fixture.obj,flavor='contrail_flavor_small', vm_name=vn1_vm1_name, image_name='ubuntu-traffic-ipv6'))
+                vn_obj=vn1_fixture.obj,flavor='contrail_flavor_small', vm_name=vn1_vm1_name, image_name='centos65-ipv6'))
         vm2_fixture = self.useFixture(
             VMFixture(
                 project_name=self.inputs.project_name, connections=self.connections,
-                vn_obj=vn1_fixture.obj, flavor='contrail_flavor_small',vm_name=vn1_vm2_name, image_name='ubuntu-traffic-ipv6'))
+                vn_obj=vn1_fixture.obj, flavor='contrail_flavor_small',vm_name=vn1_vm2_name, image_name='centos65-ipv6'))
         assert vm1_fixture.verify_on_setup()
         assert vm2_fixture.verify_on_setup()
         vm1_fixture.wait_till_vm_is_up()
@@ -147,10 +161,10 @@ class TestBasicVMVN0(BaseVnVmTest):
             vn_fixture.create_subnet(cidr,ipam,ip_version=6)
         vn_obj=vn_fixture.obj
         vm1_fixture = self.useFixture(VMFixture(connections=self.connections,
-                                                vn_obj=vn_obj, vm_name=vm1_name, project_name=self.inputs.project_name,flavor='contrail_flavor_small', image_name='ubuntu-traffic-ipv6'))
+                                                vn_obj=vn_obj, vm_name=vm1_name, project_name=self.inputs.project_name,flavor='contrail_flavor_small', image_name='centos65-ipv6'))
         assert vm1_fixture.wait_till_vm_is_up()
         vm2_fixture = self.useFixture(VMFixture(connections=self.connections,
-                                                vn_obj=vn_obj, vm_name=vm2_name, project_name=self.inputs.project_name,flavor='contrail_flavor_small', image_name='ubuntu-traffic-ipv6'))
+                                                vn_obj=vn_obj, vm_name=vm2_name, project_name=self.inputs.project_name,flavor='contrail_flavor_small', image_name='centos65-ipv6'))
         assert vm2_fixture.wait_till_vm_is_up()
 
         # ssh and tftp taking sometime to be up and runnning
@@ -220,16 +234,14 @@ class TestBasicVMVN0(BaseVnVmTest):
         vn_obj= vn_fixture.obj
         vm1_fixture = self.useFixture(VMFixture(connections=self.connections,
                             vn_obj=vn_obj, flavor='contrail_flavor_small',
-                            image_name='ubuntu-traffic-ipv6', vm_name=vm1_name,
+                            image_name='centos65-ipv6', vm_name=vm1_name,
                             project_name=self.inputs.project_name))
         vm2_fixture = self.useFixture(VMFixture(connections=self.connections,
                             vn_obj=vn_obj, flavor='contrail_flavor_small',
-                            image_name='ubuntu-traffic-ipv6', vm_name=vm2_name,
+                            image_name='centos65-ipv6', vm_name=vm2_name,
                             project_name=self.inputs.project_name))
         assert vm1_fixture.wait_till_vm_is_up()
         assert vm2_fixture.wait_till_vm_is_up()
-        tftp_service='sudo service tftpd-hpa restart'
-        vm2_fixture.run_cmd_on_vm( cmds=[tftp_service])
         #ssh and tftp taking sometime to be up and runnning
         for size in file_sizes:
             self.logger.info ("-"*80)
@@ -247,6 +259,7 @@ class TestBasicVMVN0(BaseVnVmTest):
             else:
                 transfer_result= False
                 self.logger.error('File of size %sB not transferred via tftp '%size)
+                break
 
         if not transfer_result:
             self.logger.error('Tftp transfer failed, lets verify basic things')
@@ -306,11 +319,11 @@ class TestBasicVMVN0(BaseVnVmTest):
         vm1_fixture = self.useFixture(
             VMFixture(
                 project_name=self.inputs.project_name, connections=self.connections,
-                vn_obj=vn1_obj, vm_name=vn1_vm1_name,flavor='contrail_flavor_small', image_name='ubuntu-traffic-ipv6'))
+                vn_obj=vn1_obj, vm_name=vn1_vm1_name,flavor='contrail_flavor_small', image_name='centos65-ipv6'))
         vm2_fixture = self.useFixture(
             VMFixture(
                 project_name=self.inputs.project_name, connections=self.connections,
-                vn_obj=vn2_obj, vm_name=vn1_vm2_name,flavor='contrail_flavor_small', image_name='ubuntu-traffic-ipv6'))
+                vn_obj=vn2_obj, vm_name=vn1_vm2_name,flavor='contrail_flavor_small', image_name='centos65-ipv6'))
         assert vm1_fixture.verify_on_setup()
         assert vm2_fixture.verify_on_setup()
         vm1_fixture.wait_till_vm_is_up()
