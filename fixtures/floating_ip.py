@@ -63,11 +63,11 @@ class FloatingIPFixture(fixtures.Fixture):
     # end setUp
 
     def create_floatingip_pool_webui(self, pool_name, vn_name):
-        self.webui.create_floatingip_pool_webui(self, pool_name, vn_name)
+        self.webui.create_floatingip_pool(self, pool_name, vn_name)
     # end create_floatingip_pool_webui
 
     def create_and_assoc_fip_webui(self, fip_pool_vn_id, vm_id, vm_name, project=None):
-        self.webui.create_and_assoc_fip_webui(
+        self.webui.create_and_assoc_fip(
             self, fip_pool_vn_id, vm_id, vm_name, project=None)
     # end create_and_assoc_fip_webui
 
@@ -379,6 +379,10 @@ class FloatingIPFixture(fixtures.Fixture):
         time.sleep(10)
     # end disassoc_and_delete_fip
 
+    def disassoc_and_delete_fip_webui(self, vm_id):
+        self.webui.disassoc_floatingip(self, vm_id)
+    # end disassoc_and_delete_fip_webui
+
     def create_floatingips(self, fip_pool_vn_id, count=1):
         ''' Creates 1 or more floating ips from a pool.
 
@@ -513,6 +517,9 @@ class FloatingIPFixture(fixtures.Fixture):
             if not self.inputs.is_gui_based_config():
                 self.logger.info('Deleting the FIP pool %s' %
                                  (self.pool_name))
+            if self.inputs.webui_config_flag:
+                self.webui.delete_floatingip_pool(self)
+            else:
                 self.delete_floatingip_pool()
             if self.verify_is_run:
                 assert self.verify_fip_pool_not_in_control_node()

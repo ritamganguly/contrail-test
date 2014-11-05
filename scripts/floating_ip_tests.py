@@ -560,8 +560,8 @@ import test
 
         # Verify Ingress Traffic
         self.logger.info('Verifying Ingress Flow Record')
-        flow_rec1 = inspect_h1.get_vna_fetchflowrecord(vrf=vn1_vm1_traffic_fixture.agent_vrf_objs['vrf_list'][0][
-                                                       'ucindex'], sip=vn1_vm1_traffic_fixture.vm_ip, dip=fvn1_vm1_traffic_fixture.vm_ip, sport=udp_src, dport=dpi, protocol='17')
+        vn_fq_name =vn1_vm1_traffic_fixture.vn_fq_name
+        flow_rec1 = inspect_h1.get_vna_fetchflowrecord(nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'], sip=vn1_vm1_traffic_fixture.vm_ip, dip=fvn1_vm1_traffic_fixture.vm_ip, sport=udp_src, dport=dpi, protocol='17')
 
         if flow_rec1 is not None:
             self.logger.info('Verifying NAT in flow records')
@@ -586,16 +586,9 @@ import test
         # Verify Egress Traffic
         # Check VMs are in same agent or not. Need to compute source vrf
         # accordingly
-        if vn1_vm1_traffic_fixture.vm_node_ip != fvn1_vm1_traffic_fixture.vm_node_ip:
-            source_vrf = vn1_vm1_traffic_fixture.agent_vrf_objs[
-                'vrf_list'][0]['ucindex']
-        else:
-            vrf_list = inspect_h1.get_vna_vrf_objs(
-                vn_name=fvn1_vm1_traffic_fixture.vn_name)
-            source_vrf = vrf_list['vrf_list'][0]['ucindex']
         self.logger.info('Verifying Egress Flow Records')
         flow_rec2 = inspect_h1.get_vna_fetchflowrecord(
-            vrf=source_vrf, sip=fvn1_vm1_traffic_fixture.vm_ip, dip=fip_fixture1.fip[fip_id1], sport=dpi, dport=udp_src, protocol='17')
+            nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'], sip=fvn1_vm1_traffic_fixture.vm_ip, dip=fip_fixture1.fip[fip_id1], sport=dpi, dport=udp_src, protocol='17')
         if flow_rec2 is not None:
             self.logger.info('Verifying NAT in flow records')
             match = inspect_h1.match_item_in_flowrecord(
@@ -736,8 +729,8 @@ import test
 
         # Verify Ingress Traffic
         self.logger.info('Verifying Ingress Flow Record')
-        flow_rec1 = inspect_h1.get_vna_fetchflowrecord(vrf=vn1_vm1_traffic_fixture.agent_vrf_objs['vrf_list'][0][
-                                                       'ucindex'], sip=vn1_vm1_traffic_fixture.vm_ip, dip=fvn1_vm1_traffic_fixture.vm_ip, sport=udp_src, dport=dpi, protocol='17')
+        vn_fq_name=vn1_vm1_traffic_fixture.vn_fq_name
+        flow_rec1 = inspect_h1.get_vna_fetchflowrecord(nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'], sip=vn1_vm1_traffic_fixture.vm_ip, dip=fvn1_vm1_traffic_fixture.vm_ip, sport=udp_src, dport=dpi, protocol='17')
 
         if flow_rec1 is not None:
             match = inspect_h1.match_item_in_flowrecord(
@@ -756,16 +749,8 @@ import test
         self.logger.info('Verifying Egress Flow Records')
         # Check VMs are in same agent or not. Need to compute source vrf
         # accordingly
-        if vn1_vm1_traffic_fixture.vm_node_ip != fvn1_vm1_traffic_fixture.vm_node_ip:
-            source_vrf = vn1_vm1_traffic_fixture.agent_vrf_objs[
-                'vrf_list'][0]['ucindex']
-        else:
-            vrf_list = inspect_h1.get_vna_vrf_objs(
-                vn_name=fvn1_vm1_traffic_fixture.vn_name)
-            source_vrf = vrf_list['vrf_list'][0]['ucindex']
-
         flow_rec2 = inspect_h1.get_vna_fetchflowrecord(
-            vrf=source_vrf, sip=fvn1_vm1_traffic_fixture.vm_ip, dip=fip_fixture1.fip[fip_id1], sport=dpi, dport=udp_src, protocol='17')
+            nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'], sip=fvn1_vm1_traffic_fixture.vm_ip, dip=fip_fixture1.fip[fip_id1], sport=dpi, dport=udp_src, protocol='17')
         if flow_rec2 is not None:
             self.logger.error(
                 'Test Failed. Egress Flow records entry should be removed after removal of FIP. It still exists.')
@@ -777,7 +762,7 @@ import test
                 'Verification successful. Egress flow records removed')
 
         flow_rec3 = inspect_h1.get_vna_fetchflowrecord(
-            vrf=source_vrf, sip=fvn1_vm1_traffic_fixture.vm_ip, dip=vn1_vm1_traffic_fixture.vm_ip, sport=dpi, dport=udp_src, protocol='17')
+            nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'], sip=fvn1_vm1_traffic_fixture.vm_ip, dip=vn1_vm1_traffic_fixture.vm_ip, sport=dpi, dport=udp_src, protocol='17')
         if flow_rec3 is not None:
             match = inspect_h1.match_item_in_flowrecord(
                 flow_rec3, 'short_flow', 'yes')
@@ -786,7 +771,7 @@ import test
                     'Test Failed. After removal of FIP flow type should be short_flow. Flow details %s' % (flow_rec3))
                 result = result and False
             match = inspect_h1.match_item_in_flowrecord(
-                flow_rec3, 'dst_vn', '__UNKNOWN__')
+                flow_rec3, 'src_vn', '__UNKNOWN__')
             if match is False:
                 self.logger.error(
                     'Test Failed. After removal of FIP destination VN should be unkwown. Flow details %s' % (flow_rec3))
@@ -929,9 +914,9 @@ import test
         dpi = unicode(dpi)
 
         # Verify Ingress Traffic
+        vn_fq_name=vn1_vm1_traffic_fixture.vn_fq_name 
         self.logger.info('Verifying Ingress Flow Record')
-        flow_rec1 = inspect_h1.get_vna_fetchflowrecord(vrf=vn1_vm1_traffic_fixture.agent_vrf_objs['vrf_list'][0][
-                                                       'ucindex'], sip=vn1_vm1_traffic_fixture.vm_ip, dip=fvn1_vm1_traffic_fixture.vm_ip, sport='0', dport='0', protocol='1')
+        flow_rec1 = inspect_h1.get_vna_fetchflowrecord(nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'], sip=vn1_vm1_traffic_fixture.vm_ip, dip=fvn1_vm1_traffic_fixture.vm_ip, sport='0', dport='0', protocol='1')
 
         if flow_rec1 is not None:
             self.logger.info('Verifying NAT in flow records')
@@ -956,16 +941,9 @@ import test
         # Verify Egress Traffic
         # Check VMs are in same agent or not. Need to compute source vrf
         # accordingly
-        if vn1_vm1_traffic_fixture.vm_node_ip != fvn1_vm1_traffic_fixture.vm_node_ip:
-            source_vrf = vn1_vm1_traffic_fixture.agent_vrf_objs[
-                'vrf_list'][0]['ucindex']
-        else:
-            vrf_list = inspect_h1.get_vna_vrf_objs(
-                vn_name=fvn1_vm1_traffic_fixture.vn_name)
-            source_vrf = vrf_list['vrf_list'][0]['ucindex']
         self.logger.info('Verifying Egress Flow Records')
         flow_rec2 = inspect_h1.get_vna_fetchflowrecord(
-            vrf=source_vrf, sip=fvn1_vm1_traffic_fixture.vm_ip, dip=fip_fixture1.fip[fip_id1], sport='0', dport='0', protocol='1')
+            nh=vn1_vm1_traffic_fixture.tap_intf[vn_fq_name]['flow_key_idx'], sip=fvn1_vm1_traffic_fixture.vm_ip, dip=fip_fixture1.fip[fip_id1], sport='0', dport='0', protocol='1')
         if flow_rec2 is not None:
             self.logger.info('Verifying NAT in flow records')
             match = inspect_h1.match_item_in_flowrecord(
@@ -1103,7 +1081,7 @@ import test
         self.logger.info('Rebooting the VM  %s' % (vn1_vm1_name))
         cmd_to_reboot_vm = ['reboot']
         vn1_vm1_fixture.run_cmd_on_vm(cmds=cmd_to_reboot_vm)
-        vn1_vm1_traffic_fixture.wait_till_vm_is_up()
+        vn1_vm1_fixture.wait_till_vm_is_up()
         assert vn1_vm1_fixture.verify_on_setup()
         self.logger.info('Verify the connectivity to other VN via floating IP')
         if not vn1_vm1_fixture.ping_with_certainty(fvn1_vm1_fixture.vm_ip):
@@ -2094,7 +2072,8 @@ import test
             'virtual-machine-interface']['uuid']
 
         add_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' + vm2_vmi_id + \
-            ' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
+            ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table' + \
+            ' --user ' + self.inputs.stack_user + ' --password ' + self.inputs.stack_password
         self.logger.info("Create static IP for 2.2.2.0/24 pointing to vm2 ")
         with settings(
             host_string='%s@%s' % (
@@ -2156,7 +2135,8 @@ import test
                 'Route with longest prefix match is followed as expected')
 
         del_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' + vm2_vmi_id + \
-            ' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table'
+            ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table' + \
+            ' --user ' + self.inputs.stack_user + ' --password ' + self.inputs.stack_password
         self.logger.info("Delete static IP for 2.2.2.0/24 pointing to vm2 ")
         with settings(
             host_string='%s@%s' % (
@@ -2371,7 +2351,9 @@ import test
         vm3_vmi_id = vm3_fixture.cs_vmi_obj[vn3_fixture.vn_fq_name]['virtual-machine-interface']['uuid']
         vm2_vmi_id = vm2_fixture.cs_vmi_obj[vn1_fixture.vn_fq_name]['virtual-machine-interface']['uuid']
 
-        add_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' +vm3_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
+        add_static_route_cmd = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' +vm3_vmi_id + \
+        ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table1' + \
+        ' --user ' + self.inputs.stack_user + ' --password ' + self.inputs.stack_password
         self.logger.info("Create static route 2.2.2.0/24 pointing to vm3 \n")
         with settings(host_string= '%s@%s' %(self.inputs.username, self.inputs.cfgm_ips[0]),
                         password= self.inputs.password,warn_only=True,abort_on_prompts=False,debug=True):
@@ -2412,7 +2394,9 @@ import test
 
         static_route_vm2= vm2_fixture.vm_ips[1] + '/' + '32'
 
-        add_static_route_cmd = 'python provision_static_route.py --prefix ' + static_route_vm2 + ' --virtual_machine_interface_id ' +vm2_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table'
+        add_static_route_cmd = 'python provision_static_route.py --prefix ' + static_route_vm2 + ' --virtual_machine_interface_id ' +vm2_vmi_id + \
+        ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table2' + \
+        ' --user ' + self.inputs.stack_user + ' --password ' + self.inputs.stack_password
         self.logger.info("Create static route %s pointing to vm111 eth0 interface \n"%static_route_vm2)
         with settings(host_string= '%s@%s' %(self.inputs.username, self.inputs.cfgm_ips[0]),
                         password= self.inputs.password,warn_only=True,abort_on_prompts=False,debug=True):
@@ -2435,8 +2419,12 @@ import test
         else:
            self.logger.info('Ping not going to vm333  as expected \n')
 
-        del_static_route_cmd1 = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' +vm3_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table'
-        del_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm2 + ' --virtual_machine_interface_id ' +vm2_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table'
+        del_static_route_cmd1 = 'python provision_static_route.py --prefix 2.2.2.0/24 --virtual_machine_interface_id ' +vm3_vmi_id + \
+        ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table1' + \
+        ' --user ' + self.inputs.stack_user + ' --password ' + self.inputs.stack_password
+        del_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm2 + ' --virtual_machine_interface_id ' +vm2_vmi_id + \
+        ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table2' + \
+        ' --user ' + self.inputs.stack_user + ' --password ' + self.inputs.stack_password
 
         self.logger.info("Delete static IP for 2.2.2.0/24 pointing to vm333 \n")
         self.logger.info("Delete static IP for %s pointing to vm111 \n"%static_route_vm2)
@@ -2516,8 +2504,12 @@ import test
         vm1_eth2_vmi_id = vm1_fixture.cs_vmi_obj[vn3_fixture.vn_fq_name]['virtual-machine-interface']['uuid']
 
         static_route_vm1_eth0 = vm1_fixture.vm_ip + '/' + '32'
-        add_static_route_cmd1 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0 + ' --virtual_machine_interface_id ' +vm1_eth1_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table1'
-        add_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0 + ' --virtual_machine_interface_id ' +vm1_eth2_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table2'
+        add_static_route_cmd1 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0 + ' --virtual_machine_interface_id ' +vm1_eth1_vmi_id + \
+        ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table1' + \
+        ' --user ' + self.inputs.stack_user + ' --password ' + self.inputs.stack_password
+        add_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0 + ' --virtual_machine_interface_id ' +vm1_eth2_vmi_id + \
+        ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper add --route_table_name my_route_table2' + \
+        ' --user ' + self.inputs.stack_user + ' --password ' + self.inputs.stack_password
         self.logger.info("Create static route %s pointing to eth0 of vm1 \n"%static_route_vm1_eth0)
         with settings(host_string= '%s@%s' %(self.inputs.username, self.inputs.cfgm_ips[0]),
                         password= self.inputs.password,warn_only=True,abort_on_prompts=False,debug=True):
@@ -2586,8 +2578,12 @@ import test
         else:
            self.logger.info('Traffic is not going through vm111 eth2 interface since associated vn name (vnbbb) is greater than vnaaa, longest prefix match followed \n')
 
-        del_static_route_cmd1 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0  + ' --virtual_machine_interface_id ' +vm1_eth1_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table1'
-        del_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0  + ' --virtual_machine_interface_id ' +vm1_eth2_vmi_id+' --tenant_name ' + self.inputs.stack_tenant + ' --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table2'
+        del_static_route_cmd1 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0  + ' --virtual_machine_interface_id ' +vm1_eth1_vmi_id + \
+        ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table1' + \
+        ' --user ' + self.inputs.stack_user + ' --password ' + self.inputs.stack_password
+        del_static_route_cmd2 = 'python provision_static_route.py --prefix ' + static_route_vm1_eth0  + ' --virtual_machine_interface_id ' +vm1_eth2_vmi_id + \
+        ' --tenant_name "admin" --api_server_ip 127.0.0.1 --api_server_port 8082 --oper del --route_table_name my_route_table2' + \
+        ' --user ' + self.inputs.stack_user + ' --password ' + self.inputs.stack_password
         self.logger.info("Delete static route %s pointing to eth0 of vm1 \n"%static_route_vm1_eth0)
 
         with settings(host_string= '%s@%s' %(self.inputs.username, self.inputs.cfgm_ips[0]),

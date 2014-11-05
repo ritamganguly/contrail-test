@@ -30,6 +30,11 @@ class NewPolicyTestFixture(NewPolicyTestsBase):
     @preposttest_wrapper
     def test_policy_modify_vn_policy(self):
         """ Configure policies based on topology; 
+        1. Create VN with two policy attached
+        2. Launch instance in above network
+        3. Verify configured policy in agent
+        4. Try adding third policy and verify same in agent
+        5. Verify unbind policy from network and verify 
         """
         result = True
         topology_class_name = None
@@ -125,7 +130,10 @@ class NewPolicyTestFixture(NewPolicyTestsBase):
     @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_repeated_policy_modify(self):
-        """ Configure policies based on topology; Replace VN's existing policy [same policy name but with different rule set] multiple times and verify. 
+        """ Replace VN's existing policy [same policy with different rule set].
+        1. Create network with 10 policy attached with 'X' rules specified 
+        2. Keeping policy name intact change rules to 'Y'
+        3. Verify 'Y' rules in agent
         """
 
         result = True
@@ -626,10 +634,10 @@ class NewPolicyTestFixture(NewPolicyTestsBase):
                                                 vn_objs=[vn1_fixture.obj, vn2_fixture.obj], vm_name=vm1_name, project_name=self.inputs.project_name))
         vm2_fixture = self.useFixture(VMFixture(connections=self.connections,
                                                 vn_objs=[vn3_fixture.obj], vm_name=vm2_name, project_name=self.inputs.project_name))
-        assert vm1_fixture.verify_on_setup()
-        assert vm2_fixture.verify_on_setup()
         self.nova_fixture.wait_till_vm_is_up(vm1_fixture.vm_obj)
         self.nova_fixture.wait_till_vm_is_up(vm2_fixture.vm_obj)
+        assert vm1_fixture.verify_on_setup()
+        assert vm2_fixture.verify_on_setup()
         # For multi-vn vm, configure ip address for 2nd interface
         multivn_vm_ip_list = vm1_fixture.vm_ips
         intf_conf_cmd = "ifconfig eth1 %s netmask 255.255.255.0" % multivn_vm_ip_list[

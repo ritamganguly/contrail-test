@@ -86,9 +86,9 @@ class VerifySecGroup():
             msg = "%s traffic from %s with %s to %s with %s "\
                 "failed as expected" % (proto, sender[0].vm_name, sender[1],
                                         receiver[0].vm_name, receiver[1])
-            errmsg = "%s traffic from %s with %s to %s with %s "\
-                     "passed; Expcted to fail " % (proto, sender[0].vm_name, sender[1],
-                                                   receiver[0].vm_name, receiver[1])
+            errmsg = "%s traffic from %s port %s with %s to %s port %s with %s "\
+                     "passed; Expcted to fail " % (proto, sender[0].vm_name,sport, sender[1],
+                                                   receiver[0].vm_name,dport, receiver[1])
             if (recv == 0):
                 self.logger.info(msg)
                 return (True, msg)
@@ -400,7 +400,6 @@ class VerifySecGroup():
         if errmsg:
             assert False, errmsg
 
-
     def start_traffic_and_verify(self, topo, config_topo, prto=None, sprt=None, dprt=None, expt=None, start=0, end=None, traffic_reverse=True):
         results = []
         if not end:
@@ -483,5 +482,4 @@ class VerifySecGroup():
         self.start_traffic_and_verify(topo, config_topo)
         self.start_traffic_and_verify(topo, config_topo, prto='tcp',expt='fail',start=4)
         self.start_traffic_and_verify(topo, config_topo, prto='icmp',expt='fail',start=4)
-
 

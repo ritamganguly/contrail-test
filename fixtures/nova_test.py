@@ -33,8 +33,12 @@ class NovaFixture(fixtures.Fixture):
         self.openstack_ip = inputs.openstack_ip
         self.key = key
         self.obj = None
-        self.auth_url = os.getenv('OS_AUTH_URL') or \
-                                 'http://' + self.openstack_ip + ':5000/v2.0'
+        if not self.inputs.ha_setup: 
+            self.auth_url = os.getenv('OS_AUTH_URL') or \
+                'http://' + self.openstack_ip + ':5000/v2.0'
+        else:
+            self.auth_url = os.getenv('OS_AUTH_URL') or \
+                'http://' + self.inputs.keystone_ip + ':5000/v2.0'
         self.logger = inputs.logger
         self.images_info = parse_cfg_file('configs/images.cfg')
         self.flavor_info = parse_cfg_file('configs/flavors.cfg')
@@ -231,8 +235,10 @@ class NovaFixture(fixtures.Fixture):
     def get_nova_services(self, **kwargs):
         try:
             nova_services = self.obj.services.list(**kwargs)
-            self.logger.debug('Servies List from the nova obj: %s' %
-                              nova_services)
+            nova_services = filter(lambda x: x.state != 'down' and x.status != 'disabled',
+                   nova_services)
+            self.logger.info('Servies List from the nova obj: %s' %
+                             nova_services)
             return nova_services
         except:
             self.logger.debug('Unable to retrieve services from nova obj')
@@ -264,6 +270,9 @@ class NovaFixture(fixtures.Fixture):
                 if datadict[fk] != fv:
                     break
                 else:
+                    if datadict['status'] == 'disabled' and \
+                       datadict['state'] == 'down':
+                        break
                     service_obj = nova_class()
                     for key, value in datadict.items():
                         setattr(service_obj, key, value)
@@ -353,7 +362,7 @@ class NovaFixture(fixtures.Fixture):
             return False
     # end def
 
-    @retry(tries=10, delay=6)
+    @retry(tries=1, delay=60)
     def is_ip_in_obj(self, vm_obj, vn_name):
         try:
             vm_obj.get()
@@ -442,6 +451,9 @@ class NovaFixture(fixtures.Fixture):
     def get_compute_host(self):
         while True:
             nova_services = self.get_nova_services(binary='nova-compute')
+            if not nova_services:
+                self.logger.info('nova-compute service doesnt exist, check openstack-status')
+                raise RuntimeError('nova-compute service doesnt exist')
             for compute_svc in nova_services:
                 yield compute_svc.host
     # end get_compute_host

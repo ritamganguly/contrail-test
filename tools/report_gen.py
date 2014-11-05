@@ -33,6 +33,9 @@ class ContrailTestInit:
             self.log_scenario = self.log_scenario
         self.keystone_ip = read_config_option(self.config,
                               'Basic', 'keystone_ip', None)
+        self.webui_browser = read_config_option(self.config,
+                              'webui', 'browser', None)
+
         # Web Server related details
         self.web_server = read_config_option(self.config,
                               'WebServer', 'host', None)
@@ -128,6 +131,8 @@ class ContrailTestInit:
         self.collector_ips = []
         self.collector_control_ips = []
         self.collector_names = []
+        self.database_ips = []
+        self.database_names = []
         self.compute_ips = []
         self.compute_names = []
         self.compute_control_ips = []
@@ -192,6 +197,10 @@ class ContrailTestInit:
                     self.collector_ips.append(host_ip)
                     self.collector_control_ips.append(host_control_ip)
                     self.collector_names.append(host['name'])
+                if role['type'] == 'database':
+                    self.database_ip = host_ip
+                    self.database_ips.append(host_ip)
+                    self.database_names.append(host['name'])
             # end for
         # end for
         if json_data.has_key('vgw'):
@@ -211,6 +220,8 @@ class ContrailTestInit:
         self.host_ips = [single_node]
         self.collector_ip = single_node
         self.collector_ips = [single_node]
+        self.database_ip = single_node
+        self.database_ips = [single_node]
         self.webui_ip = single_node
         self.openstack_ip = single_node
         json_data = {}
@@ -258,6 +269,7 @@ class ContrailTestInit:
         cfgm_nodes = [self.get_node_name(x) for x in self.cfgm_ips]
         webui_node = self.get_node_name(self.webui_ip)
         openstack_node =  self.get_node_name(self.openstack_ip)
+        database_nodes = [self.get_node_name(x) for x in self.database_ips]
         
         newline = '<br/>'
         detail = newline
@@ -284,6 +296,8 @@ class ContrailTestInit:
         config.set('Test', 'LogsLocation', self.log_link)
         config.set('Test', 'Cores', self.get_cores())
         config.set('Test', 'Topology', phy_topology)
+        if self.webui_browser:
+            config.set('Test', 'Browser', self.webui_browser)
 
         log_location = ''
         if self.jenkins_trigger:

@@ -1,6 +1,6 @@
 """ Module wrrapers that can be used in the tests."""
 
-import traceback
+import traceback, os
 from functools import wraps
 from testtools.testcase import TestSkipped
 from datetime import datetime
@@ -27,6 +27,9 @@ def preposttest_wrapper(function):
         log.info('=' * 80)
         log.info('STARTING TEST    : %s', function.__name__)
         start_time = datetime.now().replace(microsecond=0)
+        if 'ci_image' in os.environ.keys():
+            if os.environ['stop_execution_flag'] == 'set':
+                assert False, "test failed skipping further tests. Refer to the logs for further analysis"
         doc = function.__doc__
         if doc:
             log.info('TEST DESCRIPTION : %s', doc)
@@ -48,12 +51,13 @@ def preposttest_wrapper(function):
                     connections=self.connections):
                 log.warn("Pre-Test validation failed.."
                          " Skipping test %s" % (function.__name__))
-                assert False, "Test did not run since Pre-Test validation failed\
-                               due to BGP/XMPP connection issue"
+      #WA for bug 1362020 
+      #          assert False, "Test did not run since Pre-Test validation failed\
+      #                         due to BGP/XMPP connection issue"
 
-            else:
-                result = None
-                result = function(self, *args, **kwargs)
+      #      else:
+            result = None
+            result = function(self, *args, **kwargs)
         except KeyboardInterrupt:
             raise
         except TestSkipped, msg:
@@ -129,6 +133,8 @@ def preposttest_wrapper(function):
                 log.info("END TEST : %s : FAILED[%s]",
                          function.__name__, test_time)
                 log.info('-' * 80)
+                if 'ci_image' in os.environ.keys():
+                    os.environ['stop_execution_flag'] = 'set'
                 raise TestFailed("\n ".join(errmsg))
             elif testskip:
                 log.info('')

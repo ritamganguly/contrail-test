@@ -17,9 +17,13 @@ class UserFixture(fixtures.Fixture):
         self.inputs= connections.inputs
         self.connections= connections
         self.logger = self.inputs.logger
-        self.auth_url = os.getenv('OS_AUTH_URL') or \
-                                'http://' + self.inputs.openstack_ip + ':5000/v2.0'
         insecure = bool(os.getenv('OS_INSECURE', True))
+        if not self.inputs.ha_setup:
+            self.auth_url = os.getenv('OS_AUTH_URL') or \
+                'http://%s:5000/v2.0' % (self.inputs.openstack_ip)
+        else:
+            self.auth_url = os.getenv('OS_AUTH_URL') or \
+                'http://%s:5000/v2.0' % (self.inputs.keystone_ip)
         self.already_present = False
         self.username = username 
         self.password = password 

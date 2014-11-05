@@ -144,10 +144,18 @@ class AnalyticsVerification(fixtures.Fixture):
             generator=generator, moduleid=moduleid, node_type=node_type, instanceid=instanceid)
         if not self.opsobj:
             self.logger.warn("query returned none")
+            st = self.ops_inspect[self.inputs.collector_ips[0]].send_trace_to_database(
+                                                    node=self.inputs.collector_names[0], \
+                                                    module='Contrail-Analytics-Api', trace_buffer_name='DiscoveryMsg')
+            self.logger.info("status: %s" % (st))
             return None
         self.conoutput = self.opsobj.get_attr('Client', 'client_info')
         if not self.conoutput:
             self.logger.info("query returned none")
+            st = self.ops_inspect[self.inputs.collector_ips[0]].send_trace_to_database(
+                                                    node=self.inputs.collector_names[0], \
+                                                    module='Contrail-Analytics-Api', trace_buffer_name='DiscoveryMsg')
+            self.logger.info("status: %s" % (st))
             return None
         return self.conoutput
 
@@ -233,8 +241,8 @@ class AnalyticsVerification(fixtures.Fixture):
             return ret
 
 #    def get_gen_by_collector(self):
-#        '''Test module nodea29:Contrail-Control'''
-#        self.opsobj=self.ops_inspect.get_ops_generator(generator='nodea29',moduleid='Contrail-Control',node_type='Control',instanceid='0')
+#        '''Test module nodea29:contrail-control'''
+#        self.opsobj=self.ops_inspect.get_ops_generator(generator='nodea29',moduleid='contrail-control',node_type='Control',instanceid='0')
 #        self.g=self.opsobj.get_attr('Server', 'generator_info',match= ('status','0'))
 #        import pdb;pdb.set_trace()
 #        return self.g
@@ -268,7 +276,7 @@ class AnalyticsVerification(fixtures.Fixture):
 
         # Verify module-ids correctly shown in the  collector uve for respective generators
          # verify module-id for bgp node in collector uve - should be
-         # 'ControlNode'
+         # 'Contrail-Control'
         for ip in self.inputs.bgp_ips:
             assert self.verify_collector_connection_introspect(ip,http_introspect_ports['HttpPortControl'])
         for ip in self.inputs.cfgm_ips:
@@ -326,7 +334,31 @@ class AnalyticsVerification(fixtures.Fixture):
                     break
                 else:
                     result1 = result1 and False
+                    st = self.ops_inspect[self.inputs.collector_ips[0]].send_trace_to_database(
+                                                            node=self.inputs.collector_names[0], \
+                                                            module='Contrail-Analytics-Api', trace_buffer_name='DiscoveryMsg')
+                    self.logger.info("status: %s" % (st))
             result = result and result1
+            # Verifying module_id from DiscoveryService 
+            expected_cfgm_modules = 'contrail-discovery'
+            expected_node_type = 'Config'
+            expected_instance_id = '0'
+            for cfgm_node in self.inputs.cfgm_names:
+                result1 = True
+                is_established = self.verify_connection_status(
+                    cfgm_node, expected_cfgm_modules, expected_node_type, expected_instance_id)
+                if is_established:
+                    # collector=self.output['collector_name']
+                    result1 = result1 and True
+                    break
+                else:
+                    result1 = result1 and False
+                    st = self.ops_inspect[self.inputs.collector_ips[0]].send_trace_to_database(
+                                                            node=self.inputs.collector_names[0], \
+                                                            module='Contrail-Analytics-Api', trace_buffer_name='DiscoveryMsg')
+                    self.logger.info("status: %s" % (st))
+            result = result and result1
+            #Verifying for ServiceMonitor
             expected_cfgm_modules = 'contrail-svc-monitor'
             expected_node_type = 'Config'
             expected_instance_id = '0'
@@ -340,23 +372,32 @@ class AnalyticsVerification(fixtures.Fixture):
                     break
                 else:
                     result1 = result1 and False
+                    st = self.ops_inspect[self.inputs.collector_ips[0]].send_trace_to_database(
+                                                            node=self.inputs.collector_names[0], \
+                                                            module='Contrail-Analytics-Api', trace_buffer_name='DiscoveryMsg')
             result = result and result1
             # Verifying module_id  ApiServer
-            expected_apiserver_module = 'ApiServer'
+            expected_apiserver_module = 'Contrail-Api'
             expected_apiserver_instances = self.get_module_instances(
                 expected_apiserver_module)
             expected_node_type = 'Config'
-            # expected_cfgm_modules=['Schema','Contrail-Svc-Monitor']
+            # expected_cfgm_modules=['Contrail-Schema','contrail-svc-monitor']
             for cfgm_node in self.inputs.cfgm_names:
                 for inst in expected_apiserver_instances:
+                    result1 = True
                     is_established = self.verify_connection_status(
                         cfgm_node, expected_apiserver_module, expected_node_type, inst)
                     if is_established:
-                        result = result and True
+                        result1 = result1 and True
+                        break
                     else:
                         result = result and False
-            # Verifying module_id OpServer
-            expected_opserver_module = 'OpServer'
+                        st = self.ops_inspect[self.inputs.collector_ips[0]].send_trace_to_database(
+                                                            node=self.inputs.collector_names[0], \
+                                                            module='Contrail-Analytics-Api', trace_buffer_name='DiscoveryMsg')
+                result = result1 and result
+            # Verifying module_id Contrail-Analytics-Api
+            expected_opserver_module = 'Contrail-Analytics-Api'
             expected_opserver_instances = self.get_module_instances(
                 expected_opserver_module)
             expected_node_type = 'Analytics'
