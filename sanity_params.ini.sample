@@ -54,12 +54,16 @@ mailSender=$__sender_mail_id__
 proxy_url=$__http_proxy__
 
 
-[webui]
-# Provide browser details for gui based testing, 'chrome' or 'firefox' or None
-browser=$__webui__
-# if object creation has to be through gui set the config flag to True. default False
-config=$__webui_config__
-
+[ui]                                                                                                                         
+# Provide webui=True to run webui verification testcases, Default = False                                                    
+webui=$__webui__                                                                                                             
+# # # Provide horizon=True to run horizon verification testcases, Default = False                                              
+horizon=$__horizon__                                                                                                         
+# # # Provide browser details for gui based testing, 'chrome' or 'firefox' or None                                             
+ui_browser=$__ui_browser__
+# # # if object creation has to be through gui set the config flag to 'contrail' or 'horizon' or False . default False
+ui_config=$__ui_config__
+# #                 
 
 # Set the same to True if devstack env
 [devstack]
