@@ -816,8 +816,8 @@ class ContrailTestInit(fixtures.Fixture):
     def get_openstack_release(self):
         with settings(
             host_string='%s@%s' % (
-                self.inputs.username, self.inputs.cfgm_ips[0]),
-                password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
+                self.username, self.cfgm_ips[0]),
+                password=self.password, warn_only=True, abort_on_prompts=False, debug=True):
             ver = run('contrail-version')
             pkg = re.search(r'contrail-install-packages(.*)~(\w+)(.*)', ver)
             os_release = pkg.group(2)
