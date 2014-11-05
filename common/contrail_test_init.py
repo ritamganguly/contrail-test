@@ -114,7 +114,7 @@ class ContrailTestInit(fixtures.Fixture):
                               'ui', 'webui', False)
         self.verify_horizon = read_config_option(self.config,
                               'ui', 'horizon', False)
-        if self.verify_webui or self.verify_horizon and not self.ui_browser:
+        if not self.ui_browser:
             raise ValueError("Verification via GUI needs 'browser' details. Please set the same.")
         self.devstack = read_config_option(self.config,
                               'devstack', 'devstack', None)
@@ -816,8 +816,8 @@ class ContrailTestInit(fixtures.Fixture):
     def get_openstack_release(self):
         with settings(
             host_string='%s@%s' % (
-                self.inputs.username, self.inputs.cfgm_ips[0]),
-                password=self.inputs.password, warn_only=True, abort_on_prompts=False, debug=True):
+                self.username, self.cfgm_ips[0]),
+                password=self.password, warn_only=True, abort_on_prompts=False, debug=True):
             ver = run('contrail-version')
             pkg = re.search(r'contrail-install-packages(.*)~(\w+)(.*)', ver)
             os_release = pkg.group(2)

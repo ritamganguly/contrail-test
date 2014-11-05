@@ -1,6 +1,6 @@
 from selenium import webdriver
 from pyvirtualdisplay import Display
-from serial_scripts.webui.webui_common import *
+from webui_common import *
 from selenium.common.exceptions import WebDriverException
 import os
 import time

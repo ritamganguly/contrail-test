@@ -8,9 +8,9 @@ from selenium.common.exceptions import NoSuchElementException
 import time
 import datetime
 import logging
-from util import *
+from tcutils.util import *
 from vnc_api.vnc_api import *
-from verification_util import *
+from tcutils.verification_util import *
 from selenium.common.exceptions import ElementNotVisibleException
 
 
@@ -41,7 +41,7 @@ class WebuiCommon:
         self.frequency = 3
         self.logger = self.inputs.logger
         self.dash = "-" * 60
-        self.log_path = self.inputs.log_path + '/'
+        self.log_path = None
         self.log_dir = '/var/log/'
     # end __init__
 

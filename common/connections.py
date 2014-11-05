@@ -16,14 +16,9 @@ from tcutils.util import get_dashed_uuid
 import os
 
 try:
-    from selenium import webdriver
-    from selenium.webdriver.common.keys import Keys
-    from selenium.webdriver.support.ui import WebDriverWait
-    from pyvirtualdisplay import Display
-    webui=True
-    from serial_scripts.webui.ui_login import UILogin
+    from webui.ui_login import UILogin
 except ImportError:
-    webui=False
+    pass
 
 class ContrailConnections():
     def __init__(self, inputs,logger,
@@ -47,9 +42,6 @@ class ContrailConnections():
         self.project_id = get_dashed_uuid(self.ks_client.tenant_id)
 
         if self.inputs.verify_thru_gui():
-            global webui
-            if not webui:
-                raise ImportError("Selenium and/or pyvirtualdisplay python packages are missing")
             self.ui_login = UILogin(self, self.inputs, project_name, username, password)
             self.browser = self.ui_login.browser
             self.browser_openstack = self.ui_login.browser_openstack

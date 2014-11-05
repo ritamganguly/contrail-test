@@ -514,10 +514,9 @@ class FloatingIPFixture(fixtures.Fixture):
         if self.inputs.fixture_cleanup == 'force':
             do_cleanup = True
         if do_cleanup:
-            if not self.inputs.is_gui_based_config():
-                self.logger.info('Deleting the FIP pool %s' %
-                                 (self.pool_name))
-            if self.inputs.webui_config_flag:
+            self.logger.info('Deleting the FIP pool %s' %
+                             (self.pool_name))
+            if self.inputs.is_gui_based_config():
                 self.webui.delete_floatingip_pool(self)
             else:
                 self.delete_floatingip_pool()
