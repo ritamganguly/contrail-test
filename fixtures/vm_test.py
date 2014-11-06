@@ -1549,7 +1549,8 @@ class VMFixture(fixtures.Fixture):
             'chmod 600 /root/%s' % (auth_file),
         '''sed -i -e 's/no-port-forwarding.*sleep 10\" //g' ~root/.ssh/authorized_keys''']
         self.run_cmd_on_vm(cmds, as_sudo=True)
-
+    
+    @retry(delay=10, tries=5)
     def check_file_transfer(self, dest_vm_fixture, mode='scp', size='100', fip=None, expectation= True):
         '''
         Creates a file of "size" bytes and transfers to the VM in dest_vm_fixture using mode scp/tftp
