@@ -226,4 +226,21 @@ class TestDiscovery(BaseDiscoveryTest):
         resp = self.ds_obj.cleanup_service_from_discovery(self.inputs.cfgm_ip)
         return True
 
+    @preposttest_wrapper
+    def test_webui_subscribed_to_opserver_service(self):
+        ''' Validate webui subscribed to opserver service
+
+        '''
+        assert self.ds_obj.verify_webui_subscribed_to_opserver_service(
+        )
+        return True
+
+    @preposttest_wrapper
+    def test_webui_subscribed_to_apiserver_service(self):
+        ''' Validate webui subscribed to apiserver service
+
+        '''
+        assert self.ds_obj.verify_webui_subscribed_to_apiserver_service(
+        )
+        return True
 # end TestDiscoveryFixture
