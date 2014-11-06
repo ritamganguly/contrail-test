@@ -25,8 +25,14 @@ class TestBasicVMVN0(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_broadcast_udp_w_chksum(self):
-        ''' Validate Broadcast UDP stream with checksum check enabled .
-
+        '''
+         Description: Test to validate UDP Traffic to subnet broadcast, multicast and all_broadcast address in a network.
+         Test steps:
+                1. Creating 4 VMs in a VN.
+                2. From one fo the VMs, start 4 streams of UDP traffc to the subnet broadcast, multicast and all_broadcast address.
+                3. Get the count of packets received in each of the streams at the three destination VMs.
+         Pass criteria: The count of packets sent and those received on the destination VMs should match.
+         Maintainer : ganeshahv@juniper.net
         '''
         vn1_name = get_random_name('vn30')
         vn1_subnets = ['30.1.1.0/24']
@@ -51,10 +57,6 @@ class TestBasicVMVN0(BaseVnVmTest):
         assert vm2_fixture.verify_on_setup()
         assert vm3_fixture.verify_on_setup()
         assert vm4_fixture.verify_on_setup()
-        #self.nova_fixture.wait_till_vm_is_up( vm1_fixture.vm_obj )
-        #self.nova_fixture.wait_till_vm_is_up( vm2_fixture.vm_obj )
-        #self.nova_fixture.wait_till_vm_is_up( vm3_fixture.vm_obj )
-        #self.nova_fixture.wait_till_vm_is_up( vm4_fixture.vm_obj )
 
         out1 = vm1_fixture.wait_till_vm_is_up()
         if out1 == False:
@@ -185,7 +187,12 @@ class TestBasicVMVN0(BaseVnVmTest):
     @preposttest_wrapper
     def test_bulk_add_delete(self):
         '''
-        Validate adding multiple vms in bulk and deleting them in one shot
+         Description: Test to validate creation and deletion of VMs in bulk.
+         Test steps:
+                1. Create VMs in bulk, based on the count specified.
+                2. Verify the VMs so created and cleanup of the VMs should also go through fine.
+         Pass criteria: The creation and deletion of the VMs in bulk should go through fine.
+         Maintainer : ganeshahv@juniper.net
         '''
         vn1_name = "bulk_test_vn1"
         vn1_name = get_random_name(vn1_name)
@@ -215,7 +222,13 @@ class TestBasicVMVN0(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_disassociate_vn_from_vm(self):
-        ''' Test to validate that disassociating a VN from a VM fails.
+        '''
+         Description: Test to validate that VN cannot be deleted if there is a VM associated with it.
+         Test steps:
+                1. Create a VN and launch a VM in that VN.
+                2. Verify that with the VM still existing, it is not possible to delete the VN.
+         Pass criteria: The attempt to delete VN should fail with a RefsExistError.
+         Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = get_random_name('vm_mine')
         vn_name = get_random_name('vn222')
@@ -243,7 +256,14 @@ class TestBasicVMVN0(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_duplicate_vn_add(self):
-        '''Test to validate adding a Duplicate VN creation and deletion.
+        '''
+         Description: Test to validate that with the same subnet and name provided, two different VNs cannot be created.
+         Test steps:
+                1. Create a VN.
+                2. Create a second VN with the same name and subnet as the first VN.
+                3. Verify that no second VN object is created.
+         Pass criteria: There is a single VN created.
+         Maintainer : ganeshahv@juniper.net
         '''
         vn_obj1 = self.useFixture(
             VNFixture(
@@ -267,7 +287,16 @@ class TestBasicVMVN0(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_host_route_add_delete(self):
-        ''' Test to validate that host_route is sent to the  VM via DHCP.
+        '''
+         Description: Test to validate that host_route is sent to the VM via DHCP.
+         Test steps:
+                1. Create a VN.
+                2. Add a prefix under the Host Route.
+                3. Create a VM and observe that the Host Routes are seen in the VM's routing table.
+                4. Delete the Host Route from the VN.
+                5. Create a second VM and observe that the Host Routes are no longer seen.
+         Pass criteria: The Host Route should get added and deleted accordingly.
+         Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = get_random_name('va_mine')
         vm2_name = get_random_name('vm_yours')
@@ -329,10 +358,15 @@ class TestBasicVMVN0(BaseVnVmTest):
     @test.attr(type=['sanity','ci_sanity','quick_sanity'])
     @preposttest_wrapper
     def test_ipam_add_delete(self):
-        '''Test to validate IPAM creation, association of a VN and creating VMs in the VN. Ping b/w the VMs should be successful.
         '''
-        #project_obj = self.useFixture(
-        #    ProjectFixture(vnc_lib_h=self.vnc_lib, connections=self.connections))
+         Description: Test to validate IPAM creation, association of a VN and creating VMs in the VN. Ping b/w the VMs should be successful.
+         Test steps:
+                1. Create a IPAM.
+                2. Use this IPAM to create a VN.
+                3. Launch 2 VMs in the VN.
+         Pass criteria: Ping between the VMs should PASS.
+         Maintainer : ganeshahv@juniper.net
+        '''
         ipam_obj = self.useFixture(
             IPAMFixture(project_obj=self.project, name=get_random_name('my-ipam')))
         assert ipam_obj.verify_on_setup()
@@ -358,7 +392,15 @@ class TestBasicVMVN0(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_multiple_metadata_service_scale(self):
-        ''' Test to metadata service scale.
+        '''
+         Description: Test to validate metadata service
+         Test steps:
+                1. Create a VN.
+                2. Launch a VM in this VN.
+                3. Write a metadata script to print the current time.
+                4. Pass this during the VM launch.
+         Pass criteria: The output of the metadata script should be seen in the VM.
+         Maintainer : sandipd@juniper.net
         '''
 
         vm1_name=get_random_name('vm_min')
@@ -435,7 +477,14 @@ echo "Hello World.  The time is now $(date -R)!" | tee /tmp/output.txt
 
     @preposttest_wrapper
     def test_policy_between_vns_diff_proj(self):
-        ''' Test to validate that policy to deny and pass under different projects should behave accordingly.
+        '''
+         Description: Test to validate that policy to deny and pass under different projects should behave accordingly.
+         Test steps:
+                1. Create 2 different projects.
+                2. Launch 2 VNs and 2 VMs under each project.
+                3. Configure a policy to allow ICMP in one of the projects, while in the other configure a policy to deny ICMP between the projects.
+         Pass criteria: Ping between the VMs in the first project should pass, while in the second project it should fail.
+         Maintainer : ganeshahv@juniper.net
         '''
         vm_names = ['vm_100', 'vm_200', 'vm_300', 'vm_400']
         vn_names = ['vn_100', 'vn_200', 'vn_300', 'vn_400']
@@ -584,7 +633,14 @@ echo "Hello World.  The time is now $(date -R)!" | tee /tmp/output.txt
 
     @preposttest_wrapper
     def test_diff_proj_same_vn_vm_add_delete(self):
-        ''' Test to validate that a VN and VM with the same name and same subnet can be created in two different projects
+        '''
+        Description: Test to validate that a VN and VM with the same name and same subnet can be created in two different projects
+        Test steps:
+               1. Create 2 different projects.
+                2. Create a VN with the same name and subnet under each project.
+                3. Launch a VM under the VN in both the projects.
+        Pass criteria: The label allocated to the VM's /32 prefix by the agent should be different.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm_name = 'vm_mine'
         vn_name = 'vn222'
@@ -663,7 +719,12 @@ class TestBasicVMVN1(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_no_frag_in_vm(self):
-        ''' Validate that VM should not fragment packets and that Vrouter does it.
+        '''
+        Description:  Validate that VM should not fragment packets and that Vrouter does it.
+        Test steps:
+                1. Send a traffic stream with packet-size lesser than the MTU of the eth0 intf of a VM.
+        Pass criteria: Traffic should reach the destination VM with the 'DF' Flag set, i.e, there should be no fragmentattion seen.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn1_name = get_random_name('vn30')
         vn1_subnets = ['30.1.1.0/24']
@@ -752,8 +813,14 @@ class TestBasicVMVN2(BaseVnVmTest):
  
     @preposttest_wrapper
     def test_ping_on_broadcast_multicast_with_frag(self):
-        ''' Validate Ping on subnet broadcast,link local multucast,network broadcastwith packet sizes > MTU and see that fragmentation and assembly work fine .
-
+        '''
+        Description:  Validate that VM should not fragment packets and that Vrouter does it.
+        Test steps:
+               1. Send a traffic stream to subnet broadcast, multicast and all-broadcast address with packet-size greater than the MTU of the eth0 intf of a VM.
+               2. It is expected to throw a message too long error.
+               3. Increase the MTU of the eth0 intf.
+        Pass criteria: There should be no error seen and traffic should reach the destination VM without any fragmentation.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn1_name = get_random_name('vn30')
         vn1_subnets = ['30.1.1.0/24']
@@ -844,8 +911,13 @@ class TestBasicVMVN2(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_ping_on_broadcast_multicast(self):
-        ''' Validate Ping on subnet broadcast,link local multucast,network broadcast .
-
+        '''
+        Description:  Validate Ping on subnet broadcast,link local multucast,network broadcast.
+        Test steps:
+                1. Send ICMP traffic stream to subnet broadcast, multicast and all-broadcast address,
+                2. Enable response to broadcasts on the destination VMs.
+        Pass criteria: There should be no packet loss and all the three destination VMs should see the ICMP traffic.
+        Maintainer : ganeshahv@juniper.net
         '''
         result = True
         vn1_name = get_random_name('vn1')
@@ -927,8 +999,12 @@ class TestBasicVMVN2(BaseVnVmTest):
     @test.attr(type=['sanity','ci_sanity','quick_sanity'])
     @preposttest_wrapper
     def test_ping_within_vn(self):
-        ''' Validate Ping between two VMs within a VN.
-
+        '''
+        Description:  Validate Ping between 2 VMs in the same VN.
+        Test steps:
+               1. Create a VN and launch 2 VMs in it.
+        Pass criteria: Ping between the VMs should go thru fine.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn1_name = get_random_name('vn30')
         vn1_subnets = ['30.1.1.0/24']
@@ -961,10 +1037,15 @@ class TestBasicVMVN2(BaseVnVmTest):
     @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_ping_within_vn_two_vms_two_different_subnets(self):
-        ''' Validate Ping between two VMs within a VN-2 vms in 2 different subnets.
-            Validate ping to subnet broadcast not responded back by other vm
-            Validate ping to network broadcast (all 255) is responded back by other vm
-
+        '''
+        Description:  Validate Ping between 2 VMs in the same VN, 2 VMs in different VNs.
+        Test steps:
+                1. Create 2 VNs and launch 2 VMs in them.
+                2. Ping between the VMs in the same VN should go thru fine.
+                3. Ping to the subnet broadcast and all-broadcast address.
+        Pass criteria: VM in the same subnet will respond to both the pings, while the VM in a different VN should respond only to the 
+                        all-broadcast address.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn1_name = 'vn030'
         vn1_subnets = ['31.1.1.0/30', '31.1.2.0/30']
@@ -1024,8 +1105,14 @@ class TestBasicVMVN2(BaseVnVmTest):
     #test_ping_within_vn_two_vms_two_different_subnets 
     
     @preposttest_wrapper
-    def itest_policy_between_vns_diff_proj(self):
-        ''' Test to validate that policy to deny and pass under different projects should behave accordingly.
+    def test_policy_between_vns_diff_proj(self):
+        '''
+        Description:  Test to validate that policy to deny and pass under different projects should behave accordingly.
+        Test steps:
+                1. Create 2 VNs and 2 VMs in 2 different projects.
+                2. Configure policy in each project to pass/deny icmp traffic.
+        Pass criteria: Ping between the VMs should follow the policy defined in the project.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm_names=['vm_100', 'vm_200', 'vm_300', 'vm_400']
         vn_names=['vn_100', 'vn_200', 'vn_300', 'vn_400']
@@ -1141,10 +1228,14 @@ class TestBasicVMVN2(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_release_ipam(self):
-        '''Test to validate that IPAM cannot be deleted until the VM associated with it is deleted.
         '''
-        #project_obj = self.useFixture(
-        #    ProjectFixture(vnc_lib_h=self.vnc_lib, connections=self.connections))
+        Description: Test to validate that IPAM cannot be deleted until the VM associated with it is deleted.
+        Test steps:
+                1. Create a IPAM.
+                2. Create a VN referring this IPAM and launch a VM in it.
+        Pass criteria: Attempt to delete the IPAM when the VM/VN exist should fail.
+        Maintainer : ganeshahv@juniper.net
+        '''
         ipam_obj = self.useFixture(
             IPAMFixture(project_obj=self.project, name='my-ipam'))
         assert ipam_obj.verify_on_setup()
@@ -1183,7 +1274,13 @@ class TestBasicVMVN2(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_shutdown_vm(self):
-        ''' Test to validate that VN is unaffected after the VMs in it are shutdown.
+        '''
+        Description:  Test to validate that VN is unaffected after the VMs in it are shutdown.
+        Test steps:
+                1. Create a VM in a VN.
+                2. Shutdown this VM.
+        Pass criteria: The VN is unaffected inspite of the VM's state.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm_mine'
         vn_name = 'vn222'
@@ -1215,7 +1312,13 @@ class TestBasicVMVN3(BaseVnVmTest):
     
     @preposttest_wrapper
     def test_traffic_bw_vms_diff_pkt_size(self):
-        ''' Test to validate TCP, ICMP, UDP traffic of different packet sizes b/w VMs created within a VN.
+        '''
+        Description:  Test to validate TCP, ICMP, UDP traffic of different packet sizes b/w VMs created within a VN.
+        Test steps:
+                1. Create 2 VMs in a VN.
+                2. Start 3 traffic streams of different protocols between the VMs.
+        Pass criteria: Traffic should reach the destination VM, without any packet loss.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_name = 'vn222'
         vn_subnets = ['11.1.1.0/29']
@@ -1348,7 +1451,13 @@ class TestBasicVMVN4(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_traffic_bw_vms_diff_pkt_size_w_chksum(self):
-        ''' Test to validate ICMP, UDP traffic of different packet sizes b/w VMs created within a VN and validate UDP checksum.
+        '''
+        Description:  Test to validate TCP, ICMP, UDP traffic of different packet sizes b/w VMs created within a VN and validate UDP checksum.
+        Test steps:
+                1. Create 2 VMs in a VN.
+                2. Start 3 traffic streams of different protocols between the VMs.
+        Pass criteria: Traffic should reach the destination VM, without any packet loss.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_name = 'vn222'
         vn_subnets = ['11.1.1.0/29']
@@ -1480,7 +1589,13 @@ class TestBasicVMVN4(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_traffic_bw_vms(self):
-        ''' Test to validate TCP, ICMP, UDP traffic b/w VMs created within a VN .
+        '''
+        Description:  Test to validate TCP, ICMP, UDP traffic of different packet sizes b/w VMs created within a VN.
+        Test steps:
+                1. Create 2 VMs in a VN.
+                2. Start 3 traffic streams of different protocols between the VMs.
+        Pass criteria: Traffic should reach the destination VM, without any packet loss.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_name = 'vn222'
         vn_subnets = ['11.1.1.0/29']
@@ -1600,7 +1715,12 @@ class TestBasicVMVN4(BaseVnVmTest):
     @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_vm_add_delete(self):
-        ''' Test to validate that a VM creation and deletion passes.
+        '''
+        Description:  Test to validate VM creation and deletion.
+        Test steps:
+                1. Create VM in a VN.
+        Pass criteria: Creation and deletion of the VM should go thru fine.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm_mine'
         vn_name = 'vn222'
@@ -1619,7 +1739,13 @@ class TestBasicVMVN4(BaseVnVmTest):
     
     @preposttest_wrapper
     def test_vm_add_delete_in_2_vns(self):
-        ''' Test to validate that a VM can be associated to more than one VN.
+        '''
+        Description:  Test to validate a VM associated with two VNs.
+        Test steps:
+                1. Create 2 VNs.
+                2. Launch a VM such that it has address from both the VNs.
+        Pass criteria: VM should get both the IPs.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm_mine1'
         vn1_name = 'vn222'
@@ -1644,7 +1770,14 @@ class TestBasicVMVN4(BaseVnVmTest):
  
     @preposttest_wrapper
     def test_vm_add_delete_in_2_vns_chk_ips(self):
-        ''' Test to validate that a VM can be associated to more than a VN and it gets the IPs as well.
+        '''
+        Description:  Test to validate a VM associated with two VNs.
+        Test steps:
+                1. Create 2 VNs.
+                2. Launch a VM such that it has address from both the VNs.
+                3. Set the ifconfig on eth1 of the VM.
+        Pass criteria: VM should get both the IPs.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm_mine1'
         vn1_name = 'vn222'
@@ -1692,9 +1825,15 @@ class TestBasicVMVN4(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vm_arp(self):
-        ''' Test to validate that the fool-proof way is to not answer
+        '''
+        Description:  Test to validate that the fool-proof way is to not answer
         for arp request from the guest for the address the tap i/f is
         "configured" for.
+        Test steps:
+                1. Create 2 VMs in a VN.
+                2. Start a arping from one of the VMs to the IP of both the VMs.
+        Pass criteria: VM should answer the arping for the other VM's IP, not its own.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm_mine'
         vm2_name = 'vm_yours'
@@ -1746,15 +1885,15 @@ class TestBasicVMVN4(BaseVnVmTest):
     @preposttest_wrapper
     def test_vm_file_trf_scp_tests(self):
         '''
-         Description: Test to validate File Transfer using scp between VMs. Files of different sizes.
-         Test steps:
+        Description: Test to validate File Transfer using scp between VMs. Files of different sizes.
+        Test steps:
                 1. Creating vm's - vm1 and vm2 and a Vn - vn222
                 2. Transfer file from vm1 to vm2 with diferrent file sizes using scp
                 3. file sizes - 1000,1101,1202,1303,1373, 1374,2210, 2845, 3000, 10000, 10000003
                 4. verify files present in vm2 match with the size of the file sent.
-         Pass criteria: File in vm2 should match with the transferred file size from vm1
+        Pass criteria: File in vm2 should match with the transferred file size from vm1
 
-         Maintainer : ganeshahv@juniper.net
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm1'
         vm2_name = 'vm2'
@@ -1813,15 +1952,14 @@ class TestBasicVMVN4(BaseVnVmTest):
     @preposttest_wrapper
     def test_vm_file_trf_tftp_tests(self):
         '''
-         Description:  Test to validate File Transfer using tftp between VMs. Files of different sizes.
-         Test steps:
+        Description:  Test to validate File Transfer using tftp between VMs. Files of different sizes.
+        Test steps:
                 1. Creating vm's - vm1 and vm2 and a Vn - vn222
                 2. Transfer file from vm1 to vm2 with diferrent file sizes using tftp
                 3. file sizes - 1000,1101,1202,1303,1373, 1374,2210, 2845, 3000, 10000, 10000003
                 4. verify files present in vm2 match with the size of the file sent.
-          Pass criteria: File in vm2 should match with the transferred file size from vm1
-         
-          Maintainer : ganeshahv@juniper.net
+        Pass criteria: File in vm2 should match with the transferred file size from vm1
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name='vm1'
         vm2_name='vm2'
@@ -1893,7 +2031,13 @@ class TestBasicVMVN5(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vm_gw_tests(self):
-        ''' Test to validate gateway IP assignments the VM interface.
+        '''
+        Description: Test to validate gateway IP assignments the VM interface.
+        Test steps:
+                1. Create a VMs in a VN.
+                2. Modify the Default Gateway on the VM's routing table.
+        Pass criteria: Ping between the VMs should pass/fail based on the gateway assignment.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm_mine'
         vm2_name = 'vm_yours'
@@ -1934,7 +2078,13 @@ class TestBasicVMVN5(BaseVnVmTest):
     
     @preposttest_wrapper
     def test_vm_in_2_vns_chk_ping(self):
-        ''' Test to validate that a VM can be associated to more than a VN and ping to a network goes from the respective intf.
+        '''
+        Description: Test to validate that a VM can be associated to more than a VN and ping to a network goes from the respective intf .
+        Test steps:
+                1. Create a VM and associate it to 2 VNs.
+                2. Ping to destinations in those networks.
+        Pass criteria: Ping packets should traverse out of the respective interfaces only.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm_mine1'
         vn1_name = 'vn222'
@@ -2070,7 +2220,13 @@ class TestBasicVMVN5(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vm_intf_tests(self):
-        ''' Test to validate Loopback and eth0 intfs up/down events.
+        '''
+        Description: Test to validate Loopback and eth0 intfs up/down events.
+        Test steps:
+                1. Create a VM.
+                2. Create ifup/ifdown events on the lo0 and eth0 interfaces of the VM.
+        Pass criteria: The VM should not go down nor the tap interface should be affected.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm_mine'
         vn_name = 'vn222'
@@ -2105,7 +2261,14 @@ class TestBasicVMVN5(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vm_multi_intf_in_same_vn_chk_ping(self):
-        ''' Test to validate that a multiple interfaces of the same VM can be associated to the same VN and ping is successful.
+        '''
+        Description: Test to validate that a multiple interfaces of the same VM can be associated to the same VN and ping is successful.
+        Test steps:
+                1. Create a VM.
+                2. In latest release we dont support adding same VN.
+                3. Accept execption and mark as PASS
+        Pass criteria: The VM should not go down nor the tap interface should be affected.
+        Maintainer : ganeshahv@juniper.net
         '''
         #raise self.skipTest("Skiping Test. Will enable after infra changes to support them have been made")
         vm1_name = 'vm_mine1'
@@ -2168,7 +2331,12 @@ class TestBasicVMVN5(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vm_multiple_flavors(self):
-        ''' Test to validate creation and deletion of VMs of all flavors.
+        '''
+        Description: Test to validate creation and deletion of VMs of all flavors.
+        Test steps:
+                1. Create VMs with varying flavors and images.
+        Pass criteria: VM Creation, run and deletion shouldn't hit any issue.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_name = 'vn222'
         vn_subnets = ['11.1.1.0/24']
@@ -2210,7 +2378,13 @@ class TestBasicVMVN5(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vm_static_ip_tests(self):
-        ''' Test to validate Static IP to the VM interface.
+        '''
+        Description: Test to validate Static IP to the VM interface.
+        Test steps:
+                1. Create a VM.
+                2. Add a static route entry and verify.
+        Pass criteria: The static route entries should get added to the route table in the VM.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm_mine'
         vn_name = 'vn222'
@@ -2260,7 +2434,14 @@ class TestBasicVMVN5(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vm_vn_block_exhaustion(self):
-        ''' Test to validate that a VMs cannot be created after the IP-Block is exhausted.
+        '''
+        Description: Test to validate that a VMs cannot be created after the IP-Block is exhausted.
+        Test steps:
+                1. Create a VN and a subnet in it such that only 5 addresses are usable.
+                2. Launch more than 5 VMs.
+        Pass criteria: Only 5 VMs should get spawned. 
+        The 6th VM should go into ERROR state as it is unable to get any ip. The ip-block is exhausted.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_name = 'vn222'
         vn_subnets = ['11.1.1.0/29']
@@ -2307,7 +2488,12 @@ class TestBasicVMVN5(BaseVnVmTest):
     @test.attr(type=['sanity','ci_sanity', 'quick_sanity'])
     @preposttest_wrapper
     def test_vn_add_delete(self):
-        '''Test to validate VN creation and deletion.
+        '''
+        Description: Test to validate VN creation and deletion.
+        Test steps:
+               1. Create a VN.
+        Pass criteria: VN creation and deletion should go thru fine.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_obj = self.useFixture(
             VNFixture(
@@ -2320,7 +2506,14 @@ class TestBasicVMVN5(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vn_in_agent_with_vms_add_delete(self):
-        ''' Test to validate VN's existence and removal in agent with deletion of associated VMs.
+        '''
+        Description: Test to validate VN's existence and removal in agent with deletion of associated VMs.
+        Test steps:
+                1. Create a VN.
+                2. launch a VM in it.
+                3. Delete the VM.
+        Pass criteria: VN entry is seen in the agent as long as the /32 route to the VM's IP exists, i.e., till the VM exists.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_name = 'vn1'
         vn_subnets = ['10.10.10.0/24']
@@ -2359,7 +2552,12 @@ class TestBasicVMVN5(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vn_name_with_spl_characters(self):
-        '''Test to validate VN name with special characters is allowed.
+        '''
+        Description: Test to validate VN name with special characters.
+        Test steps:
+                1. Create a VN, by specifying its name with special characters..
+        Pass criteria: Special characters such as '.', ',', '_' are allowed in the VN names.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn1_obj = self.useFixture(
             VNFixture(
@@ -2407,9 +2605,13 @@ class TestBasicVMVN6(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vn_subnet_types(self):
-        """ Validate various type of subnets associated to VNs.
-        """
-
+        '''
+        Description: Validate various type of subnets associated to VNs.
+        Test steps:
+               1. Associate reserved_ip,  non-usable IPs and overalapping ip pools during a VN creation.
+        Pass criteria: NotPossibleToSubnet errors should be seen.
+        Maintainer : ganeshahv@juniper.net
+        '''
         # vn-1 : 0.0.0.0/0 to be given once PR 802 is fixed
         reserved_ip_vns = {'vn-2': '169.254.1.1/24', 'vn-3': '251.2.2.1/24'}
         overlapping_vns = {'vn-5': ['10.1.1.0/24', '10.1.1.0/24'], 'vn-6':
@@ -2440,7 +2642,13 @@ class TestBasicVMVN6(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_vn_vm_no_ip(self):
-        '''Test to check that VMs launched in a VN with no subnet, will go to error state.
+        '''
+        Description: Test to check that VMs launched in a VN with no subnet, will go to error state.
+        Test steps:
+                1. Create a VN with no subnet associated.
+                2. Launch a VM in that VN.
+        Pass criteria: The VM should go to ERROR state with no IP.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_obj = self.useFixture(
             VNFixture(
@@ -2457,7 +2665,15 @@ class TestBasicVMVN6(BaseVnVmTest):
     
     @preposttest_wrapper
     def test_vn_vm_no_ip_assign(self):
-        '''Test to check that VM launched in a VN with no subnet gets ip assigned after subnet is assigned to the VN and VM is made active.
+        '''
+        Description: Test to check that VMs launched in a VN with no subnet, will go to error state.
+        Test steps:
+                1. Create a VN with no subnety associated.
+                2. Launch a VM in that VN.
+                3. The VM should go to ERROR state.
+                4. Assign a subnet block to the VN  now.
+        Pass criteria: The VM state will not change.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_fixture = self.useFixture(
             VNFixture(
@@ -2501,24 +2717,19 @@ class TestBasicVMVN6(BaseVnVmTest):
                 assert result
             else:
                 self.logger.info('VM status is not ACTIVE as expected.')
-            # vm_obj.reset_state('active')
-            # vm_obj.get()
-            # state_new=vm_obj.status
-            # if state_new!='ACTIVE':
-            #    self.logger.error ('VM is not active')
-            #    result = False
-            #    assert result
-            # else:
-            #    self.logger.info ('VM status is ACTIVE as expected.VM should get ip if bug 954 is fixed')
-            #    result = self.nova_fixture.get_vm_ip(vm_obj, 'vn22')
-            #    assert result
             return result
    # end test_vn_vm_no_ip_assign
 
     @preposttest_wrapper
     def test_multiple_vn_vm(self):
-        """ Validate creation of multiple VN with multiple subnet and VMs in it.
-        """
+        '''
+        Description: Validate creation of multiple VN with multiple subnet and VMs in it.
+        Test steps:
+                1. Create multiple VNs.
+                2. Launch multiple VMs in each of the VNs.
+        Pass criteria: The VMs should be UP and running with no ERRORs.
+        Maintainer : ganeshahv@juniper.net
+        '''
 
         result = True
         # Multiple VN's with multiple subnets
@@ -2542,8 +2753,15 @@ class TestBasicVMVN6(BaseVnVmTest):
     @test.attr(type=['sanity'])
     @preposttest_wrapper
     def test_ping_on_broadcast_multicast_with_frag(self):
-        ''' Validate Ping on subnet broadcast,link local multucast,network broadcastwith packet sizes > MTU and see that fragmentation and assembly work fine .
-
+        '''
+        Description: Validate Ping on subnet broadcast,link local multucast,network broadcastwith packet sizes > MTU and see that fragmentation and assembly work fine .
+        Test steps:
+                1. Create multiple VMs.
+                2. Start a ICMP stream to the subnet-broadcast, multicast and all-broadcast address with a packet-size greater than the MTU.
+                3. We should see a packet too big error message.
+                4. Increase the MTU on the interface.
+        Pass criteria: The Traffic should go thru fine without any loss.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn1_name = 'vn30'
         vn1_subnets = ['30.1.1.0/24']
@@ -2635,8 +2853,13 @@ class TestBasicVMVN6(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_agent_cleanup_with_control_node_stop(self):
-        ''' Stop all the control node and verify the cleanup process in agent
-
+        '''
+        Description: Stop all the control node and verify the cleanup process in agent
+        Test steps:
+                1. Create VN and multiple VMs in it.
+                2. Shutdown the contrail-control service.
+        Pass criteria: Cleanup of the VN and VM info in the agent should go thru fine.
+        Maintainer : ganeshahv@juniper.net
         '''
         raise self.skipTest("Skiping a failing test")
         if len(set(self.inputs.bgp_ips)) < 2:
@@ -2724,7 +2947,7 @@ class TestBasicVMVN6(BaseVnVmTest):
     @preposttest_wrapper
     def test_metadata_service(self):
         '''
-          Description: Test to validate metadata service on VM creation.
+        Description: Test to validate metadata service on VM creation.
 
                1.Verify from global-vrouter-config if metadata configures or not - fails otherwise
                2.Create a shell script which writes  'hello world ' in a file in /tmp and save the script on the nova api node
@@ -2814,12 +3037,12 @@ echo "Hello World.  The time is now $(date -R)!" | tee /tmp/output.txt
     @preposttest_wrapper
     def test_generic_link_local_service(self):
         '''
-         Description: Test to validate generic linklocal service - running nova list from vm.
+        Description: Test to validate generic linklocal service - running nova list from vm.
             1.Create generic link local service to be able to wget to jenkins
             2.Create a vm
             3.Try wget to jenkins - passes if successful else fails
 
-         Maintainer: sandipd@juniper.net
+        Maintainer: sandipd@juniper.net
         '''
 
         result = True
@@ -2934,7 +3157,14 @@ class TestBasicVMVN9(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_static_route_to_vm(self):
-        ''' Test to validate that traffic to a destination for which a VM is a next-hop sis sent to the tap-interface in the agent, corresponding to the VM.
+        '''
+        Description: Test to validate that traffic to a destination for which a VM is a next-hop is sent to the tap-interface in the agent, corresponding to the VM.
+        Test steps:
+                1. Create VN and a VM in it.
+                2. Add a static route with the next-hop pointing to the VMI.
+                3. Send traffic to the prefix in the static route.
+        Pass criteria: Traffic should reach the tap-interface related to the VM.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = get_random_name('vm_mine')
         vn1_name = get_random_name('vn222')
@@ -3060,11 +3290,15 @@ class TestBasicVMVN9(BaseVnVmTest):
 
     @preposttest_wrapper
     def test_dns_resolution_for_link_local_service(self):
-        '''Test to verify DNS resolution for link local service
-            1. Create instance
-            2. Configure few link service using IP/DNS option
-            3. Verify DNS resolution for services created
-            4. Perform ssh,curl and wget operation using services
+        '''
+        Description: Test to verify DNS resolution for link local service
+        Test steps:
+                1. Create instance
+                2. Configure few link service using IP/DNS option
+                3. Verify DNS resolution for services created
+                4. Perform ssh,curl and wget operation using services
+        Pass criteria: All the three operations should go thru fine.
+        Maintainer : ganeshahv@juniper.net
         '''
         cfgm_ip = self.inputs.cfgm_ips[0]
         cfgm_user = self.inputs.host_data[cfgm_ip]['username']

@@ -24,8 +24,16 @@ class TestBasicVMVN0(BaseVnVmTest):
     
     @preposttest_wrapper
     def test_bring_up_vm_with_control_node_down(self):
-        ''' Create VM when there is not active control node. Verify VM comes up fine when all control nodes are back
-
+        '''
+        Description: Create VM when there is not active control node. Verify VM comes up fine when all control nodes are back
+        Test steps:
+                   1. Create a VN.
+                   2. Shutdown the control node and spawn some VMs.
+                   3. The VMS info should get deleted from the agents after 2 minutes.
+                   4. The Tap intf corresponding to the VM should go to ERROR state.
+                   5. Bring up the control nodes.
+        Pass criteria: The VMs should be back to ACTIVE state, so should the Tap interfaces.
+        Maintainer : ganeshahv@juniper.net
         '''
         if len(set(self.inputs.bgp_ips)) < 2:
             raise self.skipTest(
@@ -130,9 +138,15 @@ class TestBasicVMVN0(BaseVnVmTest):
     
     @preposttest_wrapper
     def test_ipam_persistence_across_restart_reboots(self):
-        '''Test to validate IPAM persistence across restarts and reboots of nodes.
         '''
-        #project_obj = self.useFixture(ProjectFixture(vnc_lib_h= self.vnc_lib, connections= self.connections))
+        Description: Test to validate IPAM persistence across restarts and reboots of nodes.
+        Test steps:
+                   1. Create a IPAM.
+                   2. Create a VN and launch VMs in it.
+                   3. Restart the contrail-vrouter and contrail-control services.
+        Pass criteria: The VMs should be back to ACTIVE state and the ping between them should PASS.
+        Maintainer : ganeshahv@juniper.net
+        '''
         ipam_obj=self.useFixture( IPAMFixture(project_obj= self.project, name = get_random_name('my-ipam')))
         assert ipam_obj.verify_on_setup()
 
@@ -170,7 +184,15 @@ class TestBasicVMVN0(BaseVnVmTest):
     
     @preposttest_wrapper
     def test_multistep_vm_add_delete_with_stop_start_service(self):
-        ''' Test to validate VMs addition deletion after service restarts.
+        '''
+        Description: Test to validate VMs addition deletion after service restarts.
+        Test steps:
+                   1. Create a VN and launch a VM in it.
+                   2. Stop the contrail-vrouter service and check the VM's status.
+                   3. Launch one more VM.
+                   4. Start the contrail-vrouter service.
+        Pass criteria: The VMs should be in ACTIVE state after the contrail-vrouter service is UP.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_name = get_random_name('vn1')
         vn_subnets = ['10.10.10.0/24']
@@ -214,7 +236,15 @@ class TestBasicVMVN0(BaseVnVmTest):
     
     @preposttest_wrapper
     def test_multistep_vm_delete_with_stop_start_service(self):
-        ''' Test to validate VMs addition deletion after service restarts.
+        '''
+        Description: Test to validate VM's deletion attempt fails when the contrail-vrouter service is down.
+        Test steps:
+                   1. Create a VN and launch a VM in it.
+                   2. Stop the contrail-vrouter service and check the VM's status.
+                   3. Try deleting the VM.
+                   4. Start the contrail-vrouter service.
+        Pass criteria: The VM's deletion should fail and it should come back to ACTIVE state after the contrail-vrouter service is UP.
+        Maintainer : ganeshahv@juniper.net
         '''
         vn_name = get_random_name('vn1')
         vn_subnets = ['10.10.10.0/24']
@@ -247,7 +277,13 @@ class TestBasicVMVN0(BaseVnVmTest):
     
     @preposttest_wrapper
     def test_nova_com_sch_restart_with_multiple_vn_vm(self):
-        ''' Test to validate that multiple VM creation and deletion passes.
+        '''
+        Description: Test to validate that multiple VM creation and deletion after service restarts.
+        Test steps:
+                   1. Create multiple VNs and VMs in them.
+                   2. Restart the openstack-nova-compute and openstack-nova-scheduler services.
+        Pass criteria: The VMs should all be UP and running after the restarts.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = get_random_name('vm_mine')
         vn_name = get_random_name('vn222')
@@ -367,7 +403,13 @@ class TestBasicVMVN0(BaseVnVmTest):
     @test.attr(type=['sanity', 'ci_sanity'])
     @preposttest_wrapper
     def test_process_restart_with_multiple_vn_vm(self):
-        ''' Test to validate that multiple VM creation and deletion passes.
+        '''
+        Description: Test to validate that multiple VM creation and deletion after service restarts.
+        Test steps:
+                   1. Create multiple VNs and VMs in them.
+                   2. Restart the contrail-vrouter  service.
+        Pass criteria: The VMs should all be UP and running after the restarts.
+        Maintainer : ganeshahv@juniper.net
         '''
         vm1_name = 'vm_mine'
         vn_name = 'vn222'
@@ -401,7 +443,13 @@ class TestBasicVMVN0(BaseVnVmTest):
     
     @preposttest_wrapper
     def test_kill_service_verify_core_generation(self):
-        """Validate core is generated for services on SIGQUIT"""
+        '''
+        Description: Test to Validate core is generated for services on SIGQUIT
+        Test steps:
+                   1. Issue commands to generate cores for multipe process.
+        Pass criteria: Verify core generation is successful.
+        Maintainer : sandipd@juniper.net
+        '''
         compute_ip = self.inputs.compute_ips[0]
         compute_user = self.inputs.host_data[compute_ip]['username']
         compute_pwd = self.inputs.host_data[compute_ip]['password']
