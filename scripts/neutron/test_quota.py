@@ -27,7 +27,9 @@ class TestQuota(BaseNeutronTest):
         result = True
         quota_dict = self.admin_connections.quantum_fixture.show_quota(
             self.admin_connections.project_id)
-        self.logger.info("Defalult quota set for admin tenant is : \n %s" %(quota_dict))
+        self.logger.info(
+            "Defalult quota set for admin tenant is : \n %s" %
+            (quota_dict))
         for neutron_obj in quota_dict['quota']:
             if quota_dict['quota'][neutron_obj] != -1:
                 self.logger.error(
@@ -41,7 +43,9 @@ class TestQuota(BaseNeutronTest):
         result = True
         quota_dict = self.connections.quantum_fixture.show_quota(
             self.connections.project_id)
-        self.logger.info("Defalult quota set for tenant %s is : \n %s" %(self.inputs.project_name, quota_dict))
+        self.logger.info(
+            "Defalult quota set for tenant %s is : \n %s" %
+            (self.inputs.project_name, quota_dict))
         for neutron_obj in quota_dict['quota']:
             if quota_dict['quota'][neutron_obj] != -1:
                 self.logger.error(
@@ -63,13 +67,17 @@ class TestQuota(BaseNeutronTest):
             'port': 5,
             'security_group': 4,
             'security_group_rule': 6}
-        self.logger.info("Update quota for tenant %s to : \n %s" %(self.inputs.project_name, quota_dict))
+        self.logger.info(
+            "Update quota for tenant %s to : \n %s" %
+            (self.inputs.project_name, quota_dict))
         quota_rsp = self.connections.quantum_fixture.update_quota(
             self.connections.project_id,
             quota_dict)
         quota_show_dict = self.connections.quantum_fixture.show_quota(
             self.connections.project_id)
-        self.logger.info("Quota for new tenant %s updated to : \n %s" %(self.inputs.project_name, quota_show_dict))
+        self.logger.info(
+            "Quota for new tenant %s updated to : \n %s" %
+            (self.inputs.project_name, quota_show_dict))
 
         for neutron_obj in quota_rsp['quota']:
             if quota_rsp['quota'][neutron_obj] != quota_show_dict[
@@ -124,7 +132,9 @@ class TestQuota(BaseNeutronTest):
         user_fixture1.add_user_to_tenant(project_name1, 'test_usr1', 'Member')
         assert project_fixture_obj1.verify_on_setup()
 
-        self.logger.info("Update quota for tenant %s to: \n %s by admin tenat " %(project_fixture_obj1.inputs.project_name, quota_dict))
+        self.logger.info(
+            "Update quota for tenant %s to: \n %s by admin tenat " %
+            (project_fixture_obj1.inputs.project_name, quota_dict))
         quota_rsp = self.admin_connections.quantum_fixture.update_quota(
             project_fixture_obj1.project_id,
             quota_dict)
@@ -139,14 +149,22 @@ class TestQuota(BaseNeutronTest):
                     (neutron_obj, project_name1))
                 result = False
         assert result, 'Quota update by admin tenant failed'
-        self.logger.info("Quota for tenant %s updated to : \n %s" %(project_fixture_obj1.inputs.project_name, quota_show_dict))
-        self.logger.info("Try to update quota for tenant %s to : \n %s by tenant %s" %( project_fixture_obj1.inputs.project_name, quota_dict, project_fixture_obj.inputs.project_name))
+        self.logger.info(
+            "Quota for tenant %s updated to : \n %s" %
+            (project_fixture_obj1.inputs.project_name, quota_show_dict))
+        self.logger.info(
+            "Try to update quota for tenant %s to : \n %s by tenant %s" %
+            (project_fixture_obj1.inputs.project_name,
+             quota_dict,
+             project_fixture_obj.inputs.project_name))
         result1 = proj_connection.quantum_fixture.update_quota(
             project_fixture_obj1.project_id,
             quota_dict)
         assert not result1, 'Quota update of %s by %s successful not expected' % (
             project_name1, project_name)
-        self.logger.info("Quota for tenant %s still set to : \n %s as expected " %(project_fixture_obj1.inputs.project_name, quota_show_dict))
+        self.logger.info(
+            "Quota for tenant %s still set to : \n %s as expected " %
+            (project_fixture_obj1.inputs.project_name, quota_show_dict))
 
     @preposttest_wrapper
     def test_quota_update_of_specific_tenant(self):
@@ -191,8 +209,10 @@ class TestQuota(BaseNeutronTest):
 
         quota_show_dict1 = self.admin_connections.quantum_fixture.show_quota(
             project_fixture_obj.project_id)
-       
-        self.logger.info("Update quota for tenant %s to: \n %s by admin tenant " %(project_fixture_obj1.inputs.project_name, quota_dict)) 
+
+        self.logger.info(
+            "Update quota for tenant %s to: \n %s by admin tenant " %
+            (project_fixture_obj1.inputs.project_name, quota_dict))
         quota_rsp = self.admin_connections.quantum_fixture.update_quota(
             project_fixture_obj1.project_id,
             quota_dict)
@@ -211,7 +231,9 @@ class TestQuota(BaseNeutronTest):
         quota_show_dict2 = self.admin_connections.quantum_fixture.show_quota(
             project_fixture_obj.project_id)
 
-        self.logger.info("Quota for tenant %s is updated to : \n %s " %(project_fixture_obj1.inputs.project_name, quota_show_dict))
+        self.logger.info(
+            "Quota for tenant %s is updated to : \n %s " %
+            (project_fixture_obj1.inputs.project_name, quota_show_dict))
         for neutron_obj in quota_show_dict2['quota']:
             if quota_show_dict2['quota'][neutron_obj] != quota_show_dict1[
                     'quota'][neutron_obj]:
@@ -221,5 +243,6 @@ class TestQuota(BaseNeutronTest):
                 result = False
         assert result, 'Quota update for %s by admin updated quota for %s also not expected' % (
             project_name1, project_name)
-        self.logger.info("Quota for tenant %s is still set to : \n %s as expected" %(project_fixture_obj.inputs.project_name, quota_show_dict1))
-
+        self.logger.info(
+            "Quota for tenant %s is still set to : \n %s as expected" %
+            (project_fixture_obj.inputs.project_name, quota_show_dict1))
