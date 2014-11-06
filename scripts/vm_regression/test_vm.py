@@ -2008,7 +2008,7 @@ class TestBasicVMVN4(BaseVnVmTest):
             else:
                 transfer_result= False
                 self.logger.error('File of size %sB not transferred via tftp '%size)
-
+                break 
         if not transfer_result:
             self.logger.error('Tftp transfer failed, lets verify basic things')
             assert vm1_fixture.verify_on_setup()
