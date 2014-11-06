@@ -30,7 +30,7 @@ class SecurityGroupRegressionTests1(BaseSGTest, VerifySecGroup, ConfigPolicy):
     def runTest(self):
         pass
 
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity','ci_sanity'])
     @preposttest_wrapper
     def test_sec_group_add_delete(self):
         """Verify security group add delete

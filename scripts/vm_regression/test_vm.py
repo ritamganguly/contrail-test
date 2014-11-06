@@ -1742,7 +1742,7 @@ class TestBasicVMVN4(BaseVnVmTest):
         return True
     # end test_vm_arp
 
-    @test.attr(type=['sanity','quick_sanity'])
+    @test.attr(type=['sanity','quick_sanity','ci_sanity'])
     @preposttest_wrapper
     def test_vm_file_trf_scp_tests(self):
         '''
@@ -2720,7 +2720,7 @@ class TestBasicVMVN6(BaseVnVmTest):
         return True
     # end test_agent_cleanup_with_control_node_stop
 
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity', 'ci_sanity'])
     @preposttest_wrapper
     def test_metadata_service(self):
         '''
