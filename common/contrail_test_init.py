@@ -114,8 +114,8 @@ class ContrailTestInit(fixtures.Fixture):
                               'ui', 'webui', False)
         self.verify_horizon = read_config_option(self.config,
                               'ui', 'horizon', False)
-#        if not self.ui_browser:
-#            raise ValueError("Verification via GUI needs 'browser' details. Please set the same.")
+        if not self.ui_browser and self.verify_webui or self.verify_horizon:
+            raise ValueError("Verification via GUI needs 'browser' details. Please set the same.")
         self.devstack = read_config_option(self.config,
                               'devstack', 'devstack', None)
         # router options
