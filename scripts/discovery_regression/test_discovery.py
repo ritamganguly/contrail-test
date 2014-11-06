@@ -44,7 +44,7 @@ class TestDiscovery(BaseDiscoveryTest):
         return True
 
     
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity', 'ci_sanity'])
     @preposttest_wrapper
     def test_agent_gets_control_nodes_from_discovery(self):
         '''
@@ -105,7 +105,7 @@ class TestDiscovery(BaseDiscoveryTest):
                 ip)
         return True
 
-    @test.attr(type=['sanity'])
+    @test.attr(type=['sanity', 'ci_sanity'])
     @preposttest_wrapper
     def test_control_nodes_subscribed_to_ifmap_service(self):
         '''

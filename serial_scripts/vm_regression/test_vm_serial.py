@@ -364,7 +364,7 @@ class TestBasicVMVN0(BaseVnVmTest):
 
 # end test_process_restart_in_policy_between_vns
     
-#    @test.attr(type=['sanity']) -----> stop running in sanity until reporting is fixed
+    @test.attr(type=['sanity', 'ci_sanity'])
     @preposttest_wrapper
     def test_process_restart_with_multiple_vn_vm(self):
         ''' Test to validate that multiple VM creation and deletion passes.

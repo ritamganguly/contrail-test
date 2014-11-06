@@ -403,7 +403,7 @@ class TestBasicPolicyNegative(BasePolicyTest):
     def runTest(self):
         pass
 
-    @test.attr(type='sanity')
+    @test.attr(type=['sanity','ci_sanity'])
     @preposttest_wrapper
     def test_remove_policy_with_ref(self):
         ''' This tests the following scenarios.
