@@ -1,7 +1,7 @@
 from common.neutron.base import BaseNeutronTest
 from tcutils.commands import ssh, execute_cmd, execute_cmd_out
 from fabric.context_managers import settings, hide
-from tcutils.util import run_fab_cmd_on_node
+from tcutils.util import run_fab_cmd_on_node, retry
 import re
 from time import sleep
 
@@ -174,3 +174,76 @@ class BaseTestLbaas(BaseNeutronTest):
         else:
             self.logger.warn("requested action is %s for service %s, but current staus is %s" % (action, service, output))
         return
+
+    @retry(delay=10, tries=10)
+    def verify_lb_pool_in_api_server(self,pool_id):
+        pool = self.api_s_inspect.get_lb_pool(pool_id)
+        if not pool:
+            self.logger.warn("pool with pool id %s not found in api server" % (pool_id))
+            return False
+        self.logger.info("pool with pool id %s created successfully in api server" % (pool_id))
+        return True
+
+    @retry(delay=10, tries=10)
+    def verify_vip_in_api_server(self,vip_id):
+        vip = self.api_s_inspect.get_lb_vip(vip_id)
+        if not vip:
+            self.logger.warn("vip with vip id %s not found in api server" % (vip_id))
+            return False
+        self.logger.info("vip with vip id %s created successfully in api server" % (vip_id))
+        try:
+            if vip['virtual-ip']['virtual_machine_interface_refs']:
+                self.logger.info("virtual machine ref created successfully for VIP with id"
+                                 " %s" %(vip_id))
+        except KeyError:
+            self.logger.warn("virtual machine ref not found in vip with id %s"
+                              % (vip_id))
+            return False
+        try:
+            if vip['virtual-ip']['loadbalancer_pool_refs']:
+                self.logger.info("pool ref created successfully for VIP with id %s"
+                                  % (vip_id))
+        except KeyError:
+            self.logger.warn("pool ref not found in vip with id %s" % (vip_id))
+            return False
+        return True
+
+    @retry(delay=10, tries=10)
+    def verify_member_in_api_server(self,member_id):
+        member = self.api_s_inspect.get_lb_member(member_id)
+        if not member:
+            self.logger.warn("member with member id %s not found in api server" % (member_id))
+            return False
+        self.logger.info("member with member id %s created successfully in api server" % (member_id))
+        return True
+
+    @retry(delay=10, tries=10)
+    def verify_healthmonitor_in_api_server(self,healthmonitor_id):
+        healthmonitor = self.api_s_inspect.get_lb_healthmonitor(healthmonitor_id)
+        if not healthmonitor:
+            self.logger.warn("healthmonitor with id %s not found in api server" % (healthmonitor_id))
+            return False
+        self.logger.info("healthmonitor with id %s created successfully in api server" % (healthmonitor_id))
+        return True
+
+    @retry(delay=10, tries=10)
+    def verify_healthmonitor_association_in_api_server(self, pool_id, healthmonitor_id):
+        result = True
+        pool = self.api_s_inspect.get_lb_pool(pool_id)
+        healthmonitor_refs = pool['loadbalancer-pool']['loadbalancer_healthmonitor_refs']
+        if not healthmonitor_refs:
+            errmsg = ("healthmonitor refs not found in API server for pool %s"
+                       % (pool['loadbalancer-pool']['name']))
+            self.logger.warn(errmsg)
+            return False, errmsg
+        self.logger.debug("healthmonitor refs found in API server for pool %s"
+                           % (pool['loadbalancer-pool']['name']))
+        for href in healthmonitor_refs:
+            if href['uuid'] == healthmonitor_id:
+                self.logger.debug("healthmonitor with id %s associated with pool"
+                                  "  %s" % (healthmonitor_id, pool['loadbalancer-pool']['name']))
+            else:
+                errmsg = ("healthmonitor with id %s not associated with pool"
+                          "  %s" % (healthmonitor_id, pool['loadbalancer-pool']['name']))
+                result = False
+        return result, None

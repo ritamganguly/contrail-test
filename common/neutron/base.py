@@ -411,30 +411,78 @@ class BaseNeutronTest(test.BaseTestCase):
         lb_pool_resp = self.quantum_fixture.create_lb_pool(
             name, lb_method, protocol, subnet_id)
         if lb_pool_resp:
+            self.addCleanup(self.verify_on_pool_delete, lb_pool_resp['id'])
             self.addCleanup(self.quantum_fixture.delete_lb_pool,
                             lb_pool_resp['id'])
         return lb_pool_resp
     # end create_lb_pool
+
+    def verify_on_pool_delete(self, pool_id):
+        result, msg = self.verify_pool_not_in_api_server(pool_id)
+        assert result, msg
+
+    @retry(delay=10, tries=10)
+    def verify_pool_not_in_api_server(self, pool_id):
+        pool = self.api_s_inspect.get_lb_pool(pool_id)
+        if pool:
+            self.logger.warn("pool with pool id %s still present in API"
+                             " server even after pool delete.retrying..." % (pool_id))
+            errmsg = "API server verification failed for pool with pool id %s" % (pool_id)
+            return False, errmsg
+        self.logger.debug("pool with pool id %s not present in API server" % (pool_id))
+        return True, None
 
     def create_lb_member(self, ip_address, protocol_port, pool_id):
         lb_member_resp = None
         lb_member_resp = self.quantum_fixture.create_lb_member(
             ip_address, protocol_port, pool_id)
         if lb_member_resp:
+            self.addCleanup(self.verify_on_member_delete, lb_member_resp['id'])
             self.addCleanup(self.quantum_fixture.delete_lb_member,
                             lb_member_resp['id'])
         return lb_member_resp
     # end create_lb_member
+
+    def verify_on_member_delete(self, member_id):
+        result, msg = self.verify_member_not_in_api_server(member_id)
+        assert result, msg
+
+    @retry(delay=10, tries=10)
+    def verify_member_not_in_api_server(self, member_id):
+        member = self.api_s_inspect.get_lb_member(member_id)
+        if member:
+            self.logger.warn("member with member id %s still present in API"
+                             " server even after member delete" % (member_id))
+            errmsg = "API server verification failed for member with member id %s" % (member_id)
+            assert False, errmsg
+        self.logger.debug("member with member id %s not present in API server" % (member_id))
+        return True, None
 
     def create_health_monitor(self, delay, max_retries, probe_type, timeout):
         hm_resp = None
         hm_resp = self.quantum_fixture.create_health_monitor(
             delay, max_retries, probe_type, timeout)
         if hm_resp:
+            self.addCleanup(self.verify_on_healthmonitor_delete, hm_resp['id'])
             self.addCleanup(self.quantum_fixture.delete_health_monitor,
                             hm_resp['id'])
         return hm_resp
     # end create_health_monitor
+
+    def verify_on_healthmonitor_delete(self, healthmonitor_id):
+        result, msg = self.verify_healthmonitor_not_in_api_server(healthmonitor_id)
+        assert result, msg
+
+    @retry(delay=10, tries=10)
+    def verify_healthmonitor_not_in_api_server(self, healthmonitor_id):
+        healthmonitor = self.api_s_inspect.get_lb_healthmonitor(healthmonitor_id)
+        if healthmonitor:
+            self.logger.warn("healthmonitor with id %s still present in API"
+                             " server even after healthmonitor delete" % (healthmonitor_id))
+            errmsg = "API server verification failed for member with id %s" % (healthmonitor_id)
+            assert False, errmsg
+        self.logger.debug("healthmonitor with id %s not present in API server" % (healthmonitor_id))
+        return True, None
 
     def create_vip(self, name, protocol, protocol_port, subnet_id, pool_id):
         vip_resp = None
@@ -451,9 +499,13 @@ class BaseNeutronTest(test.BaseTestCase):
         result = True
         result, msg = self.verify_vip_delete(vip_id)
         assert result, msg
-        result, msg = self.verify_netns_delete(pool_id)
-        assert result, msg
-        result, msg = self.verify_haproxy_kill(pool_id)
+        for compute_ip in self.inputs.compute_ips:
+            result, msg = self.verify_netns_delete(compute_ip, pool_id)
+            assert result, msg
+        for compute_ip in self.inputs.compute_ips:
+            result, msg = self.verify_haproxy_kill(compute_ip, pool_id)
+            assert result, msg
+        result, msg = self.verify_vip_not_in_api_server(vip_id)
         assert result, msg
     # end verify_on_vip_delete
 
@@ -469,53 +521,93 @@ class BaseNeutronTest(test.BaseTestCase):
     #end verify_vip_delete
 
     @retry(delay=10, tries=10)
-    def verify_netns_delete(self, pool_id):
+    def verify_netns_delete(self, compute_ip, pool_id):
         cmd = 'ip netns list | grep %s' % pool_id
         pool_obj = self.quantum_fixture.get_lb_pool(pool_id)
-        for compute_ip in self.inputs.compute_ips:
-            out = self.inputs.run_cmd_on_server(
-                                       compute_ip, cmd,
-                                       self.inputs.host_data[compute_ip]['username'],
-                                       self.inputs.host_data[compute_ip]['password'])
-            if out:
-                errmsg = ("NET NS: %s still present for pool name: %s with UUID: %s"
-                             " even after VIP delete" % (out, pool_obj['pool']['name'], pool_id))
-                self.logger.error(errmsg)
-                return(False, errmsg)
-            self.logger.debug("NET NS deleted successfully for pool name: %s "
-                                    "with UUID :%s" % (pool_obj['pool']['name'],pool_id))
-            return (True, None)
+        out = self.inputs.run_cmd_on_server(
+                                   compute_ip, cmd,
+                                   self.inputs.host_data[compute_ip]['username'],
+                                   self.inputs.host_data[compute_ip]['password'])
+        if out:
+            self.logger.warn("NET NS: %s still present for pool name: %s with UUID: %s"
+                       " even after VIP delete in compute node %s"
+                       % (out, pool_obj['pool']['name'], pool_id, compute_ip))
+            errmsg = "NET NS still present after vip delete failed in compute %s" % compute_ip
+            return False, errmsg
+        self.logger.debug("NET NS deleted successfully for pool name: %s with"
+                      " UUID :%s in compute node %s" % (pool_obj['pool']['name'],pool_id, compute_ip))
+        return True, None
     # end verify_netns_delete
 
     @retry(delay=10, tries=10)
-    def verify_haproxy_kill(self,pool_id):
+    def verify_haproxy_kill(self, compute_ip, pool_id):
         cmd = 'ps -aux | grep loadbalancer | grep %s' % pool_id
         pool_obj = self.quantum_fixture.get_lb_pool(pool_id)
         pid = []
-        for compute_ip in self.inputs.compute_ips:
-            out = self.inputs.run_cmd_on_server(
-                                       compute_ip, cmd,
-                                       self.inputs.host_data[compute_ip]['username'],
-                                       self.inputs.host_data[compute_ip]['password'])
-            output = out.split('\n')
-            for out in output:
-                match = re.search("nobody\s+(\d+)\s+",out)
-                if match:
-                    pid.append(match.group(1))
+        out = self.inputs.run_cmd_on_server(
+                                   compute_ip, cmd,
+                                   self.inputs.host_data[compute_ip]['username'],
+                                   self.inputs.host_data[compute_ip]['password'])
+        output = out.split('\n')
+        for out in output:
+            match = re.search("nobody\s+(\d+)\s+",out)
+            if match:
+                pid.append(match.group(1))
         if pid:
-            errmsg = ("haproxy still running even after VIP delete for pool name: %s,"
-                                      " UUID: %s" % (pool_obj['pool']['name'], pool_id))
-            self.logger.error(errmsg)
-            return(False, errmsg)
-        self.logger.debug("haproxy process got killed successfully with vip delete"
-                              " for pool name: %s UUID :%s" % (pool_obj['pool']['name'], pool_id))
-        return (True, None)
+            self.loger.warn("haproxy still running even after VIP delete for pool name: %s,"
+                      " with UUID: %s in compute node %s" % (pool_obj['pool']['name'], pool_id, compute_ip))
+            errmsg = "HAPROXY still running after VIP delete failed in compute node %s" % (compute_ip)
+            return False, errmsg
+        self.logger.debug("haproxy process got killed successfully with vip delete for pool"
+                          " name: %s UUID :%s on compute %s" % (pool_obj['pool']['name'], pool_id, compute_ip))
+        return True, None
     # end verify_haproxy_kill
+
+    @retry(delay=10, tries=10)
+    def verify_vip_not_in_api_server(self, vip_id):
+        vip = self.api_s_inspect.get_lb_vip(vip_id)
+        if vip:
+            self.logger.warn("vip with vip id %s still present in API"
+                             " server even after vip delete" % (vip_id))
+            errmsg = "API server verification failed for vip with id %s" % (vip_id)
+            return False, errmsg
+        self.logger.debug("vip with vip id %s not present in API server" % (vip_id))
+        #msg = "vip with vip id %s not present in API server" % (vip_id)
+        return True, None
 
     def associate_health_monitor(self, pool_id, hm_id):
         hm_resp = self.quantum_fixture.associate_health_monitor(
             pool_id, hm_id)
         if hm_resp:
+            self.addCleanup(self.verify_on_disassociate_health_monitor,
+                        pool_id, hm_id)
             self.addCleanup(self.quantum_fixture.disassociate_health_monitor,
                             pool_id, hm_id)
     # end associate_health_monitor
+
+    def verify_on_disassociate_health_monitor(self, pool_id, hm_id):
+        result,msg = self.verify_disassociate_health_monitor(pool_id, hm_id)
+        assert result, msg
+    #end verify_on_disassociate_health_monitor
+
+    @retry(delay=10, tries=10)
+    def verify_disassociate_health_monitor(self, pool_id, hm_id):
+        pool = self.api_s_inspect.get_lb_pool(pool_id)
+        try:
+            healthmonitor_refs = pool['loadbalancer-pool']['loadbalancer_healthmonitor_refs']
+            for href in healthmonitor_refs:
+                if href['uuid'] == healthmonitor_id:
+                    self.logger.warn("healthmonitor with id %s associated with pool"
+                                "  %s" % (healthmonitor_id, pool['loadbalancer-pool']['name']))
+                    errmsg = ("API server verification failed, health monitor %s still associated"
+                             " with pool %s" % (healthmonitor_id, ool['loadbalancer-pool']['name']))
+                    return False, errmsg
+                else:
+                    self.logger.debug("healthmonitor with id %s successfully disassociated with pool"
+                                     "  %s" % (healthmonitor_id, pool['loadbalancer-pool']['name']))
+                    return True, None
+        except KeyError:
+            self.logger.debug("healthmonitor refs not found in API server for pool %s"
+                               % (pool['loadbalancer-pool']['name']))
+            return True, None
+    # end verify_disassociate_health_monitor
